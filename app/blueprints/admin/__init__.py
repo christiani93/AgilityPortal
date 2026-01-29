@@ -1,0 +1,1 @@
+"""Admin blueprints for AgilityPortal."""
