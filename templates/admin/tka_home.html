@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>TKAMO Admin</title>
+  </head>
+  <body>
+    <h1>TKAMO Admin</h1>
+    <ul>
+      <li><a href="/admin/tka/master/export?key={{ admin_key }}">Master Export (CSV)</a></li>
+    </ul>
+
+    <h2>Event Export</h2>
+    <form id="event-form">
+      <label for="event_id">Event ID</label>
+      <input id="event_id" name="event_id" type="number" required />
+      <button type="submit">Event öffnen</button>
+    </form>
+
+    <h2>Master Import</h2>
+    <form method="post" action="/admin/tka/master/import?key={{ admin_key }}" enctype="multipart/form-data">
+      <label for="batch_id">Batch ID</label>
+      <input id="batch_id" name="batch_id" type="number" />
+      <div>
+        <label for="raw_text">Text</label>
+        <textarea id="raw_text" name="raw_text" rows="6" cols="60"></textarea>
+      </div>
+      <div>
+        <label for="file">Datei</label>
+        <input id="file" name="file" type="file" />
+      </div>
+      <button type="submit">Importieren</button>
+    </form>
+
+    <script>
+      document.getElementById("event-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const eventId = document.getElementById("event_id").value;
+        if (eventId) {
+          window.location.href = `/admin/tka/events/${eventId}?key={{ admin_key }}`;
+        }
+      });
+    </script>
+  </body>
+</html>
