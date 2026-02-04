@@ -33,3 +33,12 @@ Beispiel-URLs (lokal):
 - http://localhost:5000/admin/tka?key=dev-admin-key
 - http://localhost:5000/admin/tka/dev/seed?key=dev-admin-key
 - http://localhost:5000/admin/tka/events/1/export?key=dev-admin-key
+- http://localhost:5000/admin/exchange/events/1/export?key=dev-admin-key
+
+LiveUpdate API:
+
+- POST /api/liveupdate mit Header `X-Api-Key: dev-live-key`
+
+ResultExport API:
+
+- POST /api/resultexport mit Header `X-Api-Key: dev-results-key`

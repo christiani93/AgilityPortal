@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Billing Mode – {{ event.name }}</title>
+  </head>
+  <body>
+    <h1>Billing Mode – {{ event.name }}</h1>
+
+    <form method="post" action="/admin/events/{{ event.id }}/billing?key={{ admin_key }}">
+      <label for="billing_mode">Abrechnungsmodus</label>
+      <select id="billing_mode" name="billing_mode">
+        {% for mode in billing_modes %}
+          <option value="{{ mode }}" {% if event.billing_mode.value == mode %}selected{% endif %}>
+            {{ mode }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <div>
+        <label for="billing_notes">Notizen</label>
+        <textarea id="billing_notes" name="billing_notes" rows="4" cols="50">{{ event.billing_notes or "" }}</textarea>
+      </div>
+
+      <button type="submit">Speichern</button>
+    </form>
+  </body>
+</html>

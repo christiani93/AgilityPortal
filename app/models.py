@@ -68,6 +68,11 @@ class TkaIssueType(enum.Enum):
     PARSER_UNKNOWN_FORMAT = "PARSER_UNKNOWN_FORMAT"
 
 
+class BillingMode(enum.Enum):
+    PORTAL = "PORTAL"
+    ORGANIZER = "ORGANIZER"
+
+
 class User(db.Model):
     __tablename__ = "users"
 
@@ -85,6 +90,7 @@ class Person(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
+    external_id = db.Column(db.String(64), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -96,6 +102,7 @@ class Dog(db.Model):
     license_no = db.Column(db.String(50), unique=True, nullable=False)
     license_kind = db.Column(db.Enum(LicenseKind, name="license_kind"), nullable=False)
     foreign_country_code = db.Column(db.String(3))
+    external_id = db.Column(db.String(64), unique=True)
     tka_master_status = db.Column(
         db.Enum(TkaMasterStatus, name="tka_master_status"),
         default=TkaMasterStatus.PENDING,
@@ -181,6 +188,22 @@ class Event(db.Model):
     location = db.Column(db.String(200))
     starts_at = db.Column(db.DateTime)
     ends_at = db.Column(db.DateTime)
+    external_id = db.Column(db.String(64), unique=True)
+    billing_mode = db.Column(
+        db.Enum(BillingMode, name="billing_mode"),
+        default=BillingMode.ORGANIZER,
+        nullable=False,
+    )
+    billing_notes = db.Column(db.Text)
+    is_completed = db.Column(db.Boolean, default=False, nullable=False)
+    is_published = db.Column(db.Boolean, default=False, nullable=False)
+    startlist_public = db.Column(db.Boolean, default=False, nullable=False)
+    schedule_public = db.Column(db.Boolean, default=False, nullable=False)
+    results_public = db.Column(db.Boolean, default=False, nullable=False)
+    start_numbers_locked = db.Column(db.Boolean, default=False, nullable=False)
+    start_numbers_generated_at = db.Column(db.DateTime)
+    start_numbers_rule_set = db.Column(db.Text)
+    schedule_locked = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -191,6 +214,8 @@ class Registration(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
     dog_id = db.Column(db.Integer, db.ForeignKey("dogs.id"), nullable=False)
     handler_id = db.Column(db.Integer, db.ForeignKey("people.id"))
+    external_id = db.Column(db.String(64), unique=True)
+    club_name = db.Column(db.String(200))
     status = db.Column(
         db.Enum(RegistrationStatus, name="registration_status"),
         default=RegistrationStatus.PENDING,
@@ -294,6 +319,131 @@ class TkaFinding(db.Model):
     tka_import = db.relationship("TkaImport", back_populates="findings")
     registration = db.relationship("Registration")
     dog = db.relationship("Dog")
+
+
+class ExchangeExportLog(db.Model):
+    __tablename__ = "exchange_export_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    export_type = db.Column(db.String(50), nullable=False)
+    schema = db.Column(db.String(100), nullable=False)
+    file_path = db.Column(db.String(255))
+    sha256 = db.Column(db.String(64))
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class LiveUpdate(db.Model):
+    __tablename__ = "live_updates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"))
+    event_external_id = db.Column(db.String(64), index=True, nullable=False)
+    source_system = db.Column(db.String(100), nullable=False)
+    source_version = db.Column(db.String(50))
+    source_device = db.Column(db.String(100), index=True, nullable=False)
+    sent_at = db.Column(db.DateTime)
+    sequence_no = db.Column(db.Integer, nullable=False)
+    payload_json = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "event_external_id",
+            "source_device",
+            "sequence_no",
+            name="uq_live_updates_event_device_seq",
+        ),
+    )
+
+
+class ResultImport(db.Model):
+    __tablename__ = "result_imports"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"))
+    schema = db.Column(db.String(100), nullable=False)
+    exported_at = db.Column(db.DateTime)
+    final = db.Column(db.Boolean, default=False, nullable=False)
+    zip_path = db.Column(db.String(255))
+    sha256 = db.Column(db.String(64))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Result(db.Model):
+    __tablename__ = "results"
+
+    id = db.Column(db.Integer, primary_key=True)
+    result_import_id = db.Column(db.Integer, db.ForeignKey("result_imports.id"), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"))
+    ring = db.Column(db.String(50))
+    discipline = db.Column(db.String(100))
+    category_code = db.Column(db.String(20))
+    class_level = db.Column(db.Integer)
+    run_no = db.Column(db.Integer)
+    registration_external_id = db.Column(db.String(64), index=True)
+    start_no = db.Column(db.Integer)
+    rank = db.Column(db.Integer)
+    time_s = db.Column(db.Float)
+    faults = db.Column(db.Integer)
+    refusals = db.Column(db.Integer)
+    eliminated = db.Column(db.Boolean)
+    status = db.Column(db.String(50))
+    dog_name = db.Column(db.String(120))
+    handler_name = db.Column(db.String(120))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Document(db.Model):
+    __tablename__ = "documents"
+
+    id = db.Column(db.Integer, primary_key=True)
+    result_import_id = db.Column(db.Integer, db.ForeignKey("result_imports.id"), nullable=False)
+    kind = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    path = db.Column(db.String(255), nullable=False)
+    sha256 = db.Column(db.String(64))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class StartNumber(db.Model):
+    __tablename__ = "start_numbers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    registration_id = db.Column(db.Integer, db.ForeignKey("registrations.id"), nullable=False)
+    start_no = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("event_id", "registration_id", name="uq_start_numbers_event_reg"),
+        db.UniqueConstraint("event_id", "start_no", name="uq_start_numbers_event_start_no"),
+    )
+
+
+class ScheduleBlock(db.Model):
+    __tablename__ = "schedule_blocks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False, index=True)
+    ring = db.Column(db.String(50), default="Ring 1", nullable=False)
+    start_at = db.Column(db.DateTime, index=True)
+    discipline = db.Column(db.String(20), nullable=False)
+    category_code = db.Column(db.String(20), nullable=False)
+    class_level = db.Column(db.Integer, nullable=False)
+    notes = db.Column(db.Text)
+    sort_index = db.Column(db.Integer, index=True, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        CheckConstraint("class_level in (1, 2, 3)", name="ck_schedule_blocks_class_level"),
+        CheckConstraint(
+            "category_code in ('Small','Medium','Intermediate','Large')",
+            name="ck_schedule_blocks_category_code",
+        ),
+    )
 
 
 @event.listens_for(Dog, "before_insert")

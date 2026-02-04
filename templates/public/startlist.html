@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Startliste – {{ event.name }}</title>
+  </head>
+  <body>
+    <h1>Startliste – {{ event.name }}</h1>
+
+    {% if not has_numbers %}
+      <p>Startnummern sind noch nicht verfügbar.</p>
+    {% else %}
+      <table border="1" cellpadding="4" cellspacing="0">
+        <thead>
+          <tr>
+            <th>Start No</th>
+            <th>Dog</th>
+            <th>Handler</th>
+            <th>Category</th>
+            <th>Class</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.start_no }}</td>
+              <td>{{ row.dog_name }}</td>
+              <td>{{ row.handler_name }}</td>
+              <td>{{ row.category_code }}</td>
+              <td>{{ row.class_level }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </body>
+</html>

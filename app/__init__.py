@@ -18,6 +18,8 @@ def create_app(config_name=None):
     app.config.setdefault("SQLALCHEMY_DATABASE_URI", database_uri)
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
     app.config.setdefault("ADMIN_KEY", os.environ.get("ADMIN_KEY", "dev-admin-key"))
+    app.config.setdefault("LIVE_API_KEY", os.environ.get("LIVE_API_KEY", "dev-live-key"))
+    app.config.setdefault("RESULTS_API_KEY", os.environ.get("RESULTS_API_KEY", "dev-results-key"))
 
     db.init_app(app)
     register_blueprints(app)
