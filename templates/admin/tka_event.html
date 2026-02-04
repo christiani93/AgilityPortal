@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>TKAMO Event {{ event_id }}</title>
+  </head>
+  <body>
+    <h1>TKAMO Event {{ event_id }}</h1>
+
+    <p>
+      <a href="/admin/tka/events/{{ event_id }}/export?key={{ admin_key }}">Event Export (CSV)</a>
+    </p>
+
+    <h2>Event Import</h2>
+    <form
+      method="post"
+      action="/admin/tka/events/{{ event_id }}/import?key={{ admin_key }}"
+      enctype="multipart/form-data"
+    >
+      <label for="batch_id">Batch ID</label>
+      <input id="batch_id" name="batch_id" type="number" />
+      <div>
+        <label for="raw_text">Text</label>
+        <textarea id="raw_text" name="raw_text" rows="6" cols="60"></textarea>
+      </div>
+      <div>
+        <label for="file">Datei</label>
+        <input id="file" name="file" type="file" />
+      </div>
+      <button type="submit">Importieren</button>
+    </form>
+  </body>
+</html>

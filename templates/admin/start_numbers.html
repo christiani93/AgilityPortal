@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Startnummern – {{ event.name }}</title>
+  </head>
+  <body>
+    <h1>Startnummern – {{ event.name }}</h1>
+
+    <p>Status: {{ "LOCKED" if event.start_numbers_locked else "UNLOCKED" }}</p>
+    <p>Generated at: {{ event.start_numbers_generated_at or "-" }}</p>
+    <p>Rule set: {{ rule_set or "-" }}</p>
+
+    <form method="post" action="/admin/events/{{ event.id }}/startnumbers/generate?key={{ admin_key }}">
+      <fieldset>
+        <legend>Generate Random</legend>
+        <input type="hidden" name="mode" value="RANDOM" />
+        <label for="seed_random">Seed (optional)</label>
+        <input id="seed_random" name="seed" type="number" />
+        <button type="submit">Generate Random</button>
+      </fieldset>
+    </form>
+
+    <form method="post" action="/admin/events/{{ event.id }}/startnumbers/generate?key={{ admin_key }}">
+      <fieldset>
+        <legend>Generate Club-Priority</legend>
+        <input type="hidden" name="mode" value="CLUB_PRIO" />
+        <label for="club_name">Club Name</label>
+        <input id="club_name" name="club_name" type="text" />
+        <label>
+          <input type="checkbox" name="random_club_first" />
+          Random club first
+        </label>
+        <label for="seed_club">Seed (optional)</label>
+        <input id="seed_club" name="seed" type="number" />
+        <button type="submit">Generate Club-Prio</button>
+      </fieldset>
+    </form>
+
+    <form method="post" action="/admin/events/{{ event.id }}/startnumbers/lock?key={{ admin_key }}">
+      <button type="submit">Lock</button>
+    </form>
+    <form method="post" action="/admin/events/{{ event.id }}/startnumbers/unlock?key={{ admin_key }}">
+      <button type="submit">Unlock</button>
+    </form>
+
+    <table border="1" cellpadding="4" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Start No</th>
+          <th>License</th>
+          <th>Dog</th>
+          <th>Handler</th>
+          <th>Club</th>
+          <th>Category</th>
+          <th>Class</th>
+          <th>Manual Set</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.start_no }}</td>
+            <td>{{ row.license_no }}</td>
+            <td>{{ row.dog_name }}</td>
+            <td>{{ row.handler_name }}</td>
+            <td>{{ row.club_name }}</td>
+            <td>{{ row.category_code }}</td>
+            <td>{{ row.class_level }}</td>
+            <td>
+              <form method="post" action="/admin/events/{{ event.id }}/startnumbers/set?key={{ admin_key }}">
+                <input type="hidden" name="registration_id" value="{{ row.registration_id }}" />
+                <input name="new_start_no" type="number" value="{{ row.start_no }}" />
+                <button type="submit">Save</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

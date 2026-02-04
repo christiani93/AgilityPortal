@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zeitplan – {{ event.name }}</title>
+  </head>
+  <body>
+    <h1>Zeitplan – {{ event.name }}</h1>
+
+    <p>Status: {{ "LOCKED" if event.schedule_locked else "UNLOCKED" }}</p>
+
+    <form method="post" action="/admin/events/{{ event.id }}/schedule/auto?key={{ admin_key }}">
+      <button type="submit">Auto-generate from registrations</button>
+    </form>
+    <form method="post" action="/admin/events/{{ event.id }}/schedule/lock?key={{ admin_key }}">
+      <button type="submit">Lock</button>
+    </form>
+    <form method="post" action="/admin/events/{{ event.id }}/schedule/unlock?key={{ admin_key }}">
+      <button type="submit">Unlock</button>
+    </form>
+
+    <h2>Add block</h2>
+    <form method="post" action="/admin/events/{{ event.id }}/schedule/add?key={{ admin_key }}">
+      <input name="ring" placeholder="Ring 1" />
+      <input name="start_at" placeholder="2026-05-10T08:00:00" />
+      <select name="discipline">
+        <option value="Agility">Agility</option>
+        <option value="Jumping">Jumping</option>
+      </select>
+      <select name="category_code">
+        <option>Small</option>
+        <option>Medium</option>
+        <option>Intermediate</option>
+        <option>Large</option>
+      </select>
+      <select name="class_level">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+      <input name="notes" placeholder="Notes" />
+      <button type="submit">Add block</button>
+    </form>
+
+    <table border="1" cellpadding="4" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Ring</th>
+          <th>Start</th>
+          <th>Discipline</th>
+          <th>Category</th>
+          <th>Class</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for block in blocks %}
+          <tr>
+            <form method="post" action="/admin/events/{{ event.id }}/schedule/update?key={{ admin_key }}">
+              <td><input name="ring" value="{{ block.ring }}" /></td>
+              <td>
+                <input
+                  name="start_at"
+                  value="{{ block.start_at.isoformat() if block.start_at else '' }}"
+                />
+              </td>
+              <td>
+                <select name="discipline">
+                  <option value="Agility" {% if block.discipline == 'Agility' %}selected{% endif %}>Agility</option>
+                  <option value="Jumping" {% if block.discipline == 'Jumping' %}selected{% endif %}>Jumping</option>
+                </select>
+              </td>
+              <td>
+                <select name="category_code">
+                  {% for cat in ['Small','Medium','Intermediate','Large'] %}
+                    <option value="{{ cat }}" {% if block.category_code == cat %}selected{% endif %}>{{ cat }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <select name="class_level">
+                  {% for level in [1,2,3] %}
+                    <option value="{{ level }}" {% if block.class_level == level %}selected{% endif %}>{{ level }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td><input name="notes" value="{{ block.notes or '' }}" /></td>
+              <td>
+                <input type="hidden" name="block_id" value="{{ block.id }}" />
+                <button type="submit">Save</button>
+              </td>
+            </form>
+            <td>
+              <form method="post" action="/admin/events/{{ event.id }}/schedule/move?key={{ admin_key }}">
+                <input type="hidden" name="block_id" value="{{ block.id }}" />
+                <input type="hidden" name="direction" value="up" />
+                <button type="submit">Up</button>
+              </form>
+              <form method="post" action="/admin/events/{{ event.id }}/schedule/move?key={{ admin_key }}">
+                <input type="hidden" name="block_id" value="{{ block.id }}" />
+                <input type="hidden" name="direction" value="down" />
+                <button type="submit">Down</button>
+              </form>
+              <form method="post" action="/admin/events/{{ event.id }}/schedule/delete?key={{ admin_key }}">
+                <input type="hidden" name="block_id" value="{{ block.id }}" />
+                <button type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
