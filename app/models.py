@@ -4,6 +4,8 @@ from datetime import datetime
 
 from sqlalchemy import CheckConstraint, event
 from sqlalchemy.orm import validates
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 from .extensions import db
 
@@ -73,13 +75,69 @@ class BillingMode(enum.Enum):
     ORGANIZER = "ORGANIZER"
 
 
-class User(db.Model):
+# ---------------------------------------------------------------------------
+# Verein
+# ---------------------------------------------------------------------------
+
+class Club(db.Model):
+    """SKG-Verein. vereinsnummer ist die offizielle SKG-Nummer."""
+    __tablename__ = "clubs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    vereinsnummer = db.Column(db.String(20), unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=True)
+    phone = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    users = db.relationship("User", back_populates="club")
+
+    def __repr__(self):
+        return f"<Club {self.vereinsnummer} {self.name}>"
+
+
+# ---------------------------------------------------------------------------
+# Benutzer (Portal-Login)
+# ---------------------------------------------------------------------------
+
+class User(UserMixin, db.Model):
+    """
+    Portal-Benutzer.
+    role: 'club_admin' = Vereins-Admin, 'handler' = Hundeführer, None = allgemein
+    """
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    role = db.Column(db.String(20), nullable=True)        # club_admin / handler
+    first_name = db.Column(db.String(100), nullable=True)
+    last_name = db.Column(db.String(100), nullable=True)
+    club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    club = db.relationship("Club", back_populates="users")
+
+    def set_password(self, password: str) -> None:
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash or "", password)
+
+    @property
+    def full_name(self):
+        if self.first_name or self.last_name:
+            return f"{self.first_name or ''} {self.last_name or ''}".strip()
+        return self.email
+
+    @property
+    def is_club_admin(self):
+        return self.role == "club_admin"
+
+    @property
+    def is_handler_role(self):
+        return self.role == "handler"
 
 
 class Person(db.Model):
@@ -181,6 +239,33 @@ class DogAuthorization(db.Model):
 
 
 class Event(db.Model):
+    """
+    Agility-Turnier/Veranstaltung.
+
+    type:
+        regular        — normales Vereinsturnier
+        sm             — Schweizermeisterschaft Einzel
+        asmv_quali     — ASMV-Qualifikation
+        asmv_final     — ASMV-Final
+        eo_quali       — EO-Qualifikation
+        wm_quali       — WM-Qualifikation
+        sao_quali      — SAO-Qualifikation
+        jao_quali      — JAO-Qualifikation
+
+    special_ruleset: Spezialturniere mit Zusatzreglement
+        halloween_cup, advents_cup, edelweiss_challenge, ...
+
+    status:
+        draft    — in Vorbereitung
+        open     — Anmeldungen offen
+        closed   — Anmeldungen geschlossen
+        cancelled — abgesagt
+
+    TKAMO-Fristen (automatisch prüfen):
+        -14 Tage: Richterangaben vollständig → sonst gesperrt
+        -3 Tage:  Zeitplan für Teilnehmer publiziert
+        +0 Tage:  Lizenz-Check + Resultate gleichentags einreichen
+    """
     __tablename__ = "events"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -189,22 +274,71 @@ class Event(db.Model):
     starts_at = db.Column(db.DateTime)
     ends_at = db.Column(db.DateTime)
     external_id = db.Column(db.String(64), unique=True)
+
+    # TKAMO-Felder
+    ais_turniernummer = db.Column(db.Integer, unique=True, nullable=True)
+    type = db.Column(db.String(20), default="regular", nullable=False)
+    special_ruleset = db.Column(db.String(50), nullable=True)
+    status = db.Column(db.String(20), default="draft", nullable=False)
+    organiser_club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=True)
+    pruefungsleiter = db.Column(db.String(255), nullable=True)
+    judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
+    judge2_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
+    allows_bitches_in_season = db.Column(db.Boolean, default=False, nullable=False)
+    is_breed_restricted = db.Column(db.Boolean, default=False, nullable=False)
+    registration_open_at = db.Column(db.DateTime, nullable=True)
+    registration_close_at = db.Column(db.DateTime, nullable=True)
+    lizenzcheck_done_at = db.Column(db.DateTime, nullable=True)
+    results_submitted_at = db.Column(db.DateTime, nullable=True)
+
+    # Billing
     billing_mode = db.Column(
         db.Enum(BillingMode, name="billing_mode"),
         default=BillingMode.ORGANIZER,
         nullable=False,
     )
     billing_notes = db.Column(db.Text)
+
+    # Sichtbarkeits-Flags
     is_completed = db.Column(db.Boolean, default=False, nullable=False)
     is_published = db.Column(db.Boolean, default=False, nullable=False)
     startlist_public = db.Column(db.Boolean, default=False, nullable=False)
     schedule_public = db.Column(db.Boolean, default=False, nullable=False)
     results_public = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Sperr-Flags
     start_numbers_locked = db.Column(db.Boolean, default=False, nullable=False)
     start_numbers_generated_at = db.Column(db.DateTime)
     start_numbers_rule_set = db.Column(db.Text)
     schedule_locked = db.Column(db.Boolean, default=False, nullable=False)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    organiser_club = db.relationship("Club", foreign_keys=[organiser_club_id])
+    judge = db.relationship("Judge", foreign_keys=[judge_id])
+    judge2 = db.relationship("Judge", foreign_keys=[judge2_id])
+
+    TYPE_LABELS = {
+        "regular": "Reguläres Turnier",
+        "sm": "Schweizermeisterschaft",
+        "asmv_quali": "ASMV-Qualifikation",
+        "asmv_final": "ASMV-Final",
+        "eo_quali": "EO-Qualifikation",
+        "wm_quali": "WM-Qualifikation",
+        "sao_quali": "SAO-Qualifikation",
+        "jao_quali": "JAO-Qualifikation",
+    }
+
+    SPECIAL_RULESET_LABELS = {
+        "halloween_cup": "Halloween Cup",
+        "advents_cup": "Advents Cup",
+        "edelweiss_challenge": "Edelweiss Challenge",
+    }
+
+    @property
+    def is_qualifier(self):
+        return self.type in {"sm", "asmv_quali", "asmv_final",
+                             "eo_quali", "wm_quali", "sao_quali", "jao_quali"}
 
 
 class Registration(db.Model):
@@ -452,3 +586,73 @@ def _apply_dog_license_kind_defaults(mapper, connection, target):
     if target.license_kind and target.license_no:
         Dog._validate_license_format(target.license_kind, target.license_no)
     target.apply_license_kind_defaults()
+
+
+# ---------------------------------------------------------------------------
+# Richter
+# ---------------------------------------------------------------------------
+
+class Judge(db.Model):
+    """TKAMO-Richter. ais_judge_id ist die offizielle AIS-Richternummer."""
+    __tablename__ = "judges"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ais_judge_id = db.Column(db.Integer, unique=True, nullable=True)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    def __repr__(self):
+        return f"<Judge {self.ais_judge_id} {self.full_name}>"
+
+
+# ---------------------------------------------------------------------------
+# ASMV-Stafette (vorbereitet — wird aktiviert wenn normale Turniere laufen)
+# ---------------------------------------------------------------------------
+
+class AsmvTeam(db.Model):
+    """
+    ASMV-Mannschaft für die Stafette.
+    team_id ist die offizielle TKAMO ASMV-Mannschaftsnummer.
+    """
+    __tablename__ = "asmv_teams"
+
+    id = db.Column(db.Integer, primary_key=True)
+    team_id = db.Column(db.Integer, unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=True)
+    kategorie = db.Column(db.String(20), nullable=False)  # Large/Medium/Small
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    club = db.relationship("Club")
+    members = db.relationship("AsmvTeamMember", back_populates="team",
+                              cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<AsmvTeam {self.team_id} {self.name}>"
+
+
+class AsmvTeamMember(db.Model):
+    """Mitglied einer ASMV-Mannschaft (Person + Hund)."""
+    __tablename__ = "asmv_team_members"
+    __table_args__ = (
+        db.UniqueConstraint("team_id", "person_id", name="uq_asmv_team_person"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    team_id = db.Column(db.Integer, db.ForeignKey("asmv_teams.id"), nullable=False)
+    person_id = db.Column(db.Integer, db.ForeignKey("people.id"), nullable=False)
+    dog_id = db.Column(db.Integer, db.ForeignKey("dogs.id"), nullable=True)
+    is_substitute = db.Column(db.Boolean, default=False, nullable=False)
+
+    team = db.relationship("AsmvTeam", back_populates="members")
+    person = db.relationship("Person")
+    dog = db.relationship("Dog")
+
+    def __repr__(self):
+        return f"<AsmvTeamMember team={self.team_id} person={self.person_id}>"
