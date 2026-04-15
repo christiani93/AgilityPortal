@@ -20,7 +20,10 @@
 </div>
 
 {# Status-Badge #}
-<div class="mb-4">
+<div class="mb-4 d-flex align-items-center gap-2 flex-wrap">
+  {% if event.ais_turniernummer %}
+    <span class="badge bg-dark">AIS-Nr. {{ event.ais_turniernummer }}</span>
+  {% endif %}
   {% if event.status == 'open' %}
     <span class="badge bg-success">Offen</span>
   {% elif event.status == 'closed' %}
@@ -30,7 +33,7 @@
   {% else %}
     <span class="badge bg-light text-dark border">Entwurf</span>
   {% endif %}
-  <span class="badge bg-light text-dark border ms-1">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
+  <span class="badge bg-light text-dark border">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
 </div>
 
 {# Läufe #}

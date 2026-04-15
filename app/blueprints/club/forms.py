@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField, IntegerField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
 
 
@@ -40,6 +40,7 @@ class ChangePasswordForm(FlaskForm):
 # ---------------------------------------------------------------------------
 
 class EventForm(FlaskForm):
+    ais_turniernummer = IntegerField("Turnier-ID (AIS)", validators=[Optional()])
     name = StringField("Turniername", validators=[DataRequired(), Length(max=200)])
     location = StringField("Ort", validators=[Optional(), Length(max=200)])
     starts_at = DateField("Von (Datum)", validators=[DataRequired()])
