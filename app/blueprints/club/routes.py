@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, abort, r
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, Club, Event, EventRun
+from app.models import User, Club, Event, EventRun, Judge
 from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm
 
 club_bp = Blueprint("club", __name__, url_prefix="/club")
@@ -248,7 +248,11 @@ def event_detail(event_id):
         abort(404)
     _assert_event_access(event)
     run_form = EventRunForm()
-    return render_template("club/event_detail.html", event=event, run_form=run_form)
+    judges = db.session.execute(
+        db.select(Judge).order_by(Judge.last_name, Judge.first_name)
+    ).scalars().all()
+    return render_template("club/event_detail.html", event=event, run_form=run_form,
+                           judges=judges)
 
 
 @club_bp.get("/events/<int:event_id>/edit")
@@ -316,6 +320,22 @@ def event_run_add(event_id):
             ))
             db.session.commit()
             flash("Lauf hinzugefügt.", "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/runs/<int:run_id>/judge")
+@login_required
+def event_run_set_judge(event_id, run_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    run = db.session.get(EventRun, run_id)
+    if not run or run.event_id != event_id:
+        abort(404)
+    judge_id = request.form.get("judge_id", type=int)
+    run.judge_id = judge_id if judge_id and judge_id != 0 else None
+    db.session.commit()
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 

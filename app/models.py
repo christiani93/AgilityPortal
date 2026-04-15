@@ -379,9 +379,11 @@ class EventRun(db.Model):
     run_type = db.Column(db.String(20), nullable=False)   # agility / jumping / open
     category = db.Column(db.String(5), nullable=False)    # S / M / I / L
     class_level = db.Column(db.Integer, nullable=False)   # 1 / 2 / 3
+    judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     event = db.relationship("Event", back_populates="runs")
+    judge = db.relationship("Judge")
 
     RUN_TYPE_LABELS = {
         "agility": "Agility",

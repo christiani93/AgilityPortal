@@ -53,6 +53,7 @@
               <th>Typ</th>
               <th>Kategorie</th>
               <th>Klasse</th>
+              <th>Richter</th>
               <th></th>
             </tr>
           </thead>
@@ -70,6 +71,25 @@
               </td>
               <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
               <td>Klasse {{ run.class_level }}</td>
+              <td>
+                <form method="post"
+                      action="{{ url_for('club.event_run_set_judge', event_id=event.id, run_id=run.id) }}"
+                      class="d-flex align-items-center gap-1">
+                  {{ run_form.hidden_tag() }}
+                  <select name="judge_id" class="form-select form-select-sm"
+                          style="min-width:160px;"
+                          onchange="this.form.submit()">
+                    <option value="0">— kein Richter —</option>
+                    {% for judge in judges %}
+                    <option value="{{ judge.id }}"
+                      {% if run.judge_id == judge.id %}selected{% endif %}>
+                      {{ judge.full_name }}
+                      {% if judge.ais_judge_id %}({{ judge.ais_judge_id }}){% endif %}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </td>
               <td class="text-end">
                 <form method="post"
                       action="{{ url_for('club.event_run_delete', event_id=event.id, run_id=run.id) }}"
