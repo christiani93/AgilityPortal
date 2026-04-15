@@ -132,8 +132,17 @@ class User(UserMixin, db.Model):
         return self.email
 
     @property
+    def is_superadmin(self):
+        return self.role == "superadmin"
+
+    @property
     def is_club_admin(self):
-        return self.role == "club_admin"
+        return self.role in ("club_admin", "superadmin")
+
+    @property
+    def can_manage_club(self):
+        """True wenn der User Turniere verwalten darf (club_admin oder superadmin)."""
+        return self.role in ("club_admin", "superadmin")
 
     @property
     def is_handler_role(self):

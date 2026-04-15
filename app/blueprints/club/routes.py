@@ -11,54 +11,84 @@ club_bp = Blueprint("club", __name__, url_prefix="/club")
 
 
 def club_admin_required(f):
-    """Decorator: nur club_admin darf diese Route aufrufen."""
+    """Decorator: nur club_admin oder superadmin darf diese Route aufrufen."""
     @wraps(f)
     @login_required
     def decorated(*args, **kwargs):
-        if not current_user.is_club_admin:
+        if not current_user.can_manage_club:
             abort(403)
         return f(*args, **kwargs)
     return decorated
 
 
+def _club_for_user():
+    """Gibt den Club des aktuellen Users zurück, oder None bei superadmin."""
+    if current_user.is_superadmin:
+        return None
+    return current_user.club
+
+
+def _events_for_club(club):
+    """Gibt Events für einen Club zurück, oder alle Events bei superadmin."""
+    if current_user.is_superadmin:
+        return (
+            db.session.execute(
+                db.select(Event).order_by(Event.starts_at.desc())
+            ).scalars().all()
+        )
+    if not club:
+        return []
+    return (
+        db.session.execute(
+            db.select(Event)
+            .filter_by(organiser_club_id=club.id)
+            .order_by(Event.starts_at.desc())
+        ).scalars().all()
+    )
+
+
 # ---------------------------------------------------------------------------
-# Dashboard — für alle eingeloggten Vereinsbenutzer
+# Dashboard
 # ---------------------------------------------------------------------------
 
 @club_bp.get("/")
 @login_required
 def dashboard():
-    club = current_user.club
-    events = []
-    if club:
-        events = (
-            db.session.execute(
-                db.select(Event)
-                .filter_by(organiser_club_id=club.id)
-                .order_by(Event.starts_at.desc())
-            )
-            .scalars()
-            .all()
-        )
+    club = _club_for_user()
+    events = _events_for_club(club)
+
+    # Superadmin: Vereinsübersicht statt einzelnem Vereins-Dashboard
+    if current_user.is_superadmin:
+        clubs = db.session.execute(
+            db.select(Club).order_by(Club.name)
+        ).scalars().all()
+        return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events)
+
     return render_template("club/dashboard.html", club=club, events=events)
 
 
 # ---------------------------------------------------------------------------
-# Benutzerverwaltung — nur club_admin
+# Benutzerverwaltung — club_admin oder superadmin
 # ---------------------------------------------------------------------------
 
 @club_bp.get("/users")
 @club_admin_required
 def users():
-    members = (
-        db.session.execute(
-            db.select(User)
-            .filter_by(club_id=current_user.club_id)
-            .order_by(User.last_name, User.first_name)
+    if current_user.is_superadmin:
+        # Superadmin sieht alle Benutzer
+        members = (
+            db.session.execute(
+                db.select(User).order_by(User.last_name, User.first_name)
+            ).scalars().all()
         )
-        .scalars()
-        .all()
-    )
+    else:
+        members = (
+            db.session.execute(
+                db.select(User)
+                .filter_by(club_id=current_user.club_id)
+                .order_by(User.last_name, User.first_name)
+            ).scalars().all()
+        )
     return render_template("club/users.html", members=members)
 
 
@@ -81,7 +111,7 @@ def add_user():
                 first_name=form.first_name.data.strip(),
                 last_name=form.last_name.data.strip(),
                 role=form.role.data,
-                club_id=current_user.club_id,
+                club_id=current_user.club_id,  # None bei superadmin
                 is_active=True,
             )
             user.set_password(form.password.data)
@@ -97,13 +127,16 @@ def add_user():
 @club_admin_required
 def deactivate_user(user_id):
     user = db.session.get(User, user_id)
-    if not user or user.club_id != current_user.club_id:
+    if not user:
+        abort(404)
+    # club_admin darf nur eigene Vereinsmitglieder verwalten
+    if not current_user.is_superadmin and user.club_id != current_user.club_id:
         abort(404)
     if user.id == current_user.id:
         flash("Du kannst deinen eigenen Account nicht deaktivieren.", "danger")
         return redirect(url_for("club.users"))
-    if user.is_club_admin:
-        flash("Andere Club-Admins können nicht deaktiviert werden.", "danger")
+    if user.is_superadmin:
+        flash("Superadmin-Accounts können nicht deaktiviert werden.", "danger")
         return redirect(url_for("club.users"))
 
     user.is_active = False
@@ -116,7 +149,9 @@ def deactivate_user(user_id):
 @club_admin_required
 def activate_user(user_id):
     user = db.session.get(User, user_id)
-    if not user or user.club_id != current_user.club_id:
+    if not user:
+        abort(404)
+    if not current_user.is_superadmin and user.club_id != current_user.club_id:
         abort(404)
     user.is_active = True
     db.session.commit()
@@ -129,7 +164,9 @@ def activate_user(user_id):
 @club_admin_required
 def reset_password(user_id):
     user = db.session.get(User, user_id)
-    if not user or user.club_id != current_user.club_id:
+    if not user:
+        abort(404)
+    if not current_user.is_superadmin and user.club_id != current_user.club_id:
         abort(404)
 
     form = ChangePasswordForm()

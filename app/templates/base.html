@@ -59,12 +59,19 @@
          class="{% if request.endpoint == 'club.dashboard' %}active{% endif %}">
         Dashboard
       </a>
-      {% if current_user.is_club_admin %}
+      {% if current_user.can_manage_club %}
       <div class="nav-section">Verwaltung</div>
+      {% if current_user.is_superadmin %}
+      <a href="{{ url_for('club.users') }}"
+         class="{% if request.endpoint == 'club.users' %}active{% endif %}">
+        Alle Benutzer
+      </a>
+      {% else %}
       <a href="{{ url_for('club.users') }}"
          class="{% if 'users' in request.endpoint %}active{% endif %}">
         Mitglieder
       </a>
+      {% endif %}
       {% endif %}
     </nav>
     <main class="col-md-10 main-content">
