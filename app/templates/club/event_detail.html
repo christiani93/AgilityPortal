@@ -47,95 +47,7 @@
   <span class="badge bg-light text-dark border">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
 </div>
 
-{# ── 1. ANWESENDE RICHTER ─────────────────────────────────────────────────── #}
-<div class="card mb-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Anwesende Richter</span>
-    <span class="badge bg-secondary">{{ event.event_judges | length }}</span>
-  </div>
-  <div class="card-body">
-
-    {# Aktuelle Richter als Badges #}
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      {% for ej in event.event_judges %}
-      <form method="post"
-            action="{{ url_for('club.event_judge_remove', event_id=event.id, judge_id=ej.judge_id) }}"
-            class="d-inline">
-        {{ run_form.hidden_tag() }}
-        <span class="badge bg-primary fs-6 d-inline-flex align-items-center gap-1 px-2 py-1">
-          {{ ej.judge.full_name }}
-          {% if ej.judge.ais_judge_id %}<span class="opacity-75 small">({{ ej.judge.ais_judge_id }})</span>{% endif %}
-          <button type="submit" class="btn-close btn-close-white ms-1" style="font-size:.6rem;"
-                  title="Richter entfernen"></button>
-        </span>
-      </form>
-      {% else %}
-      <span class="text-muted small">Noch keine Richter hinzugefügt.</span>
-      {% endfor %}
-    </div>
-
-    {# Richter hinzufügen #}
-    {% if available_judges %}
-    <form method="post" action="{{ url_for('club.event_judge_add', event_id=event.id) }}"
-          class="d-flex gap-2" style="max-width:420px;">
-      {{ run_form.hidden_tag() }}
-      <select name="judge_id" class="form-select form-select-sm">
-        <option value="">— Richter wählen —</option>
-        {% for judge in available_judges %}
-        <option value="{{ judge.id }}">
-          {{ judge.full_name }}{% if judge.ais_judge_id %} ({{ judge.ais_judge_id }}){% endif %}
-        </option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">+ Hinzufügen</button>
-    </form>
-    {% else %}
-    <p class="text-muted small mb-0">Alle Richter sind bereits hinzugefügt.</p>
-    {% endif %}
-
-  </div>
-</div>
-
-{# ── 2. LÄUFE ZUORDNEN (Drag & Drop) ─────────────────────────────────────── #}
-{% if event.runs %}
-<div class="card mb-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Läufe zuordnen</span>
-    <small class="text-muted">Läufe per Drag & Drop den Richtern zuweisen</small>
-  </div>
-  <div class="card-body p-0">
-    <div class="d-flex gap-0 overflow-auto" id="dnd-board" style="min-height:220px;">
-
-      {# Spalte: Nicht zugewiesen #}
-      <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;"
-           data-judge-id="0">
-        <div class="fw-semibold text-muted small text-uppercase mb-2">Nicht zugewiesen</div>
-        <div class="dnd-list" data-judge-id="0" style="min-height:120px;">
-          {% for run in event.runs if run.judge_id is none %}
-            {{ _run_card(run) }}
-          {% endfor %}
-        </div>
-      </div>
-
-      {# Spalte pro anwesendem Richter #}
-      {% for ej in event.event_judges %}
-      <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;"
-           data-judge-id="{{ ej.judge_id }}">
-        <div class="fw-semibold small text-uppercase mb-2">{{ ej.judge.full_name }}</div>
-        <div class="dnd-list" data-judge-id="{{ ej.judge_id }}" style="min-height:120px;">
-          {% for run in event.runs if run.judge_id == ej.judge_id %}
-            {{ _run_card(run) }}
-          {% endfor %}
-        </div>
-      </div>
-      {% endfor %}
-
-    </div>
-  </div>
-</div>
-{% endif %}
-
-{# ── 3. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}
+{# ── 1. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Läufe ({{ event.runs | length }})</span>
@@ -213,6 +125,94 @@
     </div>
   </div>
 </div>
+
+{# ── 2. ANWESENDE RICHTER ─────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Anwesende Richter</span>
+    <span class="badge bg-secondary">{{ event.event_judges | length }}</span>
+  </div>
+  <div class="card-body">
+
+    {# Aktuelle Richter als Badges #}
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      {% for ej in event.event_judges %}
+      <form method="post"
+            action="{{ url_for('club.event_judge_remove', event_id=event.id, judge_id=ej.judge_id) }}"
+            class="d-inline">
+        {{ run_form.hidden_tag() }}
+        <span class="badge bg-primary fs-6 d-inline-flex align-items-center gap-1 px-2 py-1">
+          {{ ej.judge.full_name }}
+          {% if ej.judge.ais_judge_id %}<span class="opacity-75 small">({{ ej.judge.ais_judge_id }})</span>{% endif %}
+          <button type="submit" class="btn-close btn-close-white ms-1" style="font-size:.6rem;"
+                  title="Richter entfernen"></button>
+        </span>
+      </form>
+      {% else %}
+      <span class="text-muted small">Noch keine Richter hinzugefügt.</span>
+      {% endfor %}
+    </div>
+
+    {# Richter hinzufügen #}
+    {% if available_judges %}
+    <form method="post" action="{{ url_for('club.event_judge_add', event_id=event.id) }}"
+          class="d-flex gap-2" style="max-width:420px;">
+      {{ run_form.hidden_tag() }}
+      <select name="judge_id" class="form-select form-select-sm">
+        <option value="">— Richter wählen —</option>
+        {% for judge in available_judges %}
+        <option value="{{ judge.id }}">
+          {{ judge.full_name }}{% if judge.ais_judge_id %} ({{ judge.ais_judge_id }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">+ Hinzufügen</button>
+    </form>
+    {% else %}
+    <p class="text-muted small mb-0">Alle Richter sind bereits hinzugefügt.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{# ── 3. LÄUFE ZUORDNEN (Drag & Drop) ─────────────────────────────────────── #}
+{% if event.runs and event.event_judges %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Läufe zuordnen</span>
+    <small class="text-muted">Läufe per Drag &amp; Drop den Richtern zuweisen</small>
+  </div>
+  <div class="card-body p-0">
+    <div class="d-flex gap-0 overflow-auto" id="dnd-board" style="min-height:220px;">
+
+      {# Spalte: Nicht zugewiesen #}
+      <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;">
+        <div class="fw-semibold text-muted small text-uppercase mb-2">Nicht zugewiesen</div>
+        <div class="dnd-list" data-judge-id="0" style="min-height:120px;">
+          {% for run in event.runs if run.judge_id is none %}
+            {{ _run_card(run) }}
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Spalte pro anwesendem Richter #}
+      {% for ej in event.event_judges %}
+      <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;">
+        <div class="fw-semibold small text-uppercase mb-2">{{ ej.judge.full_name }}</div>
+        <div class="dnd-list" data-judge-id="{{ ej.judge_id }}" style="min-height:120px;">
+          {% for run in event.runs if run.judge_id == ej.judge_id %}
+            {{ _run_card(run) }}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+{% elif event.runs and not event.event_judges %}
+<div class="alert alert-info">Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können.</div>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <script>
