@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, abort, r
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, Club, Event, EventRun, Judge
+from app.models import User, Club, Event, EventRun, EventJudge, Judge
 from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm
 
 club_bp = Blueprint("club", __name__, url_prefix="/club")
@@ -248,11 +248,52 @@ def event_detail(event_id):
         abort(404)
     _assert_event_access(event)
     run_form = EventRunForm()
-    judges = db.session.execute(
+    # Alle verfügbaren Richter (für das Hinzufügen-Dropdown)
+    present_judge_ids = {ej.judge_id for ej in event.event_judges}
+    all_judges = db.session.execute(
         db.select(Judge).order_by(Judge.last_name, Judge.first_name)
     ).scalars().all()
+    available_judges = [j for j in all_judges if j.id not in present_judge_ids]
     return render_template("club/event_detail.html", event=event, run_form=run_form,
-                           judges=judges)
+                           available_judges=available_judges)
+
+
+@club_bp.post("/events/<int:event_id>/judges/add")
+@login_required
+def event_judge_add(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    judge_id = request.form.get("judge_id", type=int)
+    if judge_id:
+        existing = db.session.execute(
+            db.select(EventJudge).filter_by(event_id=event_id, judge_id=judge_id)
+        ).scalar_one_or_none()
+        if not existing:
+            db.session.add(EventJudge(event_id=event_id, judge_id=judge_id))
+            db.session.commit()
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/judges/<int:judge_id>/remove")
+@login_required
+def event_judge_remove(event_id, judge_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    ej = db.session.execute(
+        db.select(EventJudge).filter_by(event_id=event_id, judge_id=judge_id)
+    ).scalar_one_or_none()
+    if ej:
+        # Läufe dieses Richters auf "nicht zugewiesen" setzen
+        for run in event.runs:
+            if run.judge_id == judge_id:
+                run.judge_id = None
+        db.session.delete(ej)
+        db.session.commit()
+    return redirect(url_for("club.event_detail", event_id=event_id))
 
 
 @club_bp.get("/events/<int:event_id>/edit")

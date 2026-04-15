@@ -326,6 +326,12 @@ class Event(db.Model):
     organiser_club = db.relationship("Club", foreign_keys=[organiser_club_id])
     judge = db.relationship("Judge", foreign_keys=[judge_id])
     judge2 = db.relationship("Judge", foreign_keys=[judge2_id])
+    event_judges = db.relationship(
+        "EventJudge",
+        back_populates="event",
+        order_by="EventJudge.id",
+        cascade="all, delete-orphan",
+    )
     runs = db.relationship(
         "EventRun",
         back_populates="event",
@@ -403,6 +409,25 @@ class EventRun(db.Model):
         type_label = self.RUN_TYPE_LABELS.get(self.run_type, self.run_type)
         cat_label = self.CATEGORY_LABELS.get(self.category, self.category)
         return f"{type_label} – {cat_label} – Klasse {self.class_level}"
+
+
+# ---------------------------------------------------------------------------
+# Anwesende Richter eines Turniers
+# ---------------------------------------------------------------------------
+
+class EventJudge(db.Model):
+    """Welche Richter sind an einem Turnier anwesend."""
+    __tablename__ = "event_judges"
+    __table_args__ = (
+        db.UniqueConstraint("event_id", "judge_id", name="uq_event_judge"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=False)
+
+    event = db.relationship("Event", back_populates="event_judges")
+    judge = db.relationship("Judge")
 
 
 class Registration(db.Model):

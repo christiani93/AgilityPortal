@@ -2,7 +2,19 @@
 {% block title %}{{ event.name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+{# ── Makro: Run-Karte ─────────────────────────────────────────────────────── #}
+{% macro _run_card(run) %}
+<div class="run-card card card-body p-2 mb-1"
+     data-run-id="{{ run.id }}"
+     style="cursor:grab; font-size:.85rem; user-select:none;">
+  {% if run.run_type == 'agility' %}<span class="badge bg-primary me-1">Agi</span>
+  {% elif run.run_type == 'jumping' %}<span class="badge bg-success me-1">Jump</span>
+  {% else %}<span class="badge bg-warning text-dark me-1">Open</span>{% endif %}
+  {{ run.CATEGORY_LABELS.get(run.category, run.category) }} · Kl. {{ run.class_level }}
+</div>
+{% endmacro %}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
   <div>
     <h2 class="mb-0">{{ event.name }}</h2>
     <small class="text-muted">
@@ -19,7 +31,6 @@
   </div>
 </div>
 
-{# Status-Badge #}
 <div class="mb-4 d-flex align-items-center gap-2 flex-wrap">
   {% if event.ais_turniernummer %}
     <span class="badge bg-dark">AIS-Nr. {{ event.ais_turniernummer }}</span>
@@ -36,168 +47,226 @@
   <span class="badge bg-light text-dark border">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
 </div>
 
-{# Läufe #}
-<div class="row g-4">
-  <div class="col-md-7">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Läufe</span>
-        <span class="badge bg-secondary">{{ event.runs | length }}</span>
+{# ── 1. ANWESENDE RICHTER ─────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Anwesende Richter</span>
+    <span class="badge bg-secondary">{{ event.event_judges | length }}</span>
+  </div>
+  <div class="card-body">
+
+    {# Aktuelle Richter als Badges #}
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      {% for ej in event.event_judges %}
+      <form method="post"
+            action="{{ url_for('club.event_judge_remove', event_id=event.id, judge_id=ej.judge_id) }}"
+            class="d-inline">
+        {{ run_form.hidden_tag() }}
+        <span class="badge bg-primary fs-6 d-inline-flex align-items-center gap-1 px-2 py-1">
+          {{ ej.judge.full_name }}
+          {% if ej.judge.ais_judge_id %}<span class="opacity-75 small">({{ ej.judge.ais_judge_id }})</span>{% endif %}
+          <button type="submit" class="btn-close btn-close-white ms-1" style="font-size:.6rem;"
+                  title="Richter entfernen"></button>
+        </span>
+      </form>
+      {% else %}
+      <span class="text-muted small">Noch keine Richter hinzugefügt.</span>
+      {% endfor %}
+    </div>
+
+    {# Richter hinzufügen #}
+    {% if available_judges %}
+    <form method="post" action="{{ url_for('club.event_judge_add', event_id=event.id) }}"
+          class="d-flex gap-2" style="max-width:420px;">
+      {{ run_form.hidden_tag() }}
+      <select name="judge_id" class="form-select form-select-sm">
+        <option value="">— Richter wählen —</option>
+        {% for judge in available_judges %}
+        <option value="{{ judge.id }}">
+          {{ judge.full_name }}{% if judge.ais_judge_id %} ({{ judge.ais_judge_id }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">+ Hinzufügen</button>
+    </form>
+    {% else %}
+    <p class="text-muted small mb-0">Alle Richter sind bereits hinzugefügt.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{# ── 2. LÄUFE ZUORDNEN (Drag & Drop) ─────────────────────────────────────── #}
+{% if event.runs %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Läufe zuordnen</span>
+    <small class="text-muted">Läufe per Drag & Drop den Richtern zuweisen</small>
+  </div>
+  <div class="card-body p-0">
+    <div class="d-flex gap-0 overflow-auto" id="dnd-board" style="min-height:220px;">
+
+      {# Spalte: Nicht zugewiesen #}
+      <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;"
+           data-judge-id="0">
+        <div class="fw-semibold text-muted small text-uppercase mb-2">Nicht zugewiesen</div>
+        <div class="dnd-list" data-judge-id="0" style="min-height:120px;">
+          {% for run in event.runs if run.judge_id is none %}
+            {{ _run_card(run) }}
+          {% endfor %}
+        </div>
       </div>
 
-      {% if event.runs %}
-      <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Typ</th>
-              <th>Kategorie</th>
-              <th>Klasse</th>
-              <th>Richter</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for run in event.runs %}
-            <tr>
-              <td>
-                {% if run.run_type == 'agility' %}
-                  <span class="badge bg-primary">Agility</span>
-                {% elif run.run_type == 'jumping' %}
-                  <span class="badge bg-success">Jumping</span>
-                {% else %}
-                  <span class="badge bg-warning text-dark">Open</span>
-                {% endif %}
-              </td>
-              <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
-              <td>Klasse {{ run.class_level }}</td>
-              <td>
-                <form method="post"
-                      action="{{ url_for('club.event_run_set_judge', event_id=event.id, run_id=run.id) }}"
-                      class="d-flex align-items-center gap-1">
-                  {{ run_form.hidden_tag() }}
-                  <select name="judge_id" class="form-select form-select-sm"
-                          style="min-width:160px;"
-                          onchange="this.form.submit()">
-                    <option value="0">— kein Richter —</option>
-                    {% for judge in judges %}
-                    <option value="{{ judge.id }}"
-                      {% if run.judge_id == judge.id %}selected{% endif %}>
-                      {{ judge.full_name }}
-                      {% if judge.ais_judge_id %}({{ judge.ais_judge_id }}){% endif %}
-                    </option>
-                    {% endfor %}
-                  </select>
-                </form>
-              </td>
-              <td class="text-end">
-                <form method="post"
-                      action="{{ url_for('club.event_run_delete', event_id=event.id, run_id=run.id) }}"
-                      onsubmit="return confirm('Lauf entfernen?')">
-                  {{ run_form.hidden_tag() }}
-                  <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
-                </form>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      {# Spalte pro anwesendem Richter #}
+      {% for ej in event.event_judges %}
+      <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;"
+           data-judge-id="{{ ej.judge_id }}">
+        <div class="fw-semibold small text-uppercase mb-2">{{ ej.judge.full_name }}</div>
+        <div class="dnd-list" data-judge-id="{{ ej.judge_id }}" style="min-height:120px;">
+          {% for run in event.runs if run.judge_id == ej.judge_id %}
+            {{ _run_card(run) }}
+          {% endfor %}
+        </div>
       </div>
-      {% else %}
-      <div class="card-body text-muted text-center py-4">
-        Noch keine Läufe vorbereitet.
-      </div>
-      {% endif %}
+      {% endfor %}
+
     </div>
   </div>
+</div>
+{% endif %}
 
-  {# Lauf hinzufügen #}
-  <div class="col-md-5">
-    <div class="card">
-      <div class="card-header">Lauf hinzufügen</div>
-      <div class="card-body">
-        <form method="post" action="{{ url_for('club.event_run_add', event_id=event.id) }}">
-          {{ run_form.hidden_tag() }}
+{# ── 3. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Läufe ({{ event.runs | length }})</span>
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#add-run-panel">
+      + Lauf hinzufügen
+    </button>
+  </div>
 
-          <div class="mb-2">
-            {{ run_form.run_type.label(class="form-label mb-1 small") }}
-            {{ run_form.run_type(class="form-select form-select-sm") }}
-          </div>
-          <div class="mb-2">
-            {{ run_form.category.label(class="form-label mb-1 small") }}
-            {{ run_form.category(class="form-select form-select-sm") }}
-          </div>
-          <div class="mb-3">
-            {{ run_form.class_level.label(class="form-label mb-1 small") }}
-            {{ run_form.class_level(class="form-select form-select-sm") }}
-          </div>
+  {# Lauf-Tabelle #}
+  {% if event.runs %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Typ</th><th>Kategorie</th><th>Klasse</th><th>Richter</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for run in event.runs %}
+        <tr>
+          <td>
+            {% if run.run_type == 'agility' %}<span class="badge bg-primary">Agility</span>
+            {% elif run.run_type == 'jumping' %}<span class="badge bg-success">Jumping</span>
+            {% else %}<span class="badge bg-warning text-dark">Open</span>{% endif %}
+          </td>
+          <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
+          <td>Klasse {{ run.class_level }}</td>
+          <td class="text-muted small">{{ run.judge.full_name if run.judge else "—" }}</td>
+          <td class="text-end">
+            <form method="post"
+                  action="{{ url_for('club.event_run_delete', event_id=event.id, run_id=run.id) }}"
+                  onsubmit="return confirm('Lauf entfernen?')">
+              {{ run_form.hidden_tag() }}
+              <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted text-center py-4">Noch keine Läufe vorbereitet.</div>
+  {% endif %}
 
-          <button type="submit" class="btn btn-primary btn-sm w-100">Lauf hinzufügen</button>
-        </form>
-
-        <hr class="my-3">
-        <p class="text-muted small mb-2">Alle Läufe auf einmal hinzufügen:</p>
-        <div class="d-flex flex-wrap gap-1">
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-agility">
-            Alle Agility
-          </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-jumping">
-            Alle Jumping
-          </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-standard">
-            Standard (Agi+Jump S/M/I/L × 1/2/3)
-          </button>
+  {# Lauf hinzufügen (ausklappbar) #}
+  <div class="collapse" id="add-run-panel">
+    <div class="card-body border-top">
+      <form method="post" action="{{ url_for('club.event_run_add', event_id=event.id) }}"
+            class="row g-2 align-items-end">
+        {{ run_form.hidden_tag() }}
+        <div class="col-auto">
+          {{ run_form.run_type.label(class="form-label mb-1 small") }}
+          {{ run_form.run_type(class="form-select form-select-sm") }}
         </div>
+        <div class="col-auto">
+          {{ run_form.category.label(class="form-label mb-1 small") }}
+          {{ run_form.category(class="form-select form-select-sm") }}
+        </div>
+        <div class="col-auto">
+          {{ run_form.class_level.label(class="form-label mb-1 small") }}
+          {{ run_form.class_level(class="form-select form-select-sm") }}
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary btn-sm">Hinzufügen</button>
+        </div>
+      </form>
+
+      <hr class="my-3">
+      <p class="text-muted small mb-2">Alle Läufe auf einmal:</p>
+      <div class="d-flex flex-wrap gap-1">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-agility">Alle Agility</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-jumping">Alle Jumping</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-standard">Standard (Agi+Jump S/M/I/L × 1/2/3)</button>
       </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <script>
-// Hilfsfunktion: Formular-Submit via POST
-function addRun(type, cat, cls) {
-  const form = document.createElement('form');
-  form.method = 'post';
-  form.action = '{{ url_for("club.event_run_add", event_id=event.id) }}';
-  const csrf = document.querySelector('input[name="csrf_token"]').value;
-  [['csrf_token', csrf], ['run_type', type], ['category', cat], ['class_level', cls]].forEach(([n, v]) => {
-    const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; form.appendChild(i);
-  });
-  document.body.appendChild(form);
-  return form;
-}
+const EVENT_ID = {{ event.id }};
+const CSRF = document.querySelector('input[name="csrf_token"]').value;
 
+// Drag & Drop initialisieren
+document.querySelectorAll('.dnd-list').forEach(list => {
+  Sortable.create(list, {
+    group: 'runs',
+    animation: 150,
+    ghostClass: 'bg-light',
+    onEnd(evt) {
+      const runId = evt.item.dataset.runId;
+      const judgeId = evt.to.dataset.judgeId || '0';
+      fetch(`/club/events/${EVENT_ID}/runs/${runId}/judge`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `csrf_token=${encodeURIComponent(CSRF)}&judge_id=${judgeId}`
+      }).then(r => {
+        // Richter-Name in der Tabelle unten aktualisieren (einfacher Reload)
+        if (r.ok || r.redirected) location.reload();
+      });
+    }
+  });
+});
+
+// Bulk-Buttons (Läufe hinzufügen)
 async function submitSequential(runs) {
-  // Alle Läufe nacheinander über ein einziges Formular-Submit senden
-  // Stattdessen: bulk via hidden forms + redirect nur beim letzten
   for (let i = 0; i < runs.length; i++) {
     const [type, cat, cls] = runs[i];
-    const form = addRun(type, cat, cls);
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = `/club/events/${EVENT_ID}/runs/add`;
+    [['csrf_token', CSRF], ['run_type', type], ['category', cat], ['class_level', cls]].forEach(([n, v]) => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = n; inp.value = v;
+      form.appendChild(inp);
+    });
+    document.body.appendChild(form);
     if (i < runs.length - 1) {
-      // Sende via fetch, damit wir alle auf einmal schicken können
-      const data = new FormData(form);
-      await fetch(form.action, { method: 'POST', body: data, redirect: 'manual' });
+      await fetch(form.action, {method:'POST', body: new FormData(form), redirect:'manual'});
       form.remove();
     } else {
-      form.submit(); // letzter: echtes Redirect
+      form.submit();
     }
   }
 }
-
-const CATS = ['S', 'M', 'I', 'L'];
-const CLASSES = [1, 2, 3];
-
-document.getElementById('btn-add-all-agility').addEventListener('click', () => {
-  const runs = CATS.flatMap(c => CLASSES.map(k => ['agility', c, k]));
-  submitSequential(runs);
-});
-document.getElementById('btn-add-all-jumping').addEventListener('click', () => {
-  const runs = CATS.flatMap(c => CLASSES.map(k => ['jumping', c, k]));
-  submitSequential(runs);
-});
-document.getElementById('btn-add-standard').addEventListener('click', () => {
-  const runs = ['agility','jumping'].flatMap(t => CATS.flatMap(c => CLASSES.map(k => [t, c, k])));
-  submitSequential(runs);
-});
+const CATS = ['S','M','I','L'], CLS = [1,2,3];
+document.getElementById('btn-add-all-agility').addEventListener('click', () =>
+  submitSequential(CATS.flatMap(c => CLS.map(k => ['agility',c,k]))));
+document.getElementById('btn-add-all-jumping').addEventListener('click', () =>
+  submitSequential(CATS.flatMap(c => CLS.map(k => ['jumping',c,k]))));
+document.getElementById('btn-add-standard').addEventListener('click', () =>
+  submitSequential(['agility','jumping'].flatMap(t => CATS.flatMap(c => CLS.map(k => [t,c,k])))));
 </script>
 {% endblock %}
