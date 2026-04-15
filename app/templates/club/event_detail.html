@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-0">{{ event.name }}</h2>
+    <small class="text-muted">
+      {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+      {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
+        – {{ event.ends_at.strftime("%d.%m.%Y") }}
+      {% endif %}
+      {% if event.location %} · {{ event.location }}{% endif %}
+    </small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">Bearbeiten</a>
+    <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+  </div>
+</div>
+
+{# Status-Badge #}
+<div class="mb-4">
+  {% if event.status == 'open' %}
+    <span class="badge bg-success">Offen</span>
+  {% elif event.status == 'closed' %}
+    <span class="badge bg-secondary">Geschlossen</span>
+  {% elif event.status == 'cancelled' %}
+    <span class="badge bg-danger">Abgesagt</span>
+  {% else %}
+    <span class="badge bg-light text-dark border">Entwurf</span>
+  {% endif %}
+  <span class="badge bg-light text-dark border ms-1">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
+</div>
+
+{# Läufe #}
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Läufe</span>
+        <span class="badge bg-secondary">{{ event.runs | length }}</span>
+      </div>
+
+      {% if event.runs %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Typ</th>
+              <th>Kategorie</th>
+              <th>Klasse</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for run in event.runs %}
+            <tr>
+              <td>
+                {% if run.run_type == 'agility' %}
+                  <span class="badge bg-primary">Agility</span>
+                {% elif run.run_type == 'jumping' %}
+                  <span class="badge bg-success">Jumping</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Open</span>
+                {% endif %}
+              </td>
+              <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
+              <td>Klasse {{ run.class_level }}</td>
+              <td class="text-end">
+                <form method="post"
+                      action="{{ url_for('club.event_run_delete', event_id=event.id, run_id=run.id) }}"
+                      onsubmit="return confirm('Lauf entfernen?')">
+                  {{ run_form.hidden_tag() }}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-muted text-center py-4">
+        Noch keine Läufe vorbereitet.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Lauf hinzufügen #}
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header">Lauf hinzufügen</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('club.event_run_add', event_id=event.id) }}">
+          {{ run_form.hidden_tag() }}
+
+          <div class="mb-2">
+            {{ run_form.run_type.label(class="form-label mb-1 small") }}
+            {{ run_form.run_type(class="form-select form-select-sm") }}
+          </div>
+          <div class="mb-2">
+            {{ run_form.category.label(class="form-label mb-1 small") }}
+            {{ run_form.category(class="form-select form-select-sm") }}
+          </div>
+          <div class="mb-3">
+            {{ run_form.class_level.label(class="form-label mb-1 small") }}
+            {{ run_form.class_level(class="form-select form-select-sm") }}
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-sm w-100">Lauf hinzufügen</button>
+        </form>
+
+        <hr class="my-3">
+        <p class="text-muted small mb-2">Alle Läufe auf einmal hinzufügen:</p>
+        <div class="d-flex flex-wrap gap-1">
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-agility">
+            Alle Agility
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-jumping">
+            Alle Jumping
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-standard">
+            Standard (Agi+Jump S/M/I/L × 1/2/3)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Hilfsfunktion: Formular-Submit via POST
+function addRun(type, cat, cls) {
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = '{{ url_for("club.event_run_add", event_id=event.id) }}';
+  const csrf = document.querySelector('input[name="csrf_token"]').value;
+  [['csrf_token', csrf], ['run_type', type], ['category', cat], ['class_level', cls]].forEach(([n, v]) => {
+    const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; form.appendChild(i);
+  });
+  document.body.appendChild(form);
+  return form;
+}
+
+async function submitSequential(runs) {
+  // Alle Läufe nacheinander über ein einziges Formular-Submit senden
+  // Stattdessen: bulk via hidden forms + redirect nur beim letzten
+  for (let i = 0; i < runs.length; i++) {
+    const [type, cat, cls] = runs[i];
+    const form = addRun(type, cat, cls);
+    if (i < runs.length - 1) {
+      // Sende via fetch, damit wir alle auf einmal schicken können
+      const data = new FormData(form);
+      await fetch(form.action, { method: 'POST', body: data, redirect: 'manual' });
+      form.remove();
+    } else {
+      form.submit(); // letzter: echtes Redirect
+    }
+  }
+}
+
+const CATS = ['S', 'M', 'I', 'L'];
+const CLASSES = [1, 2, 3];
+
+document.getElementById('btn-add-all-agility').addEventListener('click', () => {
+  const runs = CATS.flatMap(c => CLASSES.map(k => ['agility', c, k]));
+  submitSequential(runs);
+});
+document.getElementById('btn-add-all-jumping').addEventListener('click', () => {
+  const runs = CATS.flatMap(c => CLASSES.map(k => ['jumping', c, k]));
+  submitSequential(runs);
+});
+document.getElementById('btn-add-standard').addEventListener('click', () => {
+  const runs = ['agility','jumping'].flatMap(t => CATS.flatMap(c => CLASSES.map(k => [t, c, k])));
+  submitSequential(runs);
+});
+</script>
+{% endblock %}

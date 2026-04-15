@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
 
 
@@ -33,3 +33,41 @@ class ChangePasswordForm(FlaskForm):
         validators=[DataRequired(), EqualTo("password", message="Passwörter stimmen nicht überein.")],
     )
     submit = SubmitField("Passwort ändern")
+
+
+# ---------------------------------------------------------------------------
+# Turnier
+# ---------------------------------------------------------------------------
+
+class EventForm(FlaskForm):
+    name = StringField("Turniername", validators=[DataRequired(), Length(max=200)])
+    location = StringField("Ort", validators=[Optional(), Length(max=200)])
+    starts_at = DateField("Von (Datum)", validators=[DataRequired()])
+    ends_at = DateField("Bis (Datum)", validators=[Optional()])
+    submit = SubmitField("Speichern")
+
+
+class EventRunForm(FlaskForm):
+    run_type = SelectField(
+        "Typ",
+        choices=[
+            ("agility", "Agility"),
+            ("jumping", "Jumping"),
+            ("open", "Open"),
+        ],
+    )
+    category = SelectField(
+        "Kategorie",
+        choices=[
+            ("S", "Small (S)"),
+            ("M", "Medium (M)"),
+            ("I", "Intermediate (I)"),
+            ("L", "Large (L)"),
+        ],
+    )
+    class_level = SelectField(
+        "Klasse",
+        choices=[("1", "Klasse 1"), ("2", "Klasse 2"), ("3", "Klasse 3")],
+        coerce=int,
+    )
+    submit = SubmitField("Lauf hinzufügen")

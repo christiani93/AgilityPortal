@@ -326,6 +326,12 @@ class Event(db.Model):
     organiser_club = db.relationship("Club", foreign_keys=[organiser_club_id])
     judge = db.relationship("Judge", foreign_keys=[judge_id])
     judge2 = db.relationship("Judge", foreign_keys=[judge2_id])
+    runs = db.relationship(
+        "EventRun",
+        back_populates="event",
+        order_by="EventRun.run_type, EventRun.category, EventRun.class_level",
+        cascade="all, delete-orphan",
+    )
 
     TYPE_LABELS = {
         "regular": "Reguläres Turnier",
@@ -348,6 +354,53 @@ class Event(db.Model):
     def is_qualifier(self):
         return self.type in {"sm", "asmv_quali", "asmv_final",
                              "eo_quali", "wm_quali", "sao_quali", "jao_quali"}
+
+
+# ---------------------------------------------------------------------------
+# Läufe (Runs) eines Turniers
+# ---------------------------------------------------------------------------
+
+class EventRun(db.Model):
+    """
+    Ein einzelner Lauf innerhalb eines Turniers.
+
+    run_type: agility | jumping | open
+    category: S | M | I | L  (Small / Medium / Intermediate / Large)
+    class_level: 1 | 2 | 3
+    """
+    __tablename__ = "event_runs"
+    __table_args__ = (
+        db.UniqueConstraint("event_id", "run_type", "category", "class_level",
+                            name="uq_event_run"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    run_type = db.Column(db.String(20), nullable=False)   # agility / jumping / open
+    category = db.Column(db.String(5), nullable=False)    # S / M / I / L
+    class_level = db.Column(db.Integer, nullable=False)   # 1 / 2 / 3
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    event = db.relationship("Event", back_populates="runs")
+
+    RUN_TYPE_LABELS = {
+        "agility": "Agility",
+        "jumping": "Jumping",
+        "open": "Open",
+    }
+
+    CATEGORY_LABELS = {
+        "S": "Small",
+        "M": "Medium",
+        "I": "Intermediate",
+        "L": "Large",
+    }
+
+    @property
+    def label(self):
+        type_label = self.RUN_TYPE_LABELS.get(self.run_type, self.run_type)
+        cat_label = self.CATEGORY_LABELS.get(self.category, self.category)
+        return f"{type_label} – {cat_label} – Klasse {self.class_level}"
 
 
 class Registration(db.Model):

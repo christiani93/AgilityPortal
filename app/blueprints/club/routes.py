@@ -1,11 +1,13 @@
 from functools import wraps
 
-from flask import Blueprint, render_template, redirect, url_for, flash, abort
+from datetime import datetime
+
+from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, Club, Event
-from .forms import AddUserForm, ChangePasswordForm
+from app.models import User, Club, Event, EventRun
+from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm
 
 club_bp = Blueprint("club", __name__, url_prefix="/club")
 
@@ -177,3 +179,132 @@ def reset_password(user_id):
         return redirect(url_for("club.users"))
 
     return render_template("club/reset_password.html", form=form, member=user)
+
+
+# ---------------------------------------------------------------------------
+# Turnierverwaltung — alle angemeldeten Benutzer mit Club
+# ---------------------------------------------------------------------------
+
+def _assert_event_access(event):
+    """Stellt sicher, dass der aktuelle User auf dieses Turnier zugreifen darf."""
+    if current_user.is_superadmin:
+        return
+    if not current_user.club_id:
+        abort(403)
+    if event.organiser_club_id != current_user.club_id:
+        abort(403)
+
+
+@club_bp.get("/events/new")
+@club_bp.post("/events/new")
+@login_required
+def event_new():
+    if not current_user.club_id and not current_user.is_superadmin:
+        abort(403)
+    form = EventForm()
+    if form.validate_on_submit():
+        club_id = current_user.club_id  # None für superadmin — muss Club wählen
+        starts = datetime.combine(form.starts_at.data, datetime.min.time())
+        ends = (
+            datetime.combine(form.ends_at.data, datetime.min.time())
+            if form.ends_at.data else None
+        )
+        event = Event(
+            name=form.name.data.strip(),
+            location=form.location.data.strip() if form.location.data else None,
+            starts_at=starts,
+            ends_at=ends,
+            organiser_club_id=club_id,
+            type="regular",
+            status="draft",
+        )
+        db.session.add(event)
+        db.session.commit()
+        flash(f"Turnier «{event.name}» wurde erstellt.", "success")
+        return redirect(url_for("club.event_detail", event_id=event.id))
+    return render_template("club/event_form.html", form=form, event=None)
+
+
+@club_bp.get("/events/<int:event_id>")
+@login_required
+def event_detail(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    run_form = EventRunForm()
+    return render_template("club/event_detail.html", event=event, run_form=run_form)
+
+
+@club_bp.get("/events/<int:event_id>/edit")
+@club_bp.post("/events/<int:event_id>/edit")
+@login_required
+def event_edit(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    form = EventForm(obj=event)
+    # DateField erwartet date, nicht datetime
+    if request.method == "GET":
+        form.starts_at.data = event.starts_at.date() if event.starts_at else None
+        form.ends_at.data = event.ends_at.date() if event.ends_at else None
+    if form.validate_on_submit():
+        event.name = form.name.data.strip()
+        event.location = form.location.data.strip() if form.location.data else None
+        event.starts_at = datetime.combine(form.starts_at.data, datetime.min.time())
+        event.ends_at = (
+            datetime.combine(form.ends_at.data, datetime.min.time())
+            if form.ends_at.data else None
+        )
+        db.session.commit()
+        flash("Turnier gespeichert.", "success")
+        return redirect(url_for("club.event_detail", event_id=event.id))
+    return render_template("club/event_form.html", form=form, event=event)
+
+
+@club_bp.post("/events/<int:event_id>/runs/add")
+@login_required
+def event_run_add(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    form = EventRunForm()
+    if form.validate_on_submit():
+        existing = db.session.execute(
+            db.select(EventRun).filter_by(
+                event_id=event_id,
+                run_type=form.run_type.data,
+                category=form.category.data,
+                class_level=int(form.class_level.data),
+            )
+        ).scalar_one_or_none()
+        if existing:
+            flash("Dieser Lauf ist bereits vorhanden.", "warning")
+        else:
+            db.session.add(EventRun(
+                event_id=event_id,
+                run_type=form.run_type.data,
+                category=form.category.data,
+                class_level=int(form.class_level.data),
+            ))
+            db.session.commit()
+            flash("Lauf hinzugefügt.", "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/runs/<int:run_id>/delete")
+@login_required
+def event_run_delete(event_id, run_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    run = db.session.get(EventRun, run_id)
+    if not run or run.event_id != event_id:
+        abort(404)
+    db.session.delete(run)
+    db.session.commit()
+    flash("Lauf entfernt.", "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
