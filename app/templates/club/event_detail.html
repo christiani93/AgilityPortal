@@ -31,20 +31,77 @@
   </div>
 </div>
 
-<div class="mb-4 d-flex align-items-center gap-2 flex-wrap">
-  {% if event.ais_turniernummer %}
-    <span class="badge bg-dark">AIS-Nr. {{ event.ais_turniernummer }}</span>
-  {% endif %}
-  {% if event.status == 'open' %}
-    <span class="badge bg-success">Offen</span>
-  {% elif event.status == 'closed' %}
-    <span class="badge bg-secondary">Geschlossen</span>
-  {% elif event.status == 'cancelled' %}
-    <span class="badge bg-danger">Abgesagt</span>
-  {% else %}
-    <span class="badge bg-light text-dark border">Entwurf</span>
-  {% endif %}
-  <span class="badge bg-light text-dark border">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
+<div class="card mb-4">
+  <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
+
+    {# Status-Badge #}
+    {% if event.status == 'open' %}
+      <span class="badge bg-success fs-6">● Anmeldungen offen</span>
+    {% elif event.status == 'closed' %}
+      <span class="badge bg-secondary fs-6">● Anmeldungen geschlossen</span>
+    {% elif event.status == 'cancelled' %}
+      <span class="badge bg-danger fs-6">● Abgesagt</span>
+    {% else %}
+      <span class="badge bg-light text-dark border fs-6">● Entwurf</span>
+    {% endif %}
+
+    {% if event.ais_turniernummer %}
+      <span class="badge bg-dark">AIS-Nr. {{ event.ais_turniernummer }}</span>
+    {% endif %}
+    <span class="badge bg-light text-dark border">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
+
+    {# Aktions-Buttons je nach aktuellem Status #}
+    <div class="ms-auto d-flex gap-2">
+      {% if event.status == 'draft' %}
+        <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}">
+          {{ run_form.hidden_tag() }}
+          <input type="hidden" name="status" value="open">
+          <button class="btn btn-sm btn-success">Anmeldungen öffnen</button>
+        </form>
+        <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
+              onsubmit="return confirm('Turnier absagen?')">
+          {{ run_form.hidden_tag() }}
+          <input type="hidden" name="status" value="cancelled">
+          <button class="btn btn-sm btn-outline-danger">Absagen</button>
+        </form>
+
+      {% elif event.status == 'open' %}
+        <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}">
+          {{ run_form.hidden_tag() }}
+          <input type="hidden" name="status" value="closed">
+          <button class="btn btn-sm btn-secondary">Anmeldungen schliessen</button>
+        </form>
+        <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
+              onsubmit="return confirm('Turnier absagen?')">
+          {{ run_form.hidden_tag() }}
+          <input type="hidden" name="status" value="cancelled">
+          <button class="btn btn-sm btn-outline-danger">Absagen</button>
+        </form>
+
+      {% elif event.status == 'closed' %}
+        <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}">
+          {{ run_form.hidden_tag() }}
+          <input type="hidden" name="status" value="open">
+          <button class="btn btn-sm btn-outline-success">Anmeldungen wieder öffnen</button>
+        </form>
+        <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
+              onsubmit="return confirm('Turnier absagen?')">
+          {{ run_form.hidden_tag() }}
+          <input type="hidden" name="status" value="cancelled">
+          <button class="btn btn-sm btn-outline-danger">Absagen</button>
+        </form>
+
+      {% elif event.status == 'cancelled' %}
+        <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
+              onsubmit="return confirm('Turnier reaktivieren?')">
+          {{ run_form.hidden_tag() }}
+          <input type="hidden" name="status" value="draft">
+          <button class="btn btn-sm btn-outline-secondary">Reaktivieren (→ Entwurf)</button>
+        </form>
+      {% endif %}
+    </div>
+
+  </div>
 </div>
 
 {# ── 1. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}

@@ -341,6 +341,32 @@ def event_edit(event_id):
                            is_superadmin=current_user.is_superadmin)
 
 
+@club_bp.post("/events/<int:event_id>/status")
+@login_required
+def event_set_status(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    new_status = request.form.get("status")
+    # Erlaubte Übergänge
+    transitions = {
+        "draft":     ["open", "cancelled"],
+        "open":      ["closed", "cancelled"],
+        "closed":    ["open", "cancelled"],
+        "cancelled": ["draft"],
+    }
+    if new_status in transitions.get(event.status, []):
+        event.status = new_status
+        db.session.commit()
+        labels = {"open": "geöffnet", "closed": "geschlossen",
+                  "cancelled": "abgesagt", "draft": "auf Entwurf zurückgesetzt"}
+        flash(f"Turnier wurde {labels.get(new_status, new_status)}.", "success")
+    else:
+        flash("Ungültiger Statuswechsel.", "danger")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
 @club_bp.post("/events/<int:event_id>/runs/add")
 @login_required
 def event_run_add(event_id):
