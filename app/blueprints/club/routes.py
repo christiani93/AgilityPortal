@@ -195,6 +195,12 @@ def _assert_event_access(event):
         abort(403)
 
 
+def _fill_club_choices(form):
+    """Befüllt form.club_id.choices für Superadmin."""
+    clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
+    form.club_id.choices = [(0, "— Verein wählen —")] + [(c.id, c.name) for c in clubs]
+
+
 @club_bp.get("/events/new")
 @club_bp.post("/events/new")
 @login_required
@@ -202,8 +208,15 @@ def event_new():
     if not current_user.club_id and not current_user.is_superadmin:
         abort(403)
     form = EventForm()
+    if current_user.is_superadmin:
+        _fill_club_choices(form)
+    else:
+        del form.club_id  # Feld nicht anzeigen/validieren
     if form.validate_on_submit():
-        club_id = current_user.club_id  # None für superadmin — muss Club wählen
+        if current_user.is_superadmin:
+            club_id = form.club_id.data if form.club_id.data != 0 else None
+        else:
+            club_id = current_user.club_id
         starts = datetime.combine(form.starts_at.data, datetime.min.time())
         ends = (
             datetime.combine(form.ends_at.data, datetime.min.time())
@@ -222,7 +235,8 @@ def event_new():
         db.session.commit()
         flash(f"Turnier «{event.name}» wurde erstellt.", "success")
         return redirect(url_for("club.event_detail", event_id=event.id))
-    return render_template("club/event_form.html", form=form, event=None)
+    return render_template("club/event_form.html", form=form, event=None,
+                           is_superadmin=current_user.is_superadmin)
 
 
 @club_bp.get("/events/<int:event_id>")
@@ -245,10 +259,16 @@ def event_edit(event_id):
         abort(404)
     _assert_event_access(event)
     form = EventForm(obj=event)
+    if current_user.is_superadmin:
+        _fill_club_choices(form)
+    else:
+        del form.club_id
     # DateField erwartet date, nicht datetime
     if request.method == "GET":
         form.starts_at.data = event.starts_at.date() if event.starts_at else None
         form.ends_at.data = event.ends_at.date() if event.ends_at else None
+        if current_user.is_superadmin:
+            form.club_id.data = event.organiser_club_id or 0
     if form.validate_on_submit():
         event.name = form.name.data.strip()
         event.location = form.location.data.strip() if form.location.data else None
@@ -257,10 +277,13 @@ def event_edit(event_id):
             datetime.combine(form.ends_at.data, datetime.min.time())
             if form.ends_at.data else None
         )
+        if current_user.is_superadmin:
+            event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
         db.session.commit()
         flash("Turnier gespeichert.", "success")
         return redirect(url_for("club.event_detail", event_id=event.id))
-    return render_template("club/event_form.html", form=form, event=event)
+    return render_template("club/event_form.html", form=form, event=event,
+                           is_superadmin=current_user.is_superadmin)
 
 
 @club_bp.post("/events/<int:event_id>/runs/add")

@@ -44,6 +44,8 @@ class EventForm(FlaskForm):
     location = StringField("Ort", validators=[Optional(), Length(max=200)])
     starts_at = DateField("Von (Datum)", validators=[DataRequired()])
     ends_at = DateField("Bis (Datum)", validators=[Optional()])
+    # Nur für Superadmin befüllt — choices werden in der Route gesetzt
+    club_id = SelectField("Verein", coerce=int, validators=[Optional()])
     submit = SubmitField("Speichern")
 
 

@@ -16,6 +16,14 @@
     <form method="post">
       {{ form.hidden_tag() }}
 
+      {% if is_superadmin %}
+      <div class="mb-3">
+        {{ form.club_id.label(class="form-label") }}
+        {{ form.club_id(class="form-select" + (" is-invalid" if form.club_id.errors else "")) }}
+        {% for e in form.club_id.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+      {% endif %}
+
       <div class="mb-3">
         {{ form.name.label(class="form-label") }}
         {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
