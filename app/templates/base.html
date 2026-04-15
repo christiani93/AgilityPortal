@@ -59,11 +59,13 @@
          class="{% if request.endpoint == 'club.dashboard' %}active{% endif %}">
         Dashboard
       </a>
+      {% if current_user.can_manage_club %}
       <div class="nav-section">Turniere</div>
       <a href="{{ url_for('club.event_new') }}"
          class="{% if request.endpoint == 'club.event_new' %}active{% endif %}">
         + Turnier erstellen
       </a>
+      {% endif %}
       {% if current_user.can_manage_club %}
       <div class="nav-section">Verwaltung</div>
       {% if current_user.is_superadmin %}

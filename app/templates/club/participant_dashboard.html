@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">Willkommen, {{ current_user.first_name }}!</h2>
+</div>
+
+<div class="card mb-4" style="max-width: 680px;">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Offene Turniere</span>
+    <span class="badge bg-success">{{ open_events | length }}</span>
+  </div>
+  {% if open_events %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Turnier</th>
+          <th>Verein</th>
+          <th>Ort</th>
+          <th>Datum</th>
+          <th>Läufe</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in open_events %}
+        <tr>
+          <td class="fw-semibold">{{ event.name }}</td>
+          <td class="text-muted small">{{ event.organiser_club.name if event.organiser_club else "—" }}</td>
+          <td class="text-muted small">{{ event.location or "—" }}</td>
+          <td class="text-muted small">
+            {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% else %}—{% endif %}
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border">{{ event.runs | length }} Läufe</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-4">
+    Aktuell sind keine Turniere für Anmeldungen offen.
+  </div>
+  {% endif %}
+</div>
+
+<div class="alert alert-info" style="max-width:680px;">
+  <strong>Turnieranmeldung folgt.</strong>
+  Die Möglichkeit, sich direkt für Turniere anzumelden, wird in Kürze freigeschaltet.
+</div>
+{% endblock %}

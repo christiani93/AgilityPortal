@@ -7,7 +7,7 @@
   <div class="col-md-4">
     <div class="card shadow-sm">
       <div class="card-body p-4">
-        <h4 class="card-title mb-4">Vereins-Login</h4>
+        <h4 class="card-title mb-4">Anmeldung</h4>
         <form method="post">
           {{ form.hidden_tag() }}
 
@@ -34,6 +34,11 @@
 
           {{ form.submit(class="btn btn-primary w-100") }}
         </form>
+        <hr class="my-3">
+        <p class="text-center text-muted small mb-0">
+          Noch kein Konto?
+          <a href="{{ url_for('auth.register') }}">Jetzt registrieren</a>
+        </p>
       </div>
     </div>
   </div>

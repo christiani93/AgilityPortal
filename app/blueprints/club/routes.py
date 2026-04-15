@@ -56,16 +56,23 @@ def _events_for_club(club):
 @club_bp.get("/")
 @login_required
 def dashboard():
-    club = _club_for_user()
-    events = _events_for_club(club)
-
-    # Superadmin: Vereinsübersicht statt einzelnem Vereins-Dashboard
+    # Superadmin: Vereinsübersicht
     if current_user.is_superadmin:
-        clubs = db.session.execute(
-            db.select(Club).order_by(Club.name)
-        ).scalars().all()
+        clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
+        events = _events_for_club(None)
         return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events)
 
+    # Teilnehmer ohne Vereinszuordnung: offene Turniere anzeigen
+    if not current_user.club_id:
+        open_events = db.session.execute(
+            db.select(Event)
+            .filter_by(status="open")
+            .order_by(Event.starts_at)
+        ).scalars().all()
+        return render_template("club/participant_dashboard.html", open_events=open_events)
+
+    club = _club_for_user()
+    events = _events_for_club(club)
     return render_template("club/dashboard.html", club=club, events=events)
 
 

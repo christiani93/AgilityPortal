@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.extensions import db
 from app.models import User
-from .forms import LoginForm
+from .forms import LoginForm, RegisterForm
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -27,6 +27,36 @@ def login():
         flash("E-Mail oder Passwort ungültig.", "danger")
 
     return render_template("auth/login.html", form=form)
+
+
+@auth_bp.get("/register")
+@auth_bp.post("/register")
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("club.dashboard"))
+    form = RegisterForm()
+    if form.validate_on_submit():
+        email = form.email.data.strip().lower()
+        existing = db.session.execute(
+            db.select(User).filter_by(email=email)
+        ).scalar_one_or_none()
+        if existing:
+            flash("Diese E-Mail-Adresse ist bereits registriert.", "danger")
+        else:
+            user = User(
+                email=email,
+                first_name=form.first_name.data.strip(),
+                last_name=form.last_name.data.strip(),
+                role="handler",
+                is_active=True,
+            )
+            user.set_password(form.password.data)
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            flash(f"Willkommen, {user.first_name}! Dein Konto wurde erstellt.", "success")
+            return redirect(url_for("club.dashboard"))
+    return render_template("auth/register.html", form=form)
 
 
 @auth_bp.get("/logout")
