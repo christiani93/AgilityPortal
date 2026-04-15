@@ -50,7 +50,7 @@
 {# ── 1. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Läufe ({{ event.runs | length }})</span>
+    <span>Läufe ({{ sorted_runs | length }})</span>
     <button class="btn btn-sm btn-outline-secondary" type="button"
             data-bs-toggle="collapse" data-bs-target="#add-run-panel">
       + Lauf hinzufügen
@@ -65,7 +65,7 @@
         <tr><th>Typ</th><th>Kategorie</th><th>Klasse</th><th>Richter</th><th></th></tr>
       </thead>
       <tbody>
-        {% for run in event.runs %}
+        {% for run in sorted_runs %}
         <tr>
           <td>
             {% if run.run_type == 'agility' %}<span class="badge bg-primary">Agility</span>
@@ -91,6 +91,7 @@
   {% else %}
   <div class="card-body text-muted text-center py-4">Noch keine Läufe vorbereitet.</div>
   {% endif %}
+
 
   {# Lauf hinzufügen (ausklappbar) #}
   <div class="collapse" id="add-run-panel">
@@ -189,7 +190,7 @@
       <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;">
         <div class="fw-semibold text-muted small text-uppercase mb-2">Nicht zugewiesen</div>
         <div class="dnd-list" data-judge-id="0" style="min-height:120px;">
-          {% for run in event.runs if run.judge_id is none %}
+          {% for run in sorted_runs if run.judge_id is none %}
             {{ _run_card(run) }}
           {% endfor %}
         </div>
@@ -200,7 +201,7 @@
       <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;">
         <div class="fw-semibold small text-uppercase mb-2">{{ ej.judge.full_name }}</div>
         <div class="dnd-list" data-judge-id="{{ ej.judge_id }}" style="min-height:120px;">
-          {% for run in event.runs if run.judge_id == ej.judge_id %}
+          {% for run in sorted_runs if run.judge_id == ej.judge_id %}
             {{ _run_card(run) }}
           {% endfor %}
         </div>

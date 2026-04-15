@@ -240,6 +240,9 @@ def event_new():
                            is_superadmin=current_user.is_superadmin)
 
 
+_CATEGORY_SORT = {"L": 0, "I": 1, "M": 2, "S": 3}
+
+
 @club_bp.get("/events/<int:event_id>")
 @login_required
 def event_detail(event_id):
@@ -248,6 +251,11 @@ def event_detail(event_id):
         abort(404)
     _assert_event_access(event)
     run_form = EventRunForm()
+    # Läufe in Reihenfolge L→I→M→S sortieren
+    sorted_runs = sorted(
+        event.runs,
+        key=lambda r: (r.run_type, _CATEGORY_SORT.get(r.category, 9), r.class_level)
+    )
     # Alle verfügbaren Richter (für das Hinzufügen-Dropdown)
     present_judge_ids = {ej.judge_id for ej in event.event_judges}
     all_judges = db.session.execute(
@@ -255,7 +263,7 @@ def event_detail(event_id):
     ).scalars().all()
     available_judges = [j for j in all_judges if j.id not in present_judge_ids]
     return render_template("club/event_detail.html", event=event, run_form=run_form,
-                           available_judges=available_judges)
+                           sorted_runs=sorted_runs, available_judges=available_judges)
 
 
 @club_bp.post("/events/<int:event_id>/judges/add")

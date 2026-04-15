@@ -62,10 +62,10 @@ class EventRunForm(FlaskForm):
     category = SelectField(
         "Kategorie",
         choices=[
-            ("S", "Small (S)"),
-            ("M", "Medium (M)"),
-            ("I", "Intermediate (I)"),
             ("L", "Large (L)"),
+            ("I", "Intermediate (I)"),
+            ("M", "Medium (M)"),
+            ("S", "Small (S)"),
         ],
     )
     class_level = SelectField(
