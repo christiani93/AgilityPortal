@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>Dashboard</h2>
+  {% if club %}
+    <span class="badge bg-secondary fs-6">{{ club.name }}</span>
+  {% endif %}
+</div>
+
+{% if not club %}
+  <div class="alert alert-warning">
+    Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den Administrator.
+  </div>
+{% else %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-primary">{{ events | selectattr('status', 'eq', 'open') | list | length }}</div>
+        <div class="text-muted small">Offene Turniere</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-secondary">{{ events | length }}</div>
+        <div class="text-muted small">Turniere total</div>
+      </div>
+    </div>
+  </div>
+  {% if current_user.is_club_admin %}
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-success">{{ club.users | selectattr('is_active') | list | length }}</div>
+        <div class="text-muted small">Aktive Mitglieder</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Turniere</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Turnier</th>
+          <th>Ort</th>
+          <th>Datum</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+        <tr>
+          <td>{{ event.name }}</td>
+          <td>{{ event.location or "—" }}</td>
+          <td>
+            {% if event.starts_at %}
+              {{ event.starts_at.strftime("%d.%m.%Y") }}
+              {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
+                – {{ event.ends_at.strftime("%d.%m.%Y") }}
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if event.status == 'open' %}
+              <span class="badge bg-success">Offen</span>
+            {% elif event.status == 'closed' %}
+              <span class="badge bg-secondary">Geschlossen</span>
+            {% elif event.status == 'cancelled' %}
+              <span class="badge bg-danger">Abgesagt</span>
+            {% else %}
+              <span class="badge bg-light text-dark">Entwurf</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-3">Keine Turniere vorhanden.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

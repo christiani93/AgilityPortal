@@ -30,6 +30,10 @@ def create_app():
     app.config["LIVE_API_KEY"] = os.environ.get("LIVE_API_KEY", "dev-live-key")
     app.config["RESULTS_API_KEY"] = os.environ.get("RESULTS_API_KEY", "dev-results-key")
 
+    # --- Superadmin (Portal-Verwaltung: Vereine & Club-Admins) ---
+    app.config["SUPERADMIN_USERNAME"] = os.environ.get("SUPERADMIN_USERNAME", "")
+    app.config["SUPERADMIN_PASSWORD"] = os.environ.get("SUPERADMIN_PASSWORD", "")
+
     # --- Extensions ---
     db.init_app(app)
     migrate.init_app(app, db)

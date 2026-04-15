@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Vereinsportal{% endblock %} | Zeitnehmung Braunschweiler</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #f4f6f9; }
+    .navbar-brand { font-weight: 700; letter-spacing: .05em; }
+    .sidebar {
+      min-height: calc(100vh - 56px);
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding-top: 1.5rem;
+    }
+    .sidebar a {
+      color: #bdc3c7;
+      text-decoration: none;
+      display: block;
+      padding: .5rem 1rem;
+      border-radius: .25rem;
+    }
+    .sidebar a:hover, .sidebar a.active { background: #3d5166; color: #fff; }
+    .sidebar .nav-section {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #7f8c8d;
+      padding: .75rem 1rem .25rem;
+    }
+    .main-content { padding: 2rem; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark">
+  <div class="container-fluid">
+    <span class="navbar-brand">z-b Vereinsportal</span>
+    {% if current_user.is_authenticated %}
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-light small">
+        {{ current_user.full_name }}
+        {% if current_user.club %}
+          <span class="text-secondary">— {{ current_user.club.name }}</span>
+        {% endif %}
+      </span>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-light">Logout</a>
+    </div>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    {% if current_user.is_authenticated %}
+    <nav class="col-md-2 d-none d-md-block sidebar">
+      <a href="{{ url_for('club.dashboard') }}"
+         class="{% if request.endpoint == 'club.dashboard' %}active{% endif %}">
+        Dashboard
+      </a>
+      {% if current_user.is_club_admin %}
+      <div class="nav-section">Verwaltung</div>
+      <a href="{{ url_for('club.users') }}"
+         class="{% if 'users' in request.endpoint %}active{% endif %}">
+        Mitglieder
+      </a>
+      {% endif %}
+    </nav>
+    <main class="col-md-10 main-content">
+    {% else %}
+    <main class="col-12 main-content">
+    {% endif %}
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Mitglieder{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>Mitglieder</h2>
+  <a href="{{ url_for('club.add_user') }}" class="btn btn-primary btn-sm">+ Mitglied hinzufügen</a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th>E-Mail</th>
+          <th>Rolle</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for member in members %}
+        <tr class="{{ 'text-muted' if not member.is_active }}">
+          <td>{{ member.full_name }}</td>
+          <td>{{ member.email }}</td>
+          <td>
+            {% if member.is_club_admin %}
+              <span class="badge bg-primary">Admin</span>
+            {% else %}
+              <span class="badge bg-secondary">Mitglied</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if member.is_active %}
+              <span class="badge bg-success">Aktiv</span>
+            {% else %}
+              <span class="badge bg-danger">Inaktiv</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if member.id != current_user.id and not member.is_club_admin %}
+              <a href="{{ url_for('club.reset_password', user_id=member.id) }}"
+                 class="btn btn-sm btn-outline-secondary me-1">Passwort</a>
+              {% if member.is_active %}
+                <form method="post" action="{{ url_for('club.deactivate_user', user_id=member.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('{{ member.full_name }} deaktivieren?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Deaktivieren</button>
+                </form>
+              {% else %}
+                <form method="post" action="{{ url_for('club.activate_user', user_id=member.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-success">Aktivieren</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-3">Keine Mitglieder vorhanden.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
