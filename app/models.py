@@ -119,6 +119,15 @@ class User(UserMixin, db.Model):
 
     club = db.relationship("Club", back_populates="users")
 
+    person_id = db.Column(db.Integer, db.ForeignKey("people.id"), nullable=True)
+    person = db.relationship("Person", foreign_keys=[person_id])
+
+    @property
+    def dogs(self):
+        if not self.person:
+            return []
+        return [owner.dog for owner in self.person.owners if owner.role.value == "OWNER"]
+
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 

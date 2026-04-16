@@ -272,6 +272,57 @@
 <div class="alert alert-info">Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können.</div>
 {% endif %}
 
+{# ── 4. ANMELDUNGEN ───────────────────────────────────────────────────────── #}
+{% if registrations is defined %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Anmeldungen ({{ registrations | length }})</span>
+  </div>
+  {% if registrations %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Hund</th>
+          <th>Kategorie</th>
+          <th>Klasse</th>
+          <th>Hundeführer</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in registrations %}
+        <tr>
+          <td class="fw-semibold">{{ reg.dog.name }}</td>
+          <td>{{ reg.category_code }}</td>
+          <td>Klasse {{ reg.class_level }}</td>
+          <td class="text-muted small">
+            {% if reg.handler %}
+              {{ reg.handler.first_name }} {{ reg.handler.last_name }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if reg.status.value == 'PENDING' %}
+              <span class="badge bg-warning text-dark">Ausstehend</span>
+            {% elif reg.status.value == 'SUBMITTED' %}
+              <span class="badge bg-primary">Eingereicht</span>
+            {% elif reg.status.value == 'CONFIRMED' %}
+              <span class="badge bg-success">Bestätigt</span>
+            {% elif reg.status.value == 'CANCELLED' %}
+              <span class="badge bg-secondary">Storniert</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-3">Noch keine Anmeldungen.</div>
+  {% endif %}
+</div>
+{% endif %}
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <script>
 const EVENT_ID = {{ event.id }};

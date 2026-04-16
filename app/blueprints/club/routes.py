@@ -8,8 +8,8 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
-from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest
-from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus
+from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, EventRegistrationForm
 
 
 def _send_notify(subject, body):
@@ -289,8 +289,15 @@ def event_detail(event_id):
         db.select(Judge).order_by(Judge.last_name, Judge.first_name)
     ).scalars().all()
     available_judges = [j for j in all_judges if j.id not in present_judge_ids]
+    # Anmeldungen für Veranstalter
+    registrations = db.session.execute(
+        db.select(Registration).filter_by(event_id=event_id)
+        .filter(Registration.status != RegistrationStatus.CANCELLED)
+        .order_by(Registration.category_code, Registration.class_level)
+    ).scalars().all() if not current_user.is_handler_role else []
     return render_template("club/event_detail.html", event=event, run_form=run_form,
-                           sorted_runs=sorted_runs, available_judges=available_judges)
+                           sorted_runs=sorted_runs, available_judges=available_judges,
+                           registrations=registrations)
 
 
 @club_bp.post("/events/<int:event_id>/judges/add")
@@ -599,6 +606,113 @@ def test_mail():
     except BaseException as e:
         flash(f"✗ Fehler beim Senden: {e}", "danger")
     return redirect(url_for("club.pending_requests"))
+
+
+# ---------------------------------------------------------------------------
+# Teilnehmer: Hunde verwalten
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/profile/dogs")
+@club_bp.post("/profile/dogs")
+@login_required
+def profile_dogs():
+    if not current_user.person:
+        # Person erstellen falls noch nicht vorhanden
+        p = Person(first_name=current_user.first_name or "", last_name=current_user.last_name or "", email=current_user.email)
+        db.session.add(p)
+        db.session.flush()
+        current_user.person_id = p.id
+        db.session.commit()
+    form = DogForm()
+    if form.validate_on_submit():
+        try:
+            license_kind = LicenseKind[form.license_kind.data]
+            existing = db.session.execute(db.select(Dog).filter_by(license_no=form.license_no.data.strip())).scalar_one_or_none()
+            if existing:
+                flash("Ein Hund mit dieser Lizenznummer ist bereits registriert.", "danger")
+            else:
+                dog = Dog(license_kind=license_kind, license_no=form.license_no.data.strip(), name=form.name.data.strip())
+                db.session.add(dog)
+                db.session.flush()
+                db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
+                db.session.commit()
+                flash(f"Hund «{dog.name}» wurde hinzugefügt.", "success")
+                return redirect(url_for("club.profile_dogs"))
+        except ValueError as e:
+            flash(f"Ungültige Lizenznummer: {e}", "danger")
+    dogs = current_user.dogs
+    return render_template("club/profile_dogs.html", form=form, dogs=dogs)
+
+
+# ---------------------------------------------------------------------------
+# Teilnehmer: Event-Ansicht & Anmeldung
+# ---------------------------------------------------------------------------
+
+_CATEGORY_CODE_MAP = {"L": "Large", "I": "Intermediate", "M": "Medium", "S": "Small"}
+
+
+@club_bp.get("/events/<int:event_id>/view")
+@club_bp.post("/events/<int:event_id>/view")
+@login_required
+def event_view(event_id):
+    event = db.session.get(Event, event_id)
+    if not event or event.status not in ("open", "closed", "cancelled"):
+        abort(404)
+    form = EventRegistrationForm()
+    dogs = current_user.dogs if current_user.person else []
+    form.dog_id.choices = [(d.id, d.name) for d in dogs]
+    # Bestehende Anmeldung des Users für dieses Event
+    my_registrations = []
+    if current_user.person:
+        my_registrations = db.session.execute(
+            db.select(Registration).filter_by(event_id=event_id, handler_id=current_user.person_id)
+        ).scalars().all()
+    if form.validate_on_submit():
+        if event.status != "open":
+            flash("Anmeldungen sind nicht mehr offen.", "danger")
+            return redirect(url_for("club.event_view", event_id=event_id))
+        if not current_user.person:
+            flash("Bitte füge zuerst einen Hund in deinem Profil hinzu.", "warning")
+            return redirect(url_for("club.profile_dogs"))
+        # Prüfen ob bereits angemeldet (gleicher Hund)
+        existing = db.session.execute(
+            db.select(Registration).filter_by(event_id=event_id, dog_id=form.dog_id.data)
+        ).scalar_one_or_none()
+        if existing:
+            flash("Dieser Hund ist für dieses Turnier bereits angemeldet.", "warning")
+        else:
+            category_full = _CATEGORY_CODE_MAP.get(form.category_code.data, form.category_code.data)
+            reg = Registration(
+                event_id=event_id,
+                dog_id=form.dog_id.data,
+                handler_id=current_user.person_id,
+                category_code=category_full,
+                class_level=int(form.class_level.data),
+                status=RegistrationStatus.PENDING,
+            )
+            db.session.add(reg)
+            db.session.commit()
+            flash("Anmeldung erfolgreich.", "success")
+            return redirect(url_for("club.event_view", event_id=event_id))
+    return render_template("club/event_view.html", event=event, form=form,
+                           dogs=dogs, my_registrations=my_registrations)
+
+
+@club_bp.post("/registrations/<int:reg_id>/cancel")
+@login_required
+def registration_cancel(reg_id):
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    if not current_user.person or reg.handler_id != current_user.person_id:
+        abort(403)
+    if reg.status == RegistrationStatus.CANCELLED:
+        flash("Anmeldung ist bereits storniert.", "info")
+    else:
+        reg.status = RegistrationStatus.CANCELLED
+        db.session.commit()
+        flash("Anmeldung wurde storniert.", "success")
+    return redirect(url_for("club.event_view", event_id=reg.event_id))
 
 
 @club_bp.post("/requests/<int:req_id>/reject")

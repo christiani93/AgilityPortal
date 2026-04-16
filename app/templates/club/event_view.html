@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div>
+    <h2 class="mb-0">{{ event.name }}</h2>
+    <small class="text-muted">
+      {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+      {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
+        – {{ event.ends_at.strftime("%d.%m.%Y") }}
+      {% endif %}
+      {% if event.location %} · {{ event.location }}{% endif %}
+    </small>
+  </div>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+</div>
+
+{# Status-Badge #}
+<div class="mb-3">
+  {% if event.status == 'open' %}
+    <span class="badge bg-success fs-6">● Anmeldungen offen</span>
+  {% elif event.status == 'closed' %}
+    <span class="badge bg-secondary fs-6">● Anmeldungen geschlossen</span>
+  {% elif event.status == 'cancelled' %}
+    <span class="badge bg-danger fs-6">● Abgesagt</span>
+  {% else %}
+    <span class="badge bg-light text-dark border fs-6">● Entwurf</span>
+  {% endif %}
+  {% if event.organiser_club %}
+    <span class="badge bg-light text-dark border ms-1">{{ event.organiser_club.name }}</span>
+  {% endif %}
+</div>
+
+{# Läufe des Turniers #}
+{% if event.runs %}
+<div class="card mb-4">
+  <div class="card-header">
+    Läufe ({{ event.runs | length }})
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for run in event.runs %}
+      <span class="badge
+        {% if run.run_type == 'agility' %}bg-primary
+        {% elif run.run_type == 'jumping' %}bg-success
+        {% else %}bg-warning text-dark{% endif %}
+        px-2 py-1">
+        {{ run.RUN_TYPE_LABELS.get(run.run_type, run.run_type) }}
+        · {{ run.CATEGORY_LABELS.get(run.category, run.category) }}
+        · Kl. {{ run.class_level }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# Anmeldung #}
+{% if event.status == 'open' %}
+  <div class="card mb-4" style="max-width:520px;">
+    <div class="card-header">Für dieses Turnier anmelden</div>
+    <div class="card-body">
+      {% if dogs %}
+      <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+          {{ form.dog_id.label(class="form-label") }}
+          {{ form.dog_id(class="form-select") }}
+        </div>
+        <div class="mb-3">
+          {{ form.category_code.label(class="form-label") }}
+          {{ form.category_code(class="form-select") }}
+        </div>
+        <div class="mb-3">
+          {{ form.class_level.label(class="form-label") }}
+          {{ form.class_level(class="form-select") }}
+        </div>
+        {{ form.submit(class="btn btn-success") }}
+      </form>
+      {% else %}
+      <div class="alert alert-warning mb-0">
+        Füge zuerst einen Hund in deinem Profil hinzu, um dich anzumelden.
+        <a href="{{ url_for('club.profile_dogs') }}" class="alert-link">Hunde verwalten →</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+{# Meine Anmeldungen #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Meine Anmeldungen</span>
+    <span class="badge bg-secondary">{{ my_registrations | length }}</span>
+  </div>
+  {% if my_registrations %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Hund</th>
+          <th>Kategorie</th>
+          <th>Klasse</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in my_registrations %}
+        <tr>
+          <td class="fw-semibold">{{ reg.dog.name }}</td>
+          <td>{{ reg.category_code }}</td>
+          <td>Klasse {{ reg.class_level }}</td>
+          <td>
+            {% if reg.status.value == 'PENDING' %}
+              <span class="badge bg-warning text-dark">Ausstehend</span>
+            {% elif reg.status.value == 'SUBMITTED' %}
+              <span class="badge bg-primary">Eingereicht</span>
+            {% elif reg.status.value == 'CONFIRMED' %}
+              <span class="badge bg-success">Bestätigt</span>
+            {% elif reg.status.value == 'CANCELLED' %}
+              <span class="badge bg-secondary">Storniert</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if reg.status.value in ('PENDING', 'SUBMITTED') %}
+            <form method="post"
+                  action="{{ url_for('club.registration_cancel', reg_id=reg.id) }}"
+                  onsubmit="return confirm('Anmeldung stornieren?')">
+              {{ form.hidden_tag() }}
+              <button type="submit" class="btn btn-sm btn-outline-danger">Stornieren</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-3">
+    Noch keine Anmeldungen für dieses Turnier.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

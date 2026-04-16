@@ -74,6 +74,13 @@
         {# Badge wird via JS nachgeladen oder per Template-Variable gesetzt #}
       </a>
       {% endif %}
+      {% if not current_user.can_manage_club and not current_user.is_superadmin %}
+      <div class="nav-section">Mein Profil</div>
+      <a href="{{ url_for('club.profile_dogs') }}"
+         class="{% if request.endpoint == 'club.profile_dogs' %}active{% endif %}">
+        Meine Hunde
+      </a>
+      {% endif %}
       {% if current_user.can_manage_club %}
       <div class="nav-section">Verwaltung</div>
       {% if current_user.is_superadmin %}
