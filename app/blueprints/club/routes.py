@@ -16,10 +16,13 @@ def _send_notify(subject, body):
     """Sendet eine Benachrichtigungs-E-Mail an info@z-b.tech."""
     from flask import current_app
     try:
+        if not current_app.config.get("MAIL_SERVER"):
+            current_app.logger.warning("E-Mail: MAIL_SERVER nicht konfiguriert.")
+            return
         notify_email = current_app.config.get("NOTIFY_EMAIL", "info@z-b.tech")
         msg = Message(subject=subject, recipients=[notify_email], body=body)
         mail.send(msg)
-    except Exception as e:
+    except BaseException as e:
         current_app.logger.warning(f"E-Mail konnte nicht gesendet werden: {e}")
 
 club_bp = Blueprint("club", __name__, url_prefix="/club")
