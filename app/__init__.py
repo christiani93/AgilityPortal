@@ -38,12 +38,13 @@ def create_app():
     # --- Mail ---
     app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "")
     app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
-    app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
+    app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "false").lower() == "true"
+    app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "false").lower() == "true"
     app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "")
     app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "")
     app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@z-b.tech")
-    app.config["MAIL_TIMEOUT"] = 5   # Sekunden, verhindert hängende Verbindungen
-    app.config["NOTIFY_EMAIL"] = os.environ.get("NOTIFY_EMAIL", "info@z-b.tech")
+    app.config["MAIL_TIMEOUT"] = 5
+    app.config["NOTIFY_EMAIL"] = os.environ.get("ADMIN_EMAIL", os.environ.get("NOTIFY_EMAIL", "info@z-b.tech"))
 
     # --- Extensions ---
     db.init_app(app)
