@@ -1,7 +1,8 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, redirect, url_for, render_template
+from flask_login import current_user
 
 from .blueprints import register_blueprints
 from .extensions import db, migrate, login_manager
@@ -50,7 +51,9 @@ def create_app():
     register_blueprints(app)
 
     @app.get("/")
-    def health_check():
-        return "AgilityPortal OK"
+    def home():
+        if current_user.is_authenticated:
+            return redirect(url_for("club.dashboard"))
+        return render_template("home.html")
 
     return app
