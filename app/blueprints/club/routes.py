@@ -577,11 +577,27 @@ def request_approve(req_id):
 def test_mail():
     if not current_user.is_superadmin:
         abort(403)
-    _send_notify(
-        subject="[z-b Portal] Testmail",
-        body="Dies ist eine Testmail vom z-b Vereinsportal.\n\nWenn du diese E-Mail erhältst, funktioniert der E-Mail-Versand korrekt.",
-    )
-    flash("Testmail wurde an info@z-b.tech gesendet.", "info")
+    from flask import current_app
+    server = current_app.config.get("MAIL_SERVER", "")
+    if not server:
+        flash("MAIL_SERVER ist nicht in der .env konfiguriert.", "danger")
+        return redirect(url_for("club.pending_requests"))
+    try:
+        notify_email = current_app.config.get("NOTIFY_EMAIL", "info@z-b.tech")
+        msg = Message(
+            subject="[z-b Portal] Testmail",
+            recipients=[notify_email],
+            body=(
+                "Dies ist eine Testmail vom z-b Vereinsportal.\n\n"
+                f"MAIL_SERVER: {server}\n"
+                f"MAIL_PORT: {current_app.config.get('MAIL_PORT')}\n"
+                f"MAIL_USERNAME: {current_app.config.get('MAIL_USERNAME')}\n"
+            ),
+        )
+        mail.send(msg)
+        flash(f"✓ Testmail erfolgreich an {notify_email} gesendet (Server: {server}).", "success")
+    except BaseException as e:
+        flash(f"✗ Fehler beim Senden: {e}", "danger")
     return redirect(url_for("club.pending_requests"))
 
 
