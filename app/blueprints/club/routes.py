@@ -6,8 +6,21 @@ from flask import Blueprint, render_template, redirect, url_for, flash, abort, r
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, Club, Event, EventRun, EventJudge, Judge
-from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm
+from flask_mail import Message
+from app.extensions import mail
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest
+from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm
+
+
+def _send_notify(subject, body):
+    """Sendet eine Benachrichtigungs-E-Mail an info@z-b.tech."""
+    from flask import current_app
+    try:
+        notify_email = current_app.config.get("NOTIFY_EMAIL", "info@z-b.tech")
+        msg = Message(subject=subject, recipients=[notify_email], body=body)
+        mail.send(msg)
+    except Exception as e:
+        current_app.logger.warning(f"E-Mail konnte nicht gesendet werden: {e}")
 
 club_bp = Blueprint("club", __name__, url_prefix="/club")
 
@@ -60,7 +73,11 @@ def dashboard():
     if current_user.is_superadmin:
         clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
         events = _events_for_club(None)
-        return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events)
+        pending_count = db.session.execute(
+            db.select(db.func.count()).select_from(PendingRequest).filter_by(status="pending")
+        ).scalar()
+        return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events,
+                               pending_count=pending_count)
 
     # Teilnehmer ohne Vereinszuordnung: offene Turniere anzeigen
     if not current_user.club_id:
@@ -435,3 +452,147 @@ def event_run_delete(event_id, run_id):
     db.session.commit()
     flash("Lauf entfernt.", "success")
     return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+# ---------------------------------------------------------------------------
+# Anfragen (neuer Richter / neuer Verein)
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/requests/judge")
+@club_bp.post("/requests/judge")
+@login_required
+def request_judge():
+    """Club-Admin stellt Anfrage für neuen Richter."""
+    if not current_user.can_manage_club:
+        abort(403)
+    form = JudgeRequestForm()
+    if form.validate_on_submit():
+        db.session.add(PendingRequest(
+            request_type="judge",
+            submitted_by_id=current_user.id,
+            judge_ais_id=form.judge_ais_id.data or None,
+            judge_first_name=form.judge_first_name.data.strip(),
+            judge_last_name=form.judge_last_name.data.strip(),
+            note=form.note.data.strip() if form.note.data else None,
+        ))
+        db.session.commit()
+        _send_notify(
+            subject="[z-b Portal] Neue Richter-Anfrage",
+            body=(
+                f"Neuer Richter beantragt von {current_user.full_name} ({current_user.email}):\n\n"
+                f"Name: {form.judge_first_name.data} {form.judge_last_name.data}\n"
+                f"AIS-Nr.: {form.judge_ais_id.data or '—'}\n"
+                f"Bemerkung: {form.note.data or '—'}\n\n"
+                f"Prüfen: portal.z-b.tech/club/requests"
+            ),
+        )
+        flash("Anfrage wurde gesendet. Der Administrator wird sie prüfen.", "success")
+        return redirect(url_for("club.dashboard"))
+    return render_template("club/request_judge.html", form=form)
+
+
+@club_bp.get("/requests/club")
+@club_bp.post("/requests/club")
+@login_required
+def request_club():
+    """Teilnehmer stellt Anfrage für neuen Verein."""
+    form = ClubRequestForm()
+    if form.validate_on_submit():
+        db.session.add(PendingRequest(
+            request_type="club",
+            submitted_by_id=current_user.id,
+            club_vereinsnummer=form.club_vereinsnummer.data.strip(),
+            club_name=form.club_name.data.strip(),
+            note=form.note.data.strip() if form.note.data else None,
+        ))
+        db.session.commit()
+        _send_notify(
+            subject="[z-b Portal] Neue Verein-Anfrage",
+            body=(
+                f"Neuer Verein beantragt von {current_user.full_name} ({current_user.email}):\n\n"
+                f"Vereinsnummer: {form.club_vereinsnummer.data}\n"
+                f"Name: {form.club_name.data}\n"
+                f"Bemerkung: {form.note.data or '—'}\n\n"
+                f"Prüfen: portal.z-b.tech/club/requests"
+            ),
+        )
+        flash("Anfrage wurde gesendet. Der Administrator wird sie prüfen.", "success")
+        return redirect(url_for("club.dashboard"))
+    return render_template("club/request_club.html", form=form)
+
+
+@club_bp.get("/requests")
+@login_required
+def pending_requests():
+    """Superadmin: alle offenen Anfragen."""
+    if not current_user.is_superadmin:
+        abort(403)
+    requests_pending = db.session.execute(
+        db.select(PendingRequest)
+        .filter_by(status="pending")
+        .order_by(PendingRequest.created_at)
+    ).scalars().all()
+    requests_done = db.session.execute(
+        db.select(PendingRequest)
+        .filter(PendingRequest.status != "pending")
+        .order_by(PendingRequest.created_at.desc())
+        .limit(20)
+    ).scalars().all()
+    return render_template("club/pending_requests.html",
+                           requests_pending=requests_pending,
+                           requests_done=requests_done)
+
+
+@club_bp.post("/requests/<int:req_id>/approve")
+@login_required
+def request_approve(req_id):
+    if not current_user.is_superadmin:
+        abort(403)
+    req = db.session.get(PendingRequest, req_id)
+    if not req or req.status != "pending":
+        abort(404)
+    if req.request_type == "judge":
+        db.session.add(Judge(
+            ais_judge_id=req.judge_ais_id,
+            first_name=req.judge_first_name,
+            last_name=req.judge_last_name,
+        ))
+    elif req.request_type == "club":
+        db.session.add(Club(
+            vereinsnummer=req.club_vereinsnummer,
+            name=req.club_name,
+        ))
+    req.status = "approved"
+    req.resolved_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Anfrage genehmigt und {('Richter' if req.request_type == 'judge' else 'Verein')} erstellt.", "success")
+    return redirect(url_for("club.pending_requests"))
+
+
+@club_bp.get("/requests/test-mail")
+@login_required
+def test_mail():
+    if not current_user.is_superadmin:
+        abort(403)
+    _send_notify(
+        subject="[z-b Portal] Testmail",
+        body="Dies ist eine Testmail vom z-b Vereinsportal.\n\nWenn du diese E-Mail erhältst, funktioniert der E-Mail-Versand korrekt.",
+    )
+    flash("Testmail wurde an info@z-b.tech gesendet.", "info")
+    return redirect(url_for("club.pending_requests"))
+
+
+@club_bp.post("/requests/<int:req_id>/reject")
+@login_required
+def request_reject(req_id):
+    if not current_user.is_superadmin:
+        abort(403)
+    req = db.session.get(PendingRequest, req_id)
+    if not req or req.status != "pending":
+        abort(404)
+    req.status = "rejected"
+    req.admin_note = request.form.get("admin_note", "").strip() or None
+    req.resolved_at = datetime.utcnow()
+    db.session.commit()
+    flash("Anfrage abgelehnt.", "info")
+    return redirect(url_for("club.pending_requests"))

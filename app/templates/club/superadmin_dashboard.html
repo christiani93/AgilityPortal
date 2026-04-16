@@ -7,6 +7,16 @@
   <span class="badge bg-dark fs-6">Superadmin</span>
 </div>
 
+{% if pending_count %}
+<div class="alert alert-warning d-flex align-items-center gap-3 mb-4">
+  <span class="fs-4">🔔</span>
+  <div>
+    <strong>{{ pending_count }} offene Anfrage{{ 'n' if pending_count != 1 else '' }}</strong> warten auf Prüfung.
+    <a href="{{ url_for('club.pending_requests') }}" class="alert-link ms-2">Jetzt prüfen →</a>
+  </div>
+</div>
+{% endif %}
+
 <div class="row g-3 mb-4">
   <div class="col-md-3">
     <div class="card text-center">

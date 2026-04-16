@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Richter beantragen{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>Neuen Richter beantragen</h2>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Zurück</a>
+</div>
+
+<div class="card" style="max-width:500px;">
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      Fehlt ein Richter in der Liste? Trage die Daten ein — der Administrator prüft
+      die AIS-Nummer und legt den Richter an.
+    </p>
+    <form method="post">
+      {{ form.hidden_tag() }}
+
+      <div class="mb-3">
+        {{ form.judge_ais_id.label(class="form-label") }}
+        {{ form.judge_ais_id(class="form-control" + (" is-invalid" if form.judge_ais_id.errors else ""), placeholder="z.B. 12345") }}
+        {% for e in form.judge_ais_id.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col">
+          {{ form.judge_first_name.label(class="form-label") }}
+          {{ form.judge_first_name(class="form-control" + (" is-invalid" if form.judge_first_name.errors else "")) }}
+          {% for e in form.judge_first_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="col">
+          {{ form.judge_last_name.label(class="form-label") }}
+          {{ form.judge_last_name(class="form-control" + (" is-invalid" if form.judge_last_name.errors else "")) }}
+          {% for e in form.judge_last_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        {{ form.note.label(class="form-label") }}
+        {{ form.note(class="form-control", rows=2, placeholder="Optionale Bemerkung…") }}
+      </div>
+
+      {{ form.submit(class="btn btn-primary") }}
+    </form>
+  </div>
+</div>
+{% endblock %}

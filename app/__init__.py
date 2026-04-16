@@ -5,7 +5,7 @@ from flask import Flask, redirect, url_for, render_template
 from flask_login import current_user
 
 from .blueprints import register_blueprints
-from .extensions import db, migrate, login_manager
+from .extensions import db, migrate, login_manager, mail
 
 # .env laden (absoluter Pfad für Gunicorn-Kompatibilität)
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"), override=False)
@@ -35,10 +35,20 @@ def create_app():
     app.config["SUPERADMIN_USERNAME"] = os.environ.get("SUPERADMIN_USERNAME", "")
     app.config["SUPERADMIN_PASSWORD"] = os.environ.get("SUPERADMIN_PASSWORD", "")
 
+    # --- Mail ---
+    app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "localhost")
+    app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+    app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
+    app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "")
+    app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "")
+    app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@z-b.tech")
+    app.config["NOTIFY_EMAIL"] = os.environ.get("NOTIFY_EMAIL", "info@z-b.tech")
+
     # --- Extensions ---
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    mail.init_app(app)
 
     # User-Loader für Flask-Login
     from .models import User

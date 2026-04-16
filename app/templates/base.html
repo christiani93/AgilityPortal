@@ -66,6 +66,14 @@
         + Turnier erstellen
       </a>
       {% endif %}
+      {% if current_user.is_superadmin %}
+      <div class="nav-section">Anfragen</div>
+      <a href="{{ url_for('club.pending_requests') }}"
+         class="{% if request.endpoint == 'club.pending_requests' %}active{% endif %}">
+        Anfragen
+        {# Badge wird via JS nachgeladen oder per Template-Variable gesetzt #}
+      </a>
+      {% endif %}
       {% if current_user.can_manage_club %}
       <div class="nav-section">Verwaltung</div>
       {% if current_user.is_superadmin %}

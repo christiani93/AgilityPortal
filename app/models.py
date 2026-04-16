@@ -430,6 +430,48 @@ class EventJudge(db.Model):
     judge = db.relationship("Judge")
 
 
+# ---------------------------------------------------------------------------
+# Anfragen (neuer Richter / neuer Verein)
+# ---------------------------------------------------------------------------
+
+class PendingRequest(db.Model):
+    """
+    Anfrage eines Benutzers an den Superadmin.
+    request_type: 'judge' | 'club'
+    status: 'pending' | 'approved' | 'rejected'
+    """
+    __tablename__ = "pending_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_type = db.Column(db.String(10), nullable=False)   # judge / club
+    status = db.Column(db.String(10), default="pending", nullable=False)
+    submitted_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+    # Richter-Felder
+    judge_ais_id = db.Column(db.Integer, nullable=True)
+    judge_first_name = db.Column(db.String(100), nullable=True)
+    judge_last_name = db.Column(db.String(100), nullable=True)
+
+    # Verein-Felder
+    club_vereinsnummer = db.Column(db.String(20), nullable=True)
+    club_name = db.Column(db.String(255), nullable=True)
+
+    # Notizen
+    note = db.Column(db.Text, nullable=True)          # Einreicher
+    admin_note = db.Column(db.Text, nullable=True)    # Superadmin
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+
+    submitted_by = db.relationship("User")
+
+    @property
+    def display_title(self):
+        if self.request_type == "judge":
+            return f"Richter: {self.judge_first_name} {self.judge_last_name}"
+        return f"Verein: {self.club_vereinsnummer} {self.club_name}"
+
+
 class Registration(db.Model):
     __tablename__ = "registrations"
 

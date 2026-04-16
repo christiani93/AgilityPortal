@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Anfragen{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>Offene Anfragen</h2>
+  <div class="d-flex gap-2 align-items-center">
+    <span class="badge bg-warning text-dark fs-6">{{ requests_pending | length }} offen</span>
+    <a href="{{ url_for('club.test_mail') }}" class="btn btn-sm btn-outline-secondary">📧 Testmail senden</a>
+  </div>
+</div>
+
+{% if requests_pending %}
+<div class="card mb-4">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Typ</th>
+          <th>Details</th>
+          <th>Einreicher</th>
+          <th>Datum</th>
+          <th>Bemerkung</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in requests_pending %}
+        <tr>
+          <td>
+            {% if req.request_type == 'judge' %}
+              <span class="badge bg-info text-dark">Richter</span>
+            {% else %}
+              <span class="badge bg-secondary">Verein</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if req.request_type == 'judge' %}
+              <strong>{{ req.judge_first_name }} {{ req.judge_last_name }}</strong>
+              {% if req.judge_ais_id %}<br><small class="text-muted">AIS-Nr. {{ req.judge_ais_id }}</small>{% endif %}
+            {% else %}
+              <strong>{{ req.club_name }}</strong>
+              <br><small class="text-muted">Nr. {{ req.club_vereinsnummer }}</small>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ req.submitted_by.full_name if req.submitted_by else "—" }}</td>
+          <td class="text-muted small">{{ req.created_at.strftime("%d.%m.%Y") }}</td>
+          <td class="text-muted small">{{ req.note or "—" }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <form method="post" action="{{ url_for('club.request_approve', req_id=req.id) }}">
+                {{ csrf_form.hidden_tag() if csrf_form else "" }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-success">✓ Genehmigen</button>
+              </form>
+              <button class="btn btn-sm btn-outline-danger"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#reject-{{ req.id }}">✕</button>
+            </div>
+            <div class="collapse mt-2" id="reject-{{ req.id }}">
+              <form method="post" action="{{ url_for('club.request_reject', req_id=req.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="input-group input-group-sm">
+                  <input type="text" name="admin_note" class="form-control" placeholder="Grund (optional)">
+                  <button type="submit" class="btn btn-danger">Ablehnen</button>
+                </div>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-success">Keine offenen Anfragen. ✓</div>
+{% endif %}
+
+{% if requests_done %}
+<h5 class="text-muted mt-4 mb-3">Zuletzt bearbeitet</h5>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr><th>Typ</th><th>Details</th><th>Status</th><th>Datum</th></tr>
+      </thead>
+      <tbody>
+        {% for req in requests_done %}
+        <tr class="text-muted">
+          <td><small>{% if req.request_type == 'judge' %}Richter{% else %}Verein{% endif %}</small></td>
+          <td><small>{{ req.display_title }}</small></td>
+          <td>
+            {% if req.status == 'approved' %}
+              <span class="badge bg-success">Genehmigt</span>
+            {% else %}
+              <span class="badge bg-secondary">Abgelehnt</span>
+              {% if req.admin_note %}<small class="ms-1">{{ req.admin_note }}</small>{% endif %}
+            {% endif %}
+          </td>
+          <td><small>{{ req.resolved_at.strftime("%d.%m.%Y") if req.resolved_at else "—" }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

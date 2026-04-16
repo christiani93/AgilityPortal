@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField, IntegerField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField, IntegerField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
 
 
@@ -74,3 +74,22 @@ class EventRunForm(FlaskForm):
         coerce=int,
     )
     submit = SubmitField("Lauf hinzufügen")
+
+
+# ---------------------------------------------------------------------------
+# Anfragen an Superadmin
+# ---------------------------------------------------------------------------
+
+class JudgeRequestForm(FlaskForm):
+    judge_ais_id = IntegerField("AIS-Nr. (falls bekannt)", validators=[Optional()])
+    judge_first_name = StringField("Vorname", validators=[DataRequired(), Length(max=100)])
+    judge_last_name = StringField("Nachname", validators=[DataRequired(), Length(max=100)])
+    note = TextAreaField("Bemerkung", validators=[Optional()])
+    submit = SubmitField("Anfrage senden")
+
+
+class ClubRequestForm(FlaskForm):
+    club_vereinsnummer = StringField("SKG-Vereinsnummer", validators=[DataRequired(), Length(max=20)])
+    club_name = StringField("Vereinsname", validators=[DataRequired(), Length(max=255)])
+    note = TextAreaField("Bemerkung", validators=[Optional()])
+    submit = SubmitField("Anfrage senden")
