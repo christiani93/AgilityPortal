@@ -121,6 +121,5 @@ class DogClassForm(FlaskForm):
 
 class EventRegistrationForm(FlaskForm):
     dog_id = SelectField("Hund", coerce=int)
-    category_code = SelectField("Kategorie", choices=[("L", "Large (L)"), ("I", "Intermediate (I)"), ("M", "Medium (M)"), ("S", "Small (S)")])
     class_level = SelectField("Klasse", choices=[("1", "Klasse 1"), ("2", "Klasse 2"), ("3", "Klasse 3")], coerce=int)
     submit = SubmitField("Anmelden")

@@ -719,7 +719,12 @@ def event_view(event_id):
     form = EventRegistrationForm()
     dogs = current_user.dogs if current_user.person else []
     form.dog_id.choices = [(d.id, d.name) for d in dogs]
-    # Bestehende Anmeldung des Users für dieses Event
+    # Für JS-Vorausfüllung: Kategorie + Klasse je Hund
+    dogs_data = {
+        d.id: {"category": d.category or "", "class_level": d.class_level or 1}
+        for d in dogs
+    }
+    # Bestehende Anmeldungen des Users für dieses Event
     my_registrations = []
     if current_user.person:
         my_registrations = db.session.execute(
@@ -732,6 +737,10 @@ def event_view(event_id):
         if not current_user.person:
             flash(_("Bitte füge zuerst einen Hund in deinem Profil hinzu."), "warning")
             return redirect(url_for("club.profile_dogs"))
+        dog = db.session.get(Dog, form.dog_id.data)
+        if not dog or not dog.category:
+            flash(_("Bitte hinterlege zuerst die Kategorie für diesen Hund in deinem Profil."), "warning")
+            return redirect(url_for("club.profile_dogs"))
         # Prüfen ob bereits angemeldet (gleicher Hund)
         existing = db.session.execute(
             db.select(Registration).filter_by(event_id=event_id, dog_id=form.dog_id.data)
@@ -739,7 +748,7 @@ def event_view(event_id):
         if existing:
             flash(_("Dieser Hund ist für dieses Turnier bereits angemeldet."), "warning")
         else:
-            category_full = _CATEGORY_CODE_MAP.get(form.category_code.data, form.category_code.data)
+            category_full = _CATEGORY_CODE_MAP.get(dog.category, dog.category)
             reg = Registration(
                 event_id=event_id,
                 dog_id=form.dog_id.data,
@@ -753,7 +762,7 @@ def event_view(event_id):
             flash(_("Anmeldung erfolgreich."), "success")
             return redirect(url_for("club.event_view", event_id=event_id))
     return render_template("club/event_view.html", event=event, form=form,
-                           dogs=dogs, my_registrations=my_registrations)
+                           dogs=dogs, dogs_data=dogs_data, my_registrations=my_registrations)
 
 
 @club_bp.post("/registrations/<int:reg_id>/cancel")

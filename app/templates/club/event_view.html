@@ -62,22 +62,43 @@
     <div class="card-header">{{ _('Für dieses Turnier anmelden') }}</div>
     <div class="card-body">
       {% if dogs %}
-      <form method="post">
+      <form method="post" id="reg-form">
         {{ form.hidden_tag() }}
         <div class="mb-3">
           {{ form.dog_id.label(class="form-label") }}
-          {{ form.dog_id(class="form-select") }}
+          {{ form.dog_id(class="form-select", id="dog-select") }}
         </div>
-        <div class="mb-3">
-          {{ form.category_code.label(class="form-label") }}
-          {{ form.category_code(class="form-select") }}
+        <div class="mb-2">
+          <label class="form-label">{{ _('Kategorie') }}</label>
+          <div id="dog-category-display" class="form-control bg-light"></div>
         </div>
         <div class="mb-3">
           {{ form.class_level.label(class="form-label") }}
-          {{ form.class_level(class="form-select") }}
+          {{ form.class_level(class="form-select", id="class-select") }}
         </div>
         {{ form.submit(class="btn btn-success") }}
       </form>
+      <script>
+        const dogsData = {{ dogs_data | tojson }};
+        const catLabels = {"L": "Large (L)", "I": "Intermediate (I)", "M": "Medium (M)", "S": "Small (S)"};
+        const dogSelect = document.getElementById("dog-select");
+        const classSelect = document.getElementById("class-select");
+        const catDisplay = document.getElementById("dog-category-display");
+
+        function updateFromDog() {
+          const id = parseInt(dogSelect.value);
+          const data = dogsData[id] || {};
+          const cat = data.category || "";
+          catDisplay.textContent = cat ? catLabels[cat] || cat : "{{ _('Nicht gesetzt — bitte in Meine Hunde hinterlegen') }}";
+          catDisplay.className = "form-control " + (cat ? "bg-light" : "bg-warning-subtle text-warning-emphasis");
+          if (data.class_level) {
+            classSelect.value = data.class_level;
+          }
+        }
+
+        dogSelect.addEventListener("change", updateFromDog);
+        updateFromDog();
+      </script>
       {% else %}
       <div class="alert alert-warning mb-0">
         {{ _('Füge zuerst einen Hund in deinem Profil hinzu, um dich anzumelden.') }}
