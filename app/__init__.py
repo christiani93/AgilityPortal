@@ -78,6 +78,11 @@ def create_app():
     # --- Blueprints ---
     register_blueprints(app)
 
+    # --- CLI-Befehle ---
+    from .commands import seed_test_regs, clear_test_regs
+    app.cli.add_command(seed_test_regs)
+    app.cli.add_command(clear_test_regs)
+
     @app.get("/")
     def home():
         if current_user.is_authenticated:
