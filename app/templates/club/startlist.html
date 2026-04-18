@@ -68,14 +68,9 @@
       </thead>
       <tbody>
         {% for reg in regs | sort(attribute='start_number') %}
-        <tr {% if reg.is_in_season %}class="table-warning"{% endif %}>
+        <tr>
           <td class="fw-bold">{{ reg.start_number }}</td>
-          <td>
-            {{ reg.dog.name if reg.dog else '—' }}
-            {% if reg.is_in_season %}
-              <span class="badge bg-warning text-dark ms-1" title="Läufige Hündin">♀</span>
-            {% endif %}
-          </td>
+          <td>{{ reg.dog.name if reg.dog else '—' }}</td>
           <td class="text-muted">
             {% if reg.handler %}
               {{ reg.handler.first_name }} {{ reg.handler.last_name }}
