@@ -120,27 +120,106 @@
 </div>
 {% endif %}
 
-{# ── Läufe des Turniers ───────────────────────────────────────────────────── #}
-{% if event.runs %}
+{# ── Ablaufplan ───────────────────────────────────────────────────────────── #}
+{% set has_sched = namespace(found=false) %}
+{% for r in rings %}{% if sched_by_ring.get(r) %}{% set has_sched.found = true %}{% endif %}{% endfor %}
+
+{% if has_sched.found %}
 <div class="card mb-4">
-  <div class="card-header">
-    {{ _('Läufe') }} ({{ event.runs | length }})
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>📅 {{ _('Ablaufplan') }}</span>
+    {% if has_start_numbers %}
+      <span class="badge bg-success">{{ _('Mit Zeiten') }}</span>
+    {% else %}
+      <span class="badge bg-light text-dark border">{{ _('Reihenfolge') }}</span>
+    {% endif %}
   </div>
+
+  {% if has_start_numbers %}
+  {# ── MIT ZEITEN (5-Min-Raster, sobald Startnummern vergeben) ─────────── #}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>{{ _('Ring') }}</th>
+          <th>{{ _('Start') }}</th>
+          <th>{{ _('Ende') }}</th>
+          <th>{{ _('Lauf') }}</th>
+          <th>{{ _('Richter') }}</th>
+          <th class="text-end text-muted small">{{ _('Starter') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ring in rings %}
+        {% set ring_tl = sched_timeline.get(ring, []) %}
+        {% if ring_tl %}
+        {% for item in ring_tl %}
+        <tr>
+          {% if loop.first %}
+          <td rowspan="{{ ring_tl | length }}" class="fw-semibold align-middle">{{ ring }}</td>
+          {% endif %}
+          <td class="fw-semibold text-nowrap">{{ item.start_time }}</td>
+          <td class="text-muted text-nowrap">{{ item.end_time }}</td>
+          <td>
+            <span class="badge
+              {% if item.block.discipline == 'agility' %}bg-primary
+              {% elif item.block.discipline == 'jumping' %}bg-success
+              {% else %}bg-warning text-dark{% endif %}"
+              style="font-size:.65rem;">
+              {{ item.block.discipline | capitalize }}
+            </span>
+            {{ item.block._display_title }}
+          </td>
+          <td class="text-muted small text-nowrap">
+            {{ item.block.judge.full_name if item.block.judge else "—" }}
+          </td>
+          <td class="text-end text-muted small">{{ item.participants }}</td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  {# ── OHNE ZEITEN (Reihenfolge, bevor Startnummern vergeben) ──────────── #}
   <div class="card-body">
-    <div class="d-flex flex-wrap gap-2">
-      {% for run in event.runs %}
-      <span class="badge
-        {% if run.run_type == 'agility' %}bg-primary
-        {% elif run.run_type == 'jumping' %}bg-success
-        {% else %}bg-warning text-dark{% endif %}
-        px-2 py-1">
-        {{ run.RUN_TYPE_LABELS.get(run.run_type, run.run_type) }}
-        · {{ run.CATEGORY_LABELS.get(run.category, run.category) }}
-        · Kl. {{ run.class_level }}
-      </span>
+    <div class="row g-3">
+      {% for ring in rings %}
+      {% set ring_blocks = sched_by_ring.get(ring, []) | sort(attribute='sort_index') %}
+      {% if ring_blocks %}
+      <div class="col-md-auto" style="min-width:220px;">
+        <div class="fw-semibold text-muted small text-uppercase mb-2">{{ ring }}</div>
+        <ol class="list-group list-group-numbered list-group-flush" style="font-size:.88rem;">
+          {% for block in ring_blocks %}
+          <li class="list-group-item d-flex justify-content-between align-items-start px-0 py-1 border-0">
+            <div>
+              <span class="badge
+                {% if block.discipline == 'agility' %}bg-primary
+                {% elif block.discipline == 'jumping' %}bg-success
+                {% else %}bg-warning text-dark{% endif %} me-1"
+                style="font-size:.6rem;">
+                {{ block.discipline | capitalize }}
+              </span>
+              {{ block._display_title }}
+              {% if block.judge %}
+              <div class="text-muted" style="font-size:.75rem;">{{ block.judge.full_name }}</div>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
       {% endfor %}
     </div>
+    <div class="form-text text-muted mt-3">
+      {{ _('Zeiten werden sichtbar sobald die Startnummern vergeben sind.') }}
+    </div>
   </div>
+  {% endif %}
+
 </div>
 {% endif %}
 
@@ -219,6 +298,7 @@
     <table class="table table-hover mb-0">
       <thead class="table-light">
         <tr>
+          {% if has_start_numbers %}<th>{{ _('Nr.') }}</th>{% endif %}
           <th>{{ _('Hund') }}</th>
           <th>{{ _('Kategorie') }}</th>
           <th>{{ _('Klasse') }}</th>
@@ -229,6 +309,9 @@
       <tbody>
         {% for reg in my_registrations %}
         <tr>
+          {% if has_start_numbers %}
+          <td class="fw-semibold text-muted">{{ reg.start_number or "—" }}</td>
+          {% endif %}
           <td class="fw-semibold">{{ reg.dog.name }}</td>
           <td>{{ reg.category_code }}</td>
           <td>{{ _('Klasse') }} {{ reg.class_level }}</td>

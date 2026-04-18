@@ -765,6 +765,35 @@ def event_view(event_id):
     deadline_passed = (
         event.registration_close_at and event.registration_close_at < datetime.utcnow()
     )
+
+    # Zeitplan für Teilnehmer-Ansicht
+    from .schedule_utils import (compute_timeline, parse_ring_start_times,
+                                  ring_names as _ring_names, auto_title, sort_key_category)
+    sched_blocks = db.session.execute(
+        db.select(ScheduleBlock).filter_by(event_id=event_id)
+        .order_by(ScheduleBlock.ring, ScheduleBlock.sort_index)
+    ).scalars().all()
+    counts = _participant_counts_for_event(event_id)
+    for b in sched_blocks:
+        b._participant_count = counts.get((b.category_code, b.class_level), 0)
+        b._display_title = b.title or auto_title(b.discipline, b.category_code, b.class_level)
+    rings = _ring_names(event.ring_count or 1)
+    start_times = parse_ring_start_times(event.ring_start_times)
+    for r in rings:
+        start_times.setdefault(r, "08:00")
+    sched_by_ring = {r: [] for r in rings}
+    for b in sched_blocks:
+        if b.ring in sched_by_ring:
+            sched_by_ring[b.ring].append(b)
+    has_start_numbers = event.start_numbers_generated_at is not None
+    sched_timeline = (
+        compute_timeline(sched_by_ring, start_times,
+                         event.starts_at.strftime("%Y-%m-%d") if event.starts_at
+                         else datetime.utcnow().strftime("%Y-%m-%d"),
+                         round_minutes=5)
+        if has_start_numbers else {}
+    )
+
     if form.validate_on_submit():
         if event.status != "open" or deadline_passed:
             flash(_("Anmeldungen sind nicht mehr offen."), "danger")
@@ -811,7 +840,10 @@ def event_view(event_id):
             return redirect(url_for("club.event_view", event_id=event_id))
     return render_template("club/event_view.html", event=event, form=form,
                            dogs=dogs, dogs_data=dogs_data, my_registrations=my_registrations,
-                           deadline_passed=deadline_passed)
+                           deadline_passed=deadline_passed,
+                           sched_by_ring=sched_by_ring, rings=rings,
+                           sched_timeline=sched_timeline,
+                           has_start_numbers=has_start_numbers)
 
 
 @club_bp.post("/registrations/<int:reg_id>/cancel")
@@ -1006,15 +1038,16 @@ def event_schedule(event_id):
     event_date = event.starts_at.strftime("%Y-%m-%d") if event.starts_at else datetime.utcnow().strftime("%Y-%m-%d")
     timeline = compute_timeline(blocks_by_ring, start_times, event_date)
 
-    # Noch nicht eingeplante EventRuns
+    # Noch nicht eingeplante EventRuns — sortiert nach L→I→M→S, dann Klasse
     scheduled_keys = {
         (b.discipline, b.category_code, b.class_level) for b in all_blocks
     }
-    unscheduled_runs = [
-        r for r in event.runs
-        if (r.run_type, _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level)
-        not in scheduled_keys
-    ]
+    unscheduled_runs = sorted(
+        [r for r in event.runs
+         if (r.run_type, _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level)
+         not in scheduled_keys],
+        key=lambda r: (r.run_type, _CATEGORY_SORT.get(r.category, 9), r.class_level)
+    )
 
     # Richter des Turniers für den Dropdown
     event_judges = [ej.judge for ej in event.event_judges]
