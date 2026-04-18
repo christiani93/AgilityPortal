@@ -74,28 +74,40 @@
   <div class="card-header fw-semibold">{{ _('Meine Anmeldung') }}</div>
 
   {% if my_registrations %}
+
+  {# Hinweis: Startnummern bereits vergeben → Abmeldung lässt Lücke #}
+  {% if has_start_numbers and not deadline_passed %}
+  <div class="alert alert-warning mb-0 rounded-0 border-0 border-bottom small py-2 px-3">
+    ⚠️ {{ _('Startnummern wurden bereits vergeben. Eine Abmeldung oder Läufig-Meldung wird dem Veranstalter angezeigt — die Startnummer bleibt reserviert.') }}
+  </div>
+  {% endif %}
+
   <div class="table-responsive">
     <table class="table table-sm mb-0 align-middle">
       <thead class="table-light">
         <tr>
           <th>{{ _('Hund') }}</th>
-          <th>{{ _('Kategorie') }}</th>
-          <th>{{ _('Klasse') }}</th>
-          <th>{{ _('Startnummer') }}</th>
+          <th>{{ _('Kat. / Kl.') }}</th>
+          <th>{{ _('Nr.') }}</th>
           <th>{{ _('Status') }}</th>
+          {% if not deadline_passed %}<th></th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for reg in my_registrations %}
-        <tr>
-          <td class="fw-semibold">{{ reg.dog.name if reg.dog else '—' }}</td>
-          <td>{{ reg.category_code }}</td>
-          <td>Kl. {{ reg.class_level }}</td>
+        <tr {% if reg.is_in_season %}class="table-warning"{% endif %}>
+          <td class="fw-semibold">
+            {{ reg.dog.name if reg.dog else '—' }}
+            {% if reg.is_in_season %}
+              <span class="badge bg-warning text-dark ms-1">♀ {{ _('läufig') }}</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ reg.category_code }} Kl.{{ reg.class_level }}</td>
           <td>
             {% if has_start_numbers and reg.start_number %}
-              <span class="badge bg-primary fs-6">{{ reg.start_number }}</span>
+              <span class="badge bg-primary">{{ reg.start_number }}</span>
             {% elif has_start_numbers %}
-              <span class="text-muted small">{{ _('nicht vergeben') }}</span>
+              <span class="text-muted small">—</span>
             {% else %}
               <span class="text-muted small">—</span>
             {% endif %}
@@ -109,6 +121,39 @@
               <span class="badge bg-secondary">{{ reg.status.value }}</span>
             {% endif %}
           </td>
+          {% if not deadline_passed %}
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end flex-wrap">
+              {# Läufig melden / aufheben — nur wenn Turnier es erlaubt #}
+              {% if event.allows_bitches_in_season %}
+              <form method="post"
+                    action="{{ url_for('club.registration_toggle_in_season', reg_id=reg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if reg.is_in_season %}
+                  <button type="submit" class="btn btn-sm btn-outline-warning"
+                          title="{{ _('Läufig-Meldung aufheben') }}">
+                    ♀ {{ _('Nicht läufig') }}
+                  </button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          title="{{ _('Hündin als läufig melden') }}">
+                    ♀ {{ _('Läufig melden') }}
+                  </button>
+                {% endif %}
+              </form>
+              {% endif %}
+              {# Abmelden #}
+              <form method="post"
+                    action="{{ url_for('club.registration_cancel_own', reg_id=reg.id) }}"
+                    onsubmit="return confirm('{{ _('Vom Turnier abmelden?') }}')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  {{ _('Abmelden') }}
+                </button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>

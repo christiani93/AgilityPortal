@@ -896,6 +896,64 @@ def event_info(event_id):
 
 
 # ---------------------------------------------------------------------------
+# Teilnehmer: Abmelden & Läufig melden
+# ---------------------------------------------------------------------------
+
+@club_bp.post("/registrations/<int:reg_id>/cancel-own")
+@login_required
+def registration_cancel_own(reg_id):
+    """Teilnehmer meldet sich selbst ab."""
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    # Nur eigene Anmeldungen
+    if reg.handler_id != current_user.person_id:
+        abort(403)
+    # Nur PENDING oder CONFIRMED, und Nennschluss nicht abgelaufen
+    deadline_passed = (
+        reg.event.registration_close_at and
+        reg.event.registration_close_at < datetime.utcnow()
+    )
+    if deadline_passed:
+        flash(_("Nennschluss ist abgelaufen — Abmeldung nicht mehr möglich."), "danger")
+        return redirect(url_for("club.event_info", event_id=reg.event_id))
+    if reg.status not in (RegistrationStatus.PENDING, RegistrationStatus.CONFIRMED):
+        flash(_("Diese Anmeldung kann nicht mehr storniert werden."), "danger")
+        return redirect(url_for("club.event_info", event_id=reg.event_id))
+
+    reg.status = RegistrationStatus.CANCELLED
+    db.session.commit()
+    flash(_("Abmeldung für %(dog)s wurde erfolgreich gespeichert.", dog=reg.dog.name), "success")
+    return redirect(url_for("club.event_info", event_id=reg.event_id))
+
+
+@club_bp.post("/registrations/<int:reg_id>/toggle-in-season")
+@login_required
+def registration_toggle_in_season(reg_id):
+    """Teilnehmer meldet Hündin als läufig (oder hebt es auf)."""
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    if reg.handler_id != current_user.person_id:
+        abort(403)
+    if reg.status not in (RegistrationStatus.PENDING, RegistrationStatus.CONFIRMED):
+        abort(403)
+    # Turnier muss läufige Hündinnen erlauben
+    if not reg.event.allows_bitches_in_season:
+        flash(_("Dieses Turnier erlaubt keine läufigen Hündinnen."), "danger")
+        return redirect(url_for("club.event_info", event_id=reg.event_id))
+
+    reg.is_in_season = not reg.is_in_season
+    db.session.commit()
+
+    if reg.is_in_season:
+        flash(_("%(dog)s als läufig gemeldet.", dog=reg.dog.name), "info")
+    else:
+        flash(_("Läufig-Meldung für %(dog)s aufgehoben.", dog=reg.dog.name), "info")
+    return redirect(url_for("club.event_info", event_id=reg.event_id))
+
+
+# ---------------------------------------------------------------------------
 # Teilnehmer: Event-Ansicht & Anmeldung (Superadmin-Zeitplanansicht)
 # ---------------------------------------------------------------------------
 
