@@ -633,7 +633,10 @@ def profile_dogs():
             if existing:
                 flash(_("Ein Hund mit dieser Lizenznummer ist bereits registriert."), "danger")
             else:
-                dog = Dog(license_kind=license_kind, license_no=form.license_no.data.strip(), name=form.name.data.strip())
+                dog = Dog(name=form.name.data.strip())
+                dog.license_kind = license_kind
+                dog.license_no = form.license_no.data.strip()
+                Dog._validate_license_format(license_kind, dog.license_no)
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))

@@ -214,14 +214,16 @@ class Dog(db.Model):
 
     @validates("license_no")
     def _validate_license_no(self, key, value):
-        self._validate_license_format(self.license_kind, value)
+        if self.license_kind is not None:
+            self._validate_license_format(self.license_kind, value)
         if self.license_kind == LicenseKind.FOREIGN and value:
             self.foreign_country_code = value.split("-", 1)[0]
         return value
 
     @validates("license_kind")
     def _validate_license_kind(self, key, value):
-        self._validate_license_format(value, self.license_no)
+        if self.license_no is not None:
+            self._validate_license_format(value, self.license_no)
         if value == LicenseKind.FOREIGN and self.license_no:
             self.foreign_country_code = self.license_no.split("-", 1)[0]
         self.apply_license_kind_defaults()
