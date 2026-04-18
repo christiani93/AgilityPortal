@@ -229,6 +229,96 @@ def _fill_club_choices(form):
     form.club_id.choices = [(0, "— Verein wählen —")] + [(c.id, c.name) for c in clubs]
 
 
+@club_bp.post("/events/create-test")
+@login_required
+def create_test_event_web():
+    """Erstellt eine Testveranstaltung mit Standardläufen direkt aus dem Dashboard."""
+    if not current_user.is_superadmin:
+        abort(403)
+
+    from datetime import date, timedelta
+    from .schedule_utils import ring_names as _ring_names
+    from app.models import (EventRun, Registration, RegistrationStatus,
+                             Person, Dog, DogOwner, DogOwnerRole, LicenseKind,
+                             TkaMasterStatus)
+
+    name     = (request.form.get("name") or "Testturnier").strip()
+    count    = max(1, min(50, request.form.get("count", 5, type=int)))
+    club_id  = request.form.get("club_id", type=int) or None
+    starts   = datetime.combine(date.today() + timedelta(days=7),
+                                datetime.min.time())
+
+    _CAT_MAP = {"L": "Large", "I": "Intermediate", "M": "Medium", "S": "Small"}
+    _FIRST   = ["Anna","Lea","Sara","Laura","Nina","Julia","Maria","Sandra",
+                "Klaus","Thomas","Peter","Stefan","Markus","Daniel","Michael","Andreas"]
+    _LAST    = ["Müller","Meier","Schmid","Fischer","Weber","Keller","Huber",
+                "Wolf","Zimmermann","Baumann","Moser","Frei","Brunner","Steiner"]
+    _DOGS    = ["Ace","Bella","Charlie","Daisy","Echo","Finn","Grace","Hunter",
+                "Ivy","Jake","Kira","Leo","Maya","Neo","Oreo","Pepper",
+                "Quinn","Rex","Sky","Tara","Uma","Vega","Wren","Xena"]
+
+    event = Event(
+        name=name, starts_at=starts, ends_at=starts,
+        status="open", is_test=True,
+        organiser_club_id=club_id, type="regular", ring_count=1,
+    )
+    db.session.add(event)
+    db.session.flush()
+
+    # Alle Standard-Läufe anlegen
+    runs = []
+    for discipline in ("agility", "jumping"):
+        for cat in ("L", "I", "M", "S"):
+            for kl in (1, 2, 3):
+                run = EventRun(event_id=event.id, run_type=discipline,
+                               category=cat, class_level=kl)
+                db.session.add(run)
+                runs.append((discipline, cat, kl))
+    db.session.flush()
+
+    # Testanmeldungen befüllen
+    n = 0
+    for discipline, cat, kl in runs:
+        category_code = _CAT_MAP.get(cat, cat)
+        for _ in range(count):
+            n += 1
+            person = Person(
+                first_name=_FIRST[(n - 1) % len(_FIRST)],
+                last_name=_LAST[(n - 1) % len(_LAST)],
+                email=f"test{n}@test.invalid",
+                external_id=f"TEST_{event.id}_{n:04d}",
+            )
+            db.session.add(person)
+            db.session.flush()
+
+            dog = Dog(
+                name=_DOGS[(n - 1) % len(_DOGS)],
+                license_no=f"TST-E{event.id:04d}N{n:05d}",
+                license_kind=LicenseKind.FOREIGN,
+                category=cat, class_level=kl,
+                tka_master_status=TkaMasterStatus.NOT_REQUIRED,
+                external_id=f"TESTDOG_{event.id}_{n:04d}",
+            )
+            db.session.add(dog)
+            db.session.flush()
+
+            db.session.add(DogOwner(dog_id=dog.id, person_id=person.id,
+                                    role=DogOwnerRole.OWNER))
+            db.session.add(Registration(
+                event_id=event.id, dog_id=dog.id, handler_id=person.id,
+                category_code=category_code, class_level=kl,
+                status=RegistrationStatus.CONFIRMED,
+                external_id=f"TESTREG_{event.id}_{n:04d}",
+            ))
+
+    db.session.commit()
+    flash(_(
+        "Testturnier «%(name)s» erstellt: %(runs)s Läufe, %(regs)s Anmeldungen.",
+        name=name, runs=len(runs), regs=n
+    ), "success")
+    return redirect(url_for("club.event_detail", event_id=event.id))
+
+
 @club_bp.get("/events/new")
 @club_bp.post("/events/new")
 @login_required
