@@ -73,11 +73,9 @@
           <div id="dog-category-display" class="form-control bg-light"></div>
         </div>
         <div class="mb-3">
-          <label class="form-label">{{ _('Klasse') }}</label>
-          <div id="dog-class-display" class="form-control bg-light"></div>
-          <div class="form-text">
-            <a href="{{ url_for('club.profile_dogs') }}">{{ _('Klasse in Meine Hunde ändern') }} →</a>
-          </div>
+          {{ form.class_level.label(class="form-label") }}
+          {{ form.class_level(class="form-select", id="class-select") }}
+          <div class="form-text text-muted">{{ _('Eine Änderung hier aktualisiert automatisch das Hundeprofil.') }}</div>
         </div>
         {{ form.submit(class="btn btn-success") }}
       </form>
@@ -85,19 +83,17 @@
         const dogsData = {{ dogs_data | tojson }};
         const catLabels = {"L": "Large (L)", "I": "Intermediate (I)", "M": "Medium (M)", "S": "Small (S)"};
         const dogSelect = document.getElementById("dog-select");
+        const classSelect = document.getElementById("class-select");
         const catDisplay = document.getElementById("dog-category-display");
-        const classDisplay = document.getElementById("dog-class-display");
 
         function updateFromDog() {
           const id = parseInt(dogSelect.value);
           const data = dogsData[id] || {};
           const cat = data.category || "";
-          const cls = data.class_level || 0;
           const missing = "{{ _('Nicht gesetzt — bitte in Meine Hunde hinterlegen') }}";
           catDisplay.textContent = cat ? (catLabels[cat] || cat) : missing;
           catDisplay.className = "form-control " + (cat ? "bg-light" : "bg-warning-subtle text-warning-emphasis");
-          classDisplay.textContent = cls ? "{{ _('Klasse') }} " + cls : missing;
-          classDisplay.className = "form-control " + (cls ? "bg-light" : "bg-warning-subtle text-warning-emphasis");
+          if (data.class_level) classSelect.value = data.class_level;
         }
 
         dogSelect.addEventListener("change", updateFromDog);

@@ -738,8 +738,8 @@ def event_view(event_id):
             flash(_("Bitte füge zuerst einen Hund in deinem Profil hinzu."), "warning")
             return redirect(url_for("club.profile_dogs"))
         dog = db.session.get(Dog, form.dog_id.data)
-        if not dog or not dog.category or not dog.class_level:
-            flash(_("Bitte hinterlege zuerst Kategorie und Klasse für diesen Hund in deinem Profil."), "warning")
+        if not dog or not dog.category:
+            flash(_("Bitte hinterlege zuerst die Kategorie für diesen Hund in deinem Profil."), "warning")
             return redirect(url_for("club.profile_dogs"))
         # Prüfen ob bereits angemeldet (gleicher Hund)
         existing = db.session.execute(
@@ -748,13 +748,25 @@ def event_view(event_id):
         if existing:
             flash(_("Dieser Hund ist für dieses Turnier bereits angemeldet."), "warning")
         else:
+            new_class = int(form.class_level.data)
             category_full = _CATEGORY_CODE_MAP.get(dog.category, dog.category)
+            # Klasse im Profil + alle anderen offenen Anmeldungen aktualisieren
+            if dog.class_level != new_class:
+                dog.class_level = new_class
+                other_regs = db.session.execute(
+                    db.select(Registration)
+                    .filter(Registration.dog_id == dog.id,
+                            Registration.event_id != event_id,
+                            Registration.status.in_([RegistrationStatus.PENDING, RegistrationStatus.SUBMITTED]))
+                ).scalars().all()
+                for r in other_regs:
+                    r.class_level = new_class
             reg = Registration(
                 event_id=event_id,
                 dog_id=form.dog_id.data,
                 handler_id=current_user.person_id,
                 category_code=category_full,
-                class_level=dog.class_level,
+                class_level=new_class,
                 status=RegistrationStatus.PENDING,
             )
             db.session.add(reg)
