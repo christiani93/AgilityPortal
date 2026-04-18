@@ -84,6 +84,9 @@
       <dd class="col-sm-8 mb-0">
         {% if event.allows_bitches_in_season %}
           <span class="badge bg-success">{{ _('Erlaubt') }}</span>
+          {% if event.bitches_in_season_start_last %}
+            <span class="badge bg-warning text-dark ms-1">{{ _('starten am Schluss') }}</span>
+          {% endif %}
         {% else %}
           <span class="badge bg-secondary">{{ _('Nicht erlaubt') }}</span>
         {% endif %}
@@ -161,6 +164,17 @@
           {{ form.class_level.label(class="form-label") }}
           {{ form.class_level(class="form-select", id="class-select") }}
           <div class="form-text text-muted">{{ _('Eine Änderung hier aktualisiert automatisch das Hundeprofil.') }}</div>
+        </div>
+        <div class="mb-3">
+          <div class="form-check">
+            {{ form.is_in_season(class="form-check-input") }}
+            {{ form.is_in_season.label(class="form-check-label") }}
+          </div>
+          {% if event.bitches_in_season_start_last %}
+          <div class="form-text text-warning-emphasis">
+            ⚠ {{ _('Läufige Hündinnen werden am Schluss der Kategorie eingeteilt.') }}
+          </div>
+          {% endif %}
         </div>
         {{ form.submit(class="btn btn-success") }}
       </form>

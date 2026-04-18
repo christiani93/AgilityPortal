@@ -309,6 +309,7 @@ class Event(db.Model):
     judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     judge2_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     allows_bitches_in_season = db.Column(db.Boolean, default=False, nullable=False)
+    bitches_in_season_start_last = db.Column(db.Boolean, default=False, nullable=False)
     is_breed_restricted = db.Column(db.Boolean, default=False, nullable=False)
     registration_open_at = db.Column(db.DateTime, nullable=True)
     registration_close_at = db.Column(db.DateTime, nullable=True)
@@ -518,6 +519,7 @@ class Registration(db.Model):
     tka_issue_type = db.Column(db.Enum(TkaIssueType, name="tka_issue_type"))
     tka_issue_message = db.Column(db.Text)
     start_number = db.Column(db.Integer, nullable=True)
+    is_in_season = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     event = db.relationship("Event")

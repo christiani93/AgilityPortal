@@ -270,6 +270,7 @@ def event_new():
             max_participants=form.max_participants.data or None,
             entry_fee=form.entry_fee.data or None,
             allows_bitches_in_season=form.allows_bitches_in_season.data,
+            bitches_in_season_start_last=form.bitches_in_season_start_last.data,
             notes_public=form.notes_public.data.strip() if form.notes_public.data else None,
             organiser_club_id=club_id,
             type="regular",
@@ -396,6 +397,7 @@ def event_edit(event_id):
         event.max_participants = form.max_participants.data or None
         event.entry_fee = form.entry_fee.data or None
         event.allows_bitches_in_season = form.allows_bitches_in_season.data
+        event.bitches_in_season_start_last = form.bitches_in_season_start_last.data
         event.notes_public = form.notes_public.data.strip() if form.notes_public.data else None
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
@@ -800,6 +802,7 @@ def event_view(event_id):
                 handler_id=current_user.person_id,
                 category_code=category_full,
                 class_level=new_class,
+                is_in_season=form.is_in_season.data,
                 status=RegistrationStatus.PENDING,
             )
             db.session.add(reg)

@@ -83,11 +83,18 @@
         </div>
       </div>
 
-      <div class="mb-3">
+      <div class="mb-1">
         <div class="form-check">
           {{ form.allows_bitches_in_season(class="form-check-input") }}
           {{ form.allows_bitches_in_season.label(class="form-check-label") }}
         </div>
+      </div>
+      <div class="mb-3">
+        <div class="form-check">
+          {{ form.bitches_in_season_start_last(class="form-check-input") }}
+          {{ form.bitches_in_season_start_last.label(class="form-check-label") }}
+        </div>
+        <div class="form-text text-muted ms-4">{{ _('Läufige Hündinnen werden am Ende ihrer Kategorie eingeteilt.') }}</div>
       </div>
 
       <div class="mb-3">

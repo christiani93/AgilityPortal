@@ -151,6 +151,9 @@
       <dd class="col-sm-8 mb-0">
         {% if event.allows_bitches_in_season %}
           <span class="badge bg-success">{{ _('Erlaubt') }}</span>
+          {% if event.bitches_in_season_start_last %}
+            <span class="badge bg-warning text-dark ms-1">{{ _('starten am Schluss') }}</span>
+          {% endif %}
         {% else %}
           <span class="badge bg-secondary">{{ _('Nicht erlaubt') }}</span>
         {% endif %}
@@ -386,7 +389,12 @@
               <button type="submit" class="btn btn-sm btn-outline-secondary">✓</button>
             </form>
           </td>
-          <td class="fw-semibold">{{ reg.dog.name }}</td>
+          <td class="fw-semibold">
+            {{ reg.dog.name }}
+            {% if reg.is_in_season %}
+              <span class="badge bg-warning text-dark ms-1" title="{{ _('Hündin ist läufig') }}">🔴 {{ _('läufig') }}</span>
+            {% endif %}
+          </td>
           <td>{{ reg.category_code }}</td>
           <td>{{ _('Klasse') }} {{ reg.class_level }}</td>
           <td class="text-muted small">

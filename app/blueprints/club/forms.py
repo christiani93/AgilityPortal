@@ -51,6 +51,7 @@ class EventForm(FlaskForm):
     max_participants = IntegerField("Max. Starter", validators=[Optional(), NumberRange(min=1)])
     entry_fee = DecimalField("Startgeld (CHF)", validators=[Optional(), NumberRange(min=0)], places=2)
     allows_bitches_in_season = BooleanField("Läufige Hündinnen erlaubt")
+    bitches_in_season_start_last = BooleanField("Läufige Hündinnen starten am Schluss der Kategorie")
     notes_public = TextAreaField("Bemerkungen (öffentlich)", validators=[Optional()])
     # Nur für Superadmin befüllt — choices werden in der Route gesetzt
     club_id = SelectField("Verein", coerce=int, validators=[Optional()])
@@ -129,4 +130,5 @@ class DogClassForm(FlaskForm):
 class EventRegistrationForm(FlaskForm):
     dog_id = SelectField("Hund", coerce=int)
     class_level = SelectField("Klasse", choices=[("1", "Klasse 1"), ("2", "Klasse 2"), ("3", "Klasse 3")], coerce=int)
+    is_in_season = BooleanField("Hündin ist läufig")
     submit = SubmitField("Anmelden")
