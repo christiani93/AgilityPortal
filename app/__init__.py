@@ -64,8 +64,9 @@ def create_app():
     babel.init_app(app, locale_selector=get_locale)
 
     @app.context_processor
-    def inject_locale():
-        return {"get_locale": get_locale}
+    def inject_globals():
+        from flask_wtf.csrf import generate_csrf
+        return {"get_locale": get_locale, "csrf_token": generate_csrf}
 
     # User-Loader für Flask-Login
     from .models import User
