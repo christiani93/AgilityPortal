@@ -717,9 +717,12 @@ class ScheduleBlock(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False, index=True)
     ring = db.Column(db.String(50), default="Ring 1", nullable=False)
     start_at = db.Column(db.DateTime, index=True)
-    discipline = db.Column(db.String(20), nullable=False)
-    category_code = db.Column(db.String(20), nullable=False)
-    class_level = db.Column(db.Integer, nullable=False)
+    # block_type: "run" | "rank_announcement"
+    block_type = db.Column(db.String(20), default="run", nullable=False)
+    discipline = db.Column(db.String(20), nullable=True)      # nur bei run
+    category_code = db.Column(db.String(20), nullable=True)   # nur bei run
+    class_level = db.Column(db.Integer, nullable=True)        # nur bei run
+    duration_minutes = db.Column(db.Integer, nullable=True)   # nur bei rank_announcement (default 5)
     judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     title = db.Column(db.String(200), nullable=True)
     notes = db.Column(db.Text)
@@ -728,14 +731,6 @@ class ScheduleBlock(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     judge = db.relationship("Judge", foreign_keys=[judge_id])
-
-    __table_args__ = (
-        CheckConstraint("class_level in (1, 2, 3)", name="ck_schedule_blocks_class_level"),
-        CheckConstraint(
-            "category_code in ('Small','Medium','Intermediate','Large')",
-            name="ck_schedule_blocks_category_code",
-        ),
-    )
 
 
 @event.listens_for(Dog, "before_insert")

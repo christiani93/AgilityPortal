@@ -165,36 +165,61 @@
           <th>{{ _('Ring') }}</th>
           <th>{{ _('Start') }}</th>
           <th>{{ _('Ende') }}</th>
-          <th>{{ _('Lauf') }}</th>
+          <th>{{ _('Segment') }}</th>
           <th>{{ _('Richter') }}</th>
           <th class="text-end text-muted small">{{ _('Starter') }}</th>
         </tr>
       </thead>
       <tbody>
         {% for ring in rings %}
-        {% set ring_tl = sched_timeline.get(ring, []) %}
-        {% if ring_tl %}
-        {% for item in ring_tl %}
-        <tr>
+        {% set ring_segs = sched_timeline.get(ring, []) %}
+        {% if ring_segs %}
+        {% for item in ring_segs %}
+        <tr class="
+          {% if item.segment == 'changeover' %}table-light text-muted
+          {% elif item.segment == 'briefing' %}table-warning
+          {% elif item.segment == 'rank_announcement' %}table-info fw-semibold
+          {% elif item.segment == 'prep' %}table-light text-muted
+          {% endif %}">
           {% if loop.first %}
-          <td rowspan="{{ ring_tl | length }}" class="fw-semibold align-middle">{{ ring }}</td>
+          <td rowspan="{{ ring_segs | length }}" class="fw-semibold align-middle">{{ ring }}</td>
           {% endif %}
           <td class="fw-semibold text-nowrap">{{ item.start_time }}</td>
-          <td class="text-muted text-nowrap">{{ item.end_time }}</td>
+          <td class="text-muted text-nowrap">
+            {% if item.segment != 'rank_announcement' and item.start_time != item.end_time %}
+              {{ item.end_time }}
+            {% else %}—{% endif %}
+          </td>
           <td>
-            <span class="badge
-              {% if item.block.discipline == 'agility' %}bg-primary
-              {% elif item.block.discipline == 'jumping' %}bg-success
-              {% else %}bg-warning text-dark{% endif %}"
-              style="font-size:.65rem;">
-              {{ item.block.discipline | capitalize }}
-            </span>
-            {{ item.block._display_title }}
+            {% if item.segment == 'changeover' %}
+              <span class="text-muted">🔧 {{ _('Umbau') }}</span>
+            {% elif item.segment == 'briefing' %}
+              📋 {{ item.label }}
+            {% elif item.segment == 'run' %}
+              <span class="badge
+                {% if item.block.discipline == 'agility' %}bg-primary
+                {% elif item.block.discipline == 'jumping' %}bg-success
+                {% else %}bg-warning text-dark{% endif %}"
+                style="font-size:.65rem;">
+                {{ item.block.discipline | capitalize if item.block.discipline else '' }}
+              </span>
+              {{ item.label }}
+            {% elif item.segment == 'rank_announcement' %}
+              🏆 {{ item.label }}
+            {% elif item.segment == 'prep' %}
+              <span class="text-muted">⏸ {{ _('Prep-Pause') }}</span>
+            {% else %}
+              {{ item.label }}
+            {% endif %}
           </td>
           <td class="text-muted small text-nowrap">
-            {{ item.block.judge.full_name if item.block.judge else "—" }}
+            {% if item.segment in ('run', 'briefing') %}
+              {{ item.block.judge.full_name if item.block.judge else "—" }}
+            {% else %}—{% endif %}
           </td>
-          <td class="text-end text-muted small">{{ item.participants }}</td>
+          <td class="text-end text-muted small">
+            {% if item.participants > 0 %}{{ item.participants }}{% else %}—{% endif %}
+          </td>
         </tr>
         {% endfor %}
         {% endif %}

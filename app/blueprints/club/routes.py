@@ -767,7 +767,7 @@ def event_view(event_id):
     )
 
     # Zeitplan für Teilnehmer-Ansicht
-    from .schedule_utils import (compute_timeline, parse_ring_start_times,
+    from .schedule_utils import (compute_detailed_segments, parse_ring_start_times,
                                   ring_names as _ring_names, auto_title, sort_key_category)
     sched_blocks = db.session.execute(
         db.select(ScheduleBlock).filter_by(event_id=event_id)
@@ -787,10 +787,10 @@ def event_view(event_id):
             sched_by_ring[b.ring].append(b)
     has_start_numbers = event.start_numbers_generated_at is not None
     sched_timeline = (
-        compute_timeline(sched_by_ring, start_times,
-                         event.starts_at.strftime("%Y-%m-%d") if event.starts_at
-                         else datetime.utcnow().strftime("%Y-%m-%d"),
-                         round_minutes=5)
+        compute_detailed_segments(sched_by_ring, start_times,
+                                  event.starts_at.strftime("%Y-%m-%d") if event.starts_at
+                                  else datetime.utcnow().strftime("%Y-%m-%d"),
+                                  round_minutes=5)
         if has_start_numbers else {}
     )
 
@@ -1109,41 +1109,57 @@ def schedule_block_add(event_id):
         abort(404)
     _assert_event_access(event)
 
-    run_type    = request.form.get("run_type", "agility")
-    category    = request.form.get("category", "L")     # kurzes Kürzel L/I/M/S
-    class_level = request.form.get("class_level", 1, type=int)
-    ring        = request.form.get("ring", "Ring 1")
-    judge_id    = request.form.get("judge_id", type=int) or None
-    title       = (request.form.get("title") or "").strip() or None
-
-    category_code = _CATEGORY_CODE_MAP.get(category, category)
-
-    # Doppelt eintragen verhindern
-    existing = db.session.execute(
-        db.select(ScheduleBlock).filter_by(
-            event_id=event_id, discipline=run_type,
-            category_code=category_code, class_level=class_level
-        )
-    ).scalar_one_or_none()
-    if existing:
-        flash(_("Dieser Lauf ist bereits im Zeitplan."), "warning")
-        return redirect(url_for("club.event_schedule", event_id=event_id))
+    block_type = request.form.get("block_type", "run")
+    ring       = request.form.get("ring", "Ring 1")
+    judge_id   = request.form.get("judge_id", type=int) or None
+    title      = (request.form.get("title") or "").strip() or None
 
     max_idx = db.session.execute(
         db.select(db.func.max(ScheduleBlock.sort_index))
         .filter_by(event_id=event_id, ring=ring)
     ).scalar() or 0
 
-    block = ScheduleBlock(
-        event_id=event_id,
-        ring=ring,
-        discipline=run_type,
-        category_code=category_code,
-        class_level=class_level,
-        judge_id=judge_id,
-        title=title,
-        sort_index=max_idx + 10,
-    )
+    if block_type == "rank_announcement":
+        block = ScheduleBlock(
+            event_id=event_id,
+            ring=ring,
+            block_type="rank_announcement",
+            discipline=None,
+            category_code=None,
+            class_level=None,
+            duration_minutes=None,
+            title=title or "Rangverkündigung",
+            sort_index=max_idx + 10,
+        )
+    else:
+        run_type    = request.form.get("run_type", "agility")
+        category    = request.form.get("category", "L")
+        class_level = request.form.get("class_level", 1, type=int)
+        category_code = _CATEGORY_CODE_MAP.get(category, category)
+
+        # Doppelt eintragen verhindern
+        existing = db.session.execute(
+            db.select(ScheduleBlock).filter_by(
+                event_id=event_id, discipline=run_type,
+                category_code=category_code, class_level=class_level
+            )
+        ).scalar_one_or_none()
+        if existing:
+            flash(_("Dieser Lauf ist bereits im Zeitplan."), "warning")
+            return redirect(url_for("club.event_schedule", event_id=event_id))
+
+        block = ScheduleBlock(
+            event_id=event_id,
+            ring=ring,
+            block_type="run",
+            discipline=run_type,
+            category_code=category_code,
+            class_level=class_level,
+            judge_id=judge_id,
+            title=title,
+            sort_index=max_idx + 10,
+        )
+
     db.session.add(block)
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))

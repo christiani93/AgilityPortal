@@ -73,33 +73,42 @@
       </thead>
       <tbody id="sortable-{{ loop.index }}" data-ring="{{ ring }}">
         {% for block in ring_blocks %}
-        <tr data-block-id="{{ block.id }}">
+        <tr data-block-id="{{ block.id }}"
+            {% if block.block_type == 'rank_announcement' %}class="table-info"{% endif %}>
           <td class="text-center">
             <span class="drag-handle text-muted" style="cursor:grab;">⠿</span>
           </td>
           <td>
-            <span class="badge
-              {% if block.discipline == 'agility' %}bg-primary
-              {% elif block.discipline == 'jumping' %}bg-success
-              {% else %}bg-warning text-dark{% endif %} me-1">
-              {{ block.discipline | capitalize }}
-            </span>
-            {{ block._display_title }}
+            {% if block.block_type == 'rank_announcement' %}
+              <span class="badge bg-info text-dark me-1">🏆</span>
+              {{ block.title or _('Rangverkündigung') }}
+            {% else %}
+              <span class="badge
+                {% if block.discipline == 'agility' %}bg-primary
+                {% elif block.discipline == 'jumping' %}bg-success
+                {% else %}bg-warning text-dark{% endif %} me-1">
+                {{ block.discipline | capitalize }}
+              </span>
+              {{ block._display_title }}
+            {% endif %}
           </td>
           <td class="text-muted small">
-            {{ block.judge.full_name if block.judge else "—" }}
+            {% if block.block_type == 'rank_announcement' %}—
+            {% else %}{{ block.judge.full_name if block.judge else "—" }}{% endif %}
           </td>
-          <td class="text-end text-muted small">{{ block._participant_count }}</td>
           <td class="text-end text-muted small">
-            {% if block._participant_count > 0 %}
-              {% set est = namespace(m=0) %}
+            {% if block.block_type == 'rank_announcement' %}—
+            {% else %}{{ block._participant_count }}{% endif %}
+          </td>
+          <td class="text-end text-muted small">
+            {% if block.block_type == 'rank_announcement' %}
+              —
+            {% elif block._participant_count > 0 %}
               {% set secs = {"agility": 65, "jumping": 60, "open": 65} %}
               {% set run_s = block._participant_count * secs.get(block.discipline, 65) %}
               {% set brief_blocks = (block._participant_count // 50) + 1 %}
               {% set brief_s = brief_blocks * 8 * 60 %}
-              {% set prep_s = 300 if brief_blocks == 1 else 0 %}
-              {% set total_m = (1200 + brief_s + prep_s + run_s) // 60 %}
-              ~{{ total_m }} {{ _('Min.') }}
+              ~{{ (brief_s + run_s) // 60 }} {{ _('Min.') }}
             {% else %}
               <span class="text-muted">—</span>
             {% endif %}
@@ -182,79 +191,129 @@
 </div>
 {% endif %}
 
-{# ── 4. ALLE HINZUFÜGEN (wenn Läufe vorhanden) ──────────���────────────────── #}
-{% if event.runs %}
-<div class="card mb-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>{{ _('Block manuell hinzufügen') }}</span>
-    <button class="btn btn-sm btn-outline-secondary" type="button"
-            data-bs-toggle="collapse" data-bs-target="#add-block-panel">
-      + {{ _('Hinzufügen') }}
-    </button>
-  </div>
-  <div class="collapse" id="add-block-panel">
-    <div class="card-body border-top">
-      <form method="post" action="{{ url_for('club.schedule_block_add', event_id=event.id) }}"
-            class="row g-2 align-items-end">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{# ── 4. BLOCKS HINZUFÜGEN ────────────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
 
-        <div class="col-auto">
-          <label class="form-label small mb-1">{{ _('Ring') }}</label>
-          <select name="ring" class="form-select form-select-sm">
-            {% for ring in rings %}
-            <option value="{{ ring }}">{{ ring }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-auto">
-          <label class="form-label small mb-1">{{ _('Disziplin') }}</label>
-          <select name="run_type" class="form-select form-select-sm">
-            <option value="agility">Agility</option>
-            <option value="jumping">Jumping</option>
-            <option value="open">Open</option>
-          </select>
-        </div>
-        <div class="col-auto">
-          <label class="form-label small mb-1">{{ _('Kategorie') }}</label>
-          <select name="category" class="form-select form-select-sm">
-            <option value="L">Large (L)</option>
-            <option value="I">Intermediate (I)</option>
-            <option value="M">Medium (M)</option>
-            <option value="S">Small (S)</option>
-          </select>
-        </div>
-        <div class="col-auto">
-          <label class="form-label small mb-1">{{ _('Klasse') }}</label>
-          <select name="class_level" class="form-select form-select-sm">
-            <option value="1">Klasse 1</option>
-            <option value="2">Klasse 2</option>
-            <option value="3">Klasse 3</option>
-          </select>
-        </div>
-        {% if event_judges %}
-        <div class="col-auto">
-          <label class="form-label small mb-1">{{ _('Richter') }}</label>
-          <select name="judge_id" class="form-select form-select-sm">
-            <option value="">— {{ _('kein') }} —</option>
-            {% for judge in event_judges %}
-            <option value="{{ judge.id }}">{{ judge.full_name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        {% endif %}
-        <div class="col-auto">
-          <label class="form-label small mb-1">{{ _('Titel') }} <span class="text-muted">({{ _('optional') }})</span></label>
-          <input type="text" name="title" class="form-control form-control-sm" style="width:150px;"
-                 placeholder="{{ _('Auto') }}">
-        </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-sm btn-primary">{{ _('Hinzufügen') }}</button>
-        </div>
-      </form>
+  {# ── 4a. Lauf manuell hinzufügen ──────────────────────────────────────── #}
+  {% if event.runs %}
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>{{ _('Lauf-Block hinzufügen') }}</span>
+      <button class="btn btn-sm btn-outline-secondary" type="button"
+              data-bs-toggle="collapse" data-bs-target="#add-block-panel">
+        + {{ _('Hinzufügen') }}
+      </button>
+    </div>
+    <div class="collapse" id="add-block-panel">
+      <div class="card-body border-top">
+        <form method="post" action="{{ url_for('club.schedule_block_add', event_id=event.id) }}"
+              class="row g-2 align-items-end">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="block_type" value="run">
+
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Ring') }}</label>
+            <select name="ring" class="form-select form-select-sm">
+              {% for ring in rings %}
+              <option value="{{ ring }}">{{ ring }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Disziplin') }}</label>
+            <select name="run_type" class="form-select form-select-sm">
+              <option value="agility">Agility</option>
+              <option value="jumping">Jumping</option>
+              <option value="open">Open</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Kategorie') }}</label>
+            <select name="category" class="form-select form-select-sm">
+              <option value="L">Large (L)</option>
+              <option value="I">Intermediate (I)</option>
+              <option value="M">Medium (M)</option>
+              <option value="S">Small (S)</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Klasse') }}</label>
+            <select name="class_level" class="form-select form-select-sm">
+              <option value="1">Klasse 1</option>
+              <option value="2">Klasse 2</option>
+              <option value="3">Klasse 3</option>
+            </select>
+          </div>
+          {% if event_judges %}
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Richter') }}</label>
+            <select name="judge_id" class="form-select form-select-sm">
+              <option value="">— {{ _('kein') }} —</option>
+              {% for judge in event_judges %}
+              <option value="{{ judge.id }}">{{ judge.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Titel') }} <span class="text-muted">({{ _('optional') }})</span></label>
+            <input type="text" name="title" class="form-control form-control-sm" style="width:150px;"
+                   placeholder="{{ _('Auto') }}">
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-primary">{{ _('Hinzufügen') }}</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
-</div>
-{% endif %}
+  </div>
+  {% endif %}
+
+  {# ── 4b. Rangverkündigung hinzufügen ──────────────────────────────────── #}
+  <div class="col-12">
+  <div class="card border-info">
+    <div class="card-header d-flex justify-content-between align-items-center bg-info bg-opacity-10">
+      <span>🏆 {{ _('Rangverkündigung hinzufügen') }}</span>
+      <button class="btn btn-sm btn-outline-info" type="button"
+              data-bs-toggle="collapse" data-bs-target="#add-rank-panel">
+        + {{ _('Hinzufügen') }}
+      </button>
+    </div>
+    <div class="collapse" id="add-rank-panel">
+      <div class="card-body border-top">
+        <form method="post" action="{{ url_for('club.schedule_block_add', event_id=event.id) }}"
+              class="row g-2 align-items-end">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="block_type" value="rank_announcement">
+
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Ring') }}</label>
+            <select name="ring" class="form-select form-select-sm">
+              {% for ring in rings %}
+              <option value="{{ ring }}">{{ ring }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Titel') }}</label>
+            <input type="text" name="title" class="form-control form-control-sm" style="width:200px;"
+                   placeholder="{{ _('z. B. Rangverkündigung Large') }}">
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-info text-white">{{ _('Hinzufügen') }}</button>
+          </div>
+        </form>
+        <div class="form-text text-muted mt-1">
+          {{ _('Rangverkündigungen sind rein informativ und verbrauchen keine Zeit. Sie unterbrechen Gruppen: danach beginnt ein neuer Umbau.') }}
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+</div>{# end row #}
 
 {# ── 5. TIMELINE ──────────────────────────────────────────────────────────── #}
 {% set has_blocks = namespace(found=false) %}
@@ -284,24 +343,38 @@
           {% set ring_timeline = timeline.get(ring, []) %}
           {% if ring_timeline %}
           {% for item in ring_timeline %}
-          <tr {% if loop.first %}class="table-active fw-semibold"{% endif %}>
+          {% set is_rank = item.block.block_type == 'rank_announcement' %}
+          <tr {% if loop.first %}class="table-active fw-semibold"{% elif is_rank %}class="table-info"{% endif %}>
             {% if loop.first %}<td rowspan="{{ ring_timeline | length }}">{{ ring }}</td>{% endif %}
             <td class="fw-semibold">{{ item.start_time }}</td>
-            <td class="text-muted">{{ item.end_time }}</td>
+            <td class="text-muted">{% if not is_rank %}{{ item.end_time }}{% else %}—{% endif %}</td>
             <td>
-              <span class="badge
-                {% if item.block.discipline == 'agility' %}bg-primary
-                {% elif item.block.discipline == 'jumping' %}bg-success
-                {% else %}bg-warning text-dark{% endif %} me-1" style="font-size:.65rem;">
-                {{ item.block.discipline | capitalize }}
-              </span>
-              {{ item.block._display_title }}
+              {% if is_rank %}
+                <span class="badge bg-info text-dark me-1">🏆</span>
+                {{ item.block.title or _('Rangverkündigung') }}
+              {% else %}
+                <span class="badge
+                  {% if item.block.discipline == 'agility' %}bg-primary
+                  {% elif item.block.discipline == 'jumping' %}bg-success
+                  {% else %}bg-warning text-dark{% endif %} me-1" style="font-size:.65rem;">
+                  {{ item.block.discipline | capitalize }}
+                </span>
+                {{ item.block._display_title }}
+              {% endif %}
             </td>
-            <td class="text-muted small">{{ item.block.judge.full_name if item.block.judge else "—" }}</td>
-            <td class="text-end">{{ item.participants }}</td>
-            <td class="text-end text-muted small">{{ item.changeover_min }} {{ _('Min.') }}</td>
-            <td class="text-end text-muted small">{{ item.briefing_min }} {{ _('Min.') }}</td>
-            <td class="text-end text-muted small">{{ item.run_min }} {{ _('Min.') }}</td>
+            <td class="text-muted small">
+              {% if not is_rank %}{{ item.block.judge.full_name if item.block.judge else "—" }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end">{% if not is_rank %}{{ item.participants }}{% else %}—{% endif %}</td>
+            <td class="text-end text-muted small">
+              {% if item.changeover_min > 0 %}{{ item.changeover_min }} {{ _('Min.') }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end text-muted small">
+              {% if item.briefing_min > 0 %}{{ item.briefing_min }} {{ _('Min.') }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end text-muted small">
+              {% if item.run_min > 0 %}{{ item.run_min }} {{ _('Min.') }}{% else %}—{% endif %}
+            </td>
           </tr>
           {% endfor %}
           {% endif %}
