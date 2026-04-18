@@ -1,8 +1,11 @@
 from functools import wraps
+import io
+import json as _json
+import zipfile
 
 from datetime import datetime
 
-from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
+from flask import Blueprint, render_template, redirect, url_for, flash, abort, request, Response
 from flask_login import login_required, current_user
 from flask_babel import _
 
@@ -1296,6 +1299,158 @@ def event_assign_startnumbers(event_id):
     db.session.commit()
     flash(_("Startnummern wurden vergeben."), "success")
     return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.get("/events/<int:event_id>/export.zip")
+@login_required
+def event_export_zip(event_id):
+    """Export eines Turniers als ZIP für den Import in die AgilitySoftware."""
+    if not current_user.is_superadmin:
+        abort(403)
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+
+    from .schedule_utils import parse_ring_start_times
+
+    # ── Bestätigte Anmeldungen ────────────────────────────────────────────────
+    confirmed = db.session.execute(
+        db.select(Registration)
+        .filter_by(event_id=event_id, status=RegistrationStatus.CONFIRMED)
+        .order_by(Registration.category_code, Registration.class_level,
+                  Registration.start_number)
+    ).scalars().all()
+
+    # ── Disziplinen aus den Turnierläufen ─────────────────────────────────────
+    disciplines = sorted({r.run_type for r in event.runs}) if event.runs else ["agility"]
+
+    # ── manifest.json ─────────────────────────────────────────────────────────
+    manifest = {"schema": "agility.exchange.eventexport.v1"}
+
+    # ── event.json ────────────────────────────────────────────────────────────
+    event_payload = {
+        "event": {
+            "name":         event.name or "",
+            "date":         event.starts_at.strftime("%Y-%m-%d") if event.starts_at else "",
+            "club_number":  event.organiser_club.vereinsnummer if event.organiser_club else "",
+            "event_number": event.ais_turniernummer or "",
+            "location":     event.location or "",
+        }
+    }
+
+    # ── entities.json ─────────────────────────────────────────────────────────
+    handlers_seen: set = set()
+    handlers_list = []
+    dogs_list     = []
+
+    for reg in confirmed:
+        if reg.handler_id and reg.handler_id not in handlers_seen:
+            handlers_seen.add(reg.handler_id)
+            p = reg.handler
+            if p:
+                handlers_list.append({
+                    "external_id": str(reg.handler_id),
+                    "firstname":   p.first_name or "",
+                    "lastname":    p.last_name  or "",
+                })
+        if reg.dog and reg.dog.license_no:
+            dogs_list.append({
+                "license_no":          reg.dog.license_no,
+                "dog_name":            reg.dog.name or "",
+                "handler_external_id": str(reg.handler_id) if reg.handler_id else "",
+                "category_code":       reg.category_code or "",
+                "class_level":         str(reg.class_level),
+            })
+
+    entities = {"handlers": handlers_list, "dogs": dogs_list}
+
+    # ── registrations.json ────────────────────────────────────────────────────
+    # Eine Zeile pro (Anmeldung × Disziplin), damit AgilitySoftware
+    # je einen Lauf pro (Disziplin, Kategorie, Klasse) anlegt.
+    registrations = []
+    for reg in confirmed:
+        for disc in disciplines:
+            registrations.append({
+                "registration_external_id": f"{reg.id}_{disc}",
+                "license_no":               reg.dog.license_no if reg.dog else "",
+                "dog_name":                 reg.dog.name       if reg.dog else "",
+                "handler_first_name":       reg.handler.first_name if reg.handler else "",
+                "handler_last_name":        reg.handler.last_name  if reg.handler else "",
+                "discipline":               disc.capitalize(),   # "Agility" / "Jumping"
+                "category_code":            reg.category_code or "",
+                "class_level":              str(reg.class_level),
+                "is_in_season":             reg.is_in_season,
+            })
+
+    # ── start_numbers.json ────────────────────────────────────────────────────
+    has_numbers = event.start_numbers_generated_at is not None
+    sn_entries  = []
+    if has_numbers:
+        for reg in confirmed:
+            if reg.start_number and reg.dog and reg.dog.license_no:
+                sn_entries.append({
+                    "license_no": reg.dog.license_no,
+                    "start_no":   reg.start_number,
+                })
+    start_numbers_payload = {"locked": has_numbers, "start_numbers": sn_entries}
+
+    # ── schedule.json ─────────────────────────────────────────────────────────
+    sched_blocks = db.session.execute(
+        db.select(ScheduleBlock).filter_by(event_id=event_id)
+        .order_by(ScheduleBlock.ring, ScheduleBlock.sort_index)
+    ).scalars().all()
+
+    schedule_blocks_out = []
+    for b in sched_blocks:
+        # Ring-Nummer aus "Ring 1", "Ring 2" extrahieren
+        ring_num = 1
+        for part in (b.ring or "").split():
+            if part.isdigit():
+                ring_num = int(part)
+                break
+
+        blk: dict = {
+            "ring":       ring_num,
+            "sort_index": b.sort_index,
+            "block_type": b.block_type,
+            "notes":      b.notes or "",
+        }
+        if b.block_type == "run":
+            blk.update({
+                "discipline":    b.discipline    or "",
+                "category_code": b.category_code or "",
+                "class_level":   str(b.class_level) if b.class_level else "",
+            })
+        else:  # rank_announcement
+            blk.update({
+                "title":            b.title or "Rangverkündigung",
+                "duration_minutes": b.duration_minutes or 5,
+            })
+        schedule_blocks_out.append(blk)
+
+    schedule_payload = {"blocks": schedule_blocks_out}
+
+    # ── ZIP zusammenbauen ─────────────────────────────────────────────────────
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        def _add(name, obj):
+            zf.writestr(name, _json.dumps(obj, ensure_ascii=False, indent=2))
+
+        _add("manifest.json",      manifest)
+        _add("event.json",         event_payload)
+        _add("entities.json",      entities)
+        _add("registrations.json", {"registrations": registrations})
+        _add("start_numbers.json", start_numbers_payload)
+        _add("schedule.json",      schedule_payload)
+
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in (event.name or "event"))
+    filename   = f"eventexport_{event_id}_{safe_name}.zip"
+
+    return Response(
+        buf.getvalue(),
+        mimetype="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @club_bp.get("/events/<int:event_id>/startlist")
