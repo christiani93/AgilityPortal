@@ -16,7 +16,12 @@
 
 <div class="d-flex justify-content-between align-items-center mb-2">
   <div>
-    <h2 class="mb-0">{{ event.name }}</h2>
+    <h2 class="mb-0">
+      {{ event.name }}
+      {% if event.is_test %}
+        <span class="badge bg-warning text-dark ms-2" style="font-size:.6em;vertical-align:middle;">🧪 TEST</span>
+      {% endif %}
+    </h2>
     <small class="text-muted">
       {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
       {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}

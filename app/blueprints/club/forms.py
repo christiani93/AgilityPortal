@@ -53,6 +53,7 @@ class EventForm(FlaskForm):
     allows_bitches_in_season = BooleanField("Läufige Hündinnen erlaubt")
     bitches_in_season_start_last = BooleanField("Läufige Hündinnen starten am Schluss der Kategorie")
     notes_public = TextAreaField("Bemerkungen (öffentlich)", validators=[Optional()])
+    is_test = BooleanField("Testveranstaltung (nicht öffentlich sichtbar)")
     # Nur für Superadmin befüllt — choices werden in der Route gesetzt
     club_id = SelectField("Verein", coerce=int, validators=[Optional()])
     submit = SubmitField("Speichern")

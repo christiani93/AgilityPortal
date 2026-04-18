@@ -83,11 +83,11 @@ def dashboard():
         return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events,
                                pending_count=pending_count)
 
-    # Teilnehmer ohne Vereinszuordnung: offene Turniere anzeigen
+    # Teilnehmer ohne Vereinszuordnung: offene Turniere anzeigen (keine Testevents)
     if not current_user.club_id:
         open_events = db.session.execute(
             db.select(Event)
-            .filter_by(status="open")
+            .filter_by(status="open", is_test=False)
             .order_by(Event.starts_at)
         ).scalars().all()
         return render_template("club/participant_dashboard.html", open_events=open_events)
@@ -272,6 +272,7 @@ def event_new():
             allows_bitches_in_season=form.allows_bitches_in_season.data,
             bitches_in_season_start_last=form.bitches_in_season_start_last.data,
             notes_public=form.notes_public.data.strip() if form.notes_public.data else None,
+            is_test=form.is_test.data,
             organiser_club_id=club_id,
             type="regular",
             status="draft",
@@ -399,6 +400,7 @@ def event_edit(event_id):
         event.allows_bitches_in_season = form.allows_bitches_in_season.data
         event.bitches_in_season_start_last = form.bitches_in_season_start_last.data
         event.notes_public = form.notes_public.data.strip() if form.notes_public.data else None
+        event.is_test = form.is_test.data
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
         db.session.commit()
@@ -747,6 +749,9 @@ _CATEGORY_CODE_MAP = {"L": "Large", "I": "Intermediate", "M": "Medium", "S": "Sm
 def event_view(event_id):
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
+        abort(404)
+    # Testevents sind nur für Superadmin sichtbar
+    if event.is_test and not current_user.is_superadmin:
         abort(404)
     form = EventRegistrationForm()
     dogs = current_user.dogs if current_user.person else []

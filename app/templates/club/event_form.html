@@ -102,6 +102,16 @@
         {{ form.notes_public(class="form-control", rows=3) }}
       </div>
 
+      <div class="mb-4 p-3 border border-warning rounded bg-warning bg-opacity-10">
+        <div class="form-check">
+          {{ form.is_test(class="form-check-input") }}
+          {{ form.is_test.label(class="form-check-label fw-semibold") }}
+        </div>
+        <div class="form-text text-muted ms-4">
+          {{ _('Testveranstaltungen sind nur für Superadmin sichtbar und erscheinen nicht in der öffentlichen Turnierübersicht.') }}
+        </div>
+      </div>
+
       {{ form.submit(class="btn btn-primary") }}
     </form>
   </div>

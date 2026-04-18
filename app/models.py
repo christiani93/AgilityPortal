@@ -329,6 +329,9 @@ class Event(db.Model):
     )
     billing_notes = db.Column(db.Text)
 
+    # Test-Flag: Testevent wird auf Teilnehmerseite nicht angezeigt
+    is_test = db.Column(db.Boolean, default=False, nullable=False)
+
     # Sichtbarkeits-Flags
     is_completed = db.Column(db.Boolean, default=False, nullable=False)
     is_published = db.Column(db.Boolean, default=False, nullable=False)

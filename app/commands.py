@@ -2,6 +2,7 @@
 Flask-CLI-Befehle für Entwicklung und Tests.
 """
 import click
+from datetime import datetime
 from flask.cli import with_appcontext
 from app.extensions import db
 
@@ -174,3 +175,104 @@ def clear_test_regs(event_id: int):
         f"✓ {len(regs)} Testanmeldungen, {len(dog_ids)} Hunde und "
         f"{len(person_ids)} Personen gelöscht."
     )
+
+
+@click.command("create-test-event")
+@click.option("--name", default="Testturnier", show_default=True, help="Turniername")
+@click.option("--club-id", type=int, default=None, help="Verein-ID (optional)")
+@click.option("--count", "-n", default=5, show_default=True, help="Starter pro Lauf")
+@with_appcontext
+def create_test_event(name: str, club_id: int, count: int):
+    """
+    Erstellt eine komplette Testveranstaltung (is_test=True) mit allen
+    Standard-Läufen (Agility + Jumping, alle Kategorien, Klassen 1-3)
+    und befüllt sie direkt mit Testanmeldungen.
+
+    Beispiel:
+      flask create-test-event
+      flask create-test-event --name "Mein Testturnier" --count 8
+    """
+    from datetime import date, timedelta
+    from app.models import (Event, EventRun, Registration, RegistrationStatus,
+                             Person, Dog, DogOwner, DogOwnerRole, LicenseKind,
+                             TkaMasterStatus)
+
+    # Turnier anlegen
+    starts = datetime.combine(date.today() + timedelta(days=7), datetime.min.time())
+    event = Event(
+        name=name,
+        starts_at=starts,
+        ends_at=starts,
+        status="open",
+        is_test=True,
+        organiser_club_id=club_id,
+        type="regular",
+        ring_count=1,
+    )
+    db.session.add(event)
+    db.session.flush()
+
+    # Läufe: Agility + Jumping, alle 4 Kategorien, Klassen 1-3
+    runs = []
+    for discipline in ("agility", "jumping"):
+        for cat in ("L", "I", "M", "S"):
+            for kl in (1, 2, 3):
+                run = EventRun(
+                    event_id=event.id,
+                    run_type=discipline,
+                    category=cat,
+                    class_level=kl,
+                )
+                db.session.add(run)
+                runs.append((discipline, cat, kl))
+
+    db.session.flush()
+
+    # Testanmeldungen
+    created = 0
+    for n_global, (discipline, cat, kl) in enumerate(
+        [(d, c, k) for d, c, k in runs for _ in range(count)], start=1
+    ):
+        category_code = _CATEGORY_MAP.get(cat, cat)
+        ext_id = _test_external_id(event.id, n_global)
+
+        first    = _FIRST_NAMES[(n_global - 1) % len(_FIRST_NAMES)]
+        last     = _LAST_NAMES[(n_global - 1) % len(_LAST_NAMES)]
+        dog_name = _DOG_NAMES[(n_global - 1) % len(_DOG_NAMES)]
+
+        person = Person(
+            first_name=first, last_name=last,
+            email=f"test{n_global}@test.invalid",
+            external_id=ext_id,
+        )
+        db.session.add(person)
+        db.session.flush()
+
+        dog = Dog(
+            name=dog_name,
+            license_no=f"TST-E{event.id:04d}N{n_global:05d}",
+            license_kind=LicenseKind.FOREIGN,
+            category=cat,
+            class_level=kl,
+            tka_master_status=TkaMasterStatus.NOT_REQUIRED,
+            external_id=f"TESTDOG_{event.id}_{n_global:04d}",
+        )
+        db.session.add(dog)
+        db.session.flush()
+
+        db.session.add(DogOwner(dog_id=dog.id, person_id=person.id,
+                                role=DogOwnerRole.OWNER))
+        db.session.add(Registration(
+            event_id=event.id, dog_id=dog.id, handler_id=person.id,
+            category_code=category_code, class_level=kl,
+            status=RegistrationStatus.CONFIRMED,
+            external_id=f"TESTREG_{event.id}_{n_global:04d}",
+        ))
+        created += 1
+
+    db.session.commit()
+    click.echo(
+        f"✓ Testturnier «{name}» (ID {event.id}) erstellt: "
+        f"{len(runs)} Läufe, {created} Anmeldungen."
+    )
+    click.echo(f"  → Direkt aufrufen: /club/events/{event.id}/view")

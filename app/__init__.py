@@ -79,9 +79,10 @@ def create_app():
     register_blueprints(app)
 
     # --- CLI-Befehle ---
-    from .commands import seed_test_regs, clear_test_regs
+    from .commands import seed_test_regs, clear_test_regs, create_test_event
     app.cli.add_command(seed_test_regs)
     app.cli.add_command(clear_test_regs)
+    app.cli.add_command(create_test_event)
 
     @app.get("/")
     def home():

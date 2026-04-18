@@ -63,7 +63,10 @@
       <tbody>
         {% for event in events %}
         <tr style="cursor:pointer;" onclick="location.href='{{ url_for('club.event_detail', event_id=event.id) }}'">
-          <td>{{ event.name }}</td>
+          <td>
+            {{ event.name }}
+            {% if event.is_test %}<span class="badge bg-warning text-dark ms-1">🧪 TEST</span>{% endif %}
+          </td>
           <td>{{ event.organiser_club.name if event.organiser_club else "—" }}</td>
           <td>{{ event.location or "—" }}</td>
           <td>
