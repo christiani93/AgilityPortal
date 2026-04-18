@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="mb-0">{{ event.name }}</h2>
+    <small class="text-muted">
+      {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+      {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
+        – {{ event.ends_at.strftime("%d.%m.%Y") }}
+      {% endif %}
+      {% if event.location %} · {{ event.location }}{% endif %}
+    </small>
+  </div>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
+</div>
+
+{# ── Status-Badge ─────────────────────────────────────────────────────────── #}
+<div class="mb-3">
+  {% if event.status == 'open' and not deadline_passed %}
+    <span class="badge bg-success fs-6">● {{ _('Anmeldungen offen') }}</span>
+  {% elif event.status == 'open' and deadline_passed %}
+    <span class="badge bg-warning text-dark fs-6">● {{ _('Nennschluss abgelaufen') }}</span>
+  {% elif event.status == 'closed' %}
+    <span class="badge bg-secondary fs-6">● {{ _('Anmeldungen geschlossen') }}</span>
+  {% elif event.status == 'cancelled' %}
+    <span class="badge bg-danger fs-6">● {{ _('Abgesagt') }}</span>
+  {% endif %}
+  {% if event.registration_close_at %}
+    <span class="badge bg-light text-dark border ms-2">
+      {{ _('Nennschluss') }}: {{ event.registration_close_at.strftime("%d.%m.%Y") }}
+    </span>
+  {% endif %}
+</div>
+
+{# ── Turnierinfos ─────────────────────────────────────────────────────────── #}
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-body">
+    <dl class="row mb-0" style="row-gap:.4rem;">
+      {% if event.pruefungsleiter %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Prüfungsleiter') }}</dt>
+      <dd class="col-sm-7 mb-0">{{ event.pruefungsleiter }}</dd>
+      {% endif %}
+      {% if event.location %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Ort') }}</dt>
+      <dd class="col-sm-7 mb-0">{{ event.location }}</dd>
+      {% endif %}
+      {% if event.entry_fee %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Startgeld') }}</dt>
+      <dd class="col-sm-7 mb-0">CHF {{ "%.2f"|format(event.entry_fee|float) }}</dd>
+      {% endif %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Läufige Hündinnen') }}</dt>
+      <dd class="col-sm-7 mb-0">
+        {% if event.allows_bitches_in_season %}
+          <span class="badge bg-success">{{ _('Erlaubt') }}</span>
+          {% if event.bitches_in_season_start_last %}
+            <span class="badge bg-warning text-dark ms-1">{{ _('starten am Schluss') }}</span>
+          {% endif %}
+        {% else %}
+          <span class="badge bg-secondary">{{ _('Nicht erlaubt') }}</span>
+        {% endif %}
+      </dd>
+      {% if event.notes_public %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Bemerkungen') }}</dt>
+      <dd class="col-sm-7 mb-0" style="white-space:pre-wrap;">{{ event.notes_public }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+
+{# ── Meine Anmeldung ──────────────────────────────────────────────────────── #}
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-header fw-semibold">{{ _('Meine Anmeldung') }}</div>
+
+  {% if my_registrations %}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>{{ _('Hund') }}</th>
+          <th>{{ _('Kategorie') }}</th>
+          <th>{{ _('Klasse') }}</th>
+          <th>{{ _('Startnummer') }}</th>
+          <th>{{ _('Status') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in my_registrations %}
+        <tr>
+          <td class="fw-semibold">{{ reg.dog.name if reg.dog else '—' }}</td>
+          <td>{{ reg.category_code }}</td>
+          <td>Kl. {{ reg.class_level }}</td>
+          <td>
+            {% if has_start_numbers and reg.start_number %}
+              <span class="badge bg-primary fs-6">{{ reg.start_number }}</span>
+            {% elif has_start_numbers %}
+              <span class="text-muted small">{{ _('nicht vergeben') }}</span>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if reg.status.value == 'PENDING' %}
+              <span class="badge bg-warning text-dark">{{ _('Ausstehend') }}</span>
+            {% elif reg.status.value == 'CONFIRMED' %}
+              <span class="badge bg-success">{{ _('Bestätigt') }}</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ reg.status.value }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if has_start_numbers %}
+  <div class="card-footer text-muted small">
+    {{ _('Startnummern vergeben am') }}
+    {{ event.start_numbers_generated_at.strftime("%d.%m.%Y %H:%M") }} Uhr
+    · <a href="{{ url_for('club.event_startlist', event_id=event.id) }}" target="_blank">
+        📋 {{ _('Vollständige Startliste') }}
+      </a>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="card-body text-muted text-center py-3">
+    {{ _('Du bist für dieses Turnier noch nicht angemeldet.') }}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

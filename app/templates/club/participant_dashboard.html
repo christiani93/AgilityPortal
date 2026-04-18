@@ -6,6 +6,7 @@
   <h2 class="mb-0">{{ _('Willkommen') }}, {{ current_user.first_name }}!</h2>
 </div>
 
+{# ── Offene Turniere ──────────────────────────────────────────────────────── #}
 <div class="card mb-4" style="max-width: 680px;">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>{{ _('Offene Turniere') }}</span>
@@ -18,22 +19,25 @@
         <tr>
           <th>{{ _('Turnier') }}</th>
           <th>{{ _('Verein') }}</th>
-          <th>{{ _('Ort') }}</th>
           <th>{{ _('Datum') }}</th>
-          <th>{{ _('Läufe') }}</th>
+          <th>{{ _('Nennschluss') }}</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for event in open_events %}
-        <tr style="cursor:pointer;" onclick="window.location='{{ url_for('club.event_view', event_id=event.id) }}'">
+        <tr>
           <td class="fw-semibold">{{ event.name }}</td>
           <td class="text-muted small">{{ event.organiser_club.name if event.organiser_club else "—" }}</td>
-          <td class="text-muted small">{{ event.location or "—" }}</td>
           <td class="text-muted small">
             {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% else %}—{% endif %}
           </td>
-          <td>
-            <span class="badge bg-light text-dark border">{{ event.runs | length }} {{ _('Läufe') }}</span>
+          <td class="text-muted small">
+            {% if event.registration_close_at %}{{ event.registration_close_at.strftime("%d.%m.%Y") }}{% else %}—{% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('club.event_info', event_id=event.id) }}"
+               class="btn btn-sm btn-outline-primary">{{ _('Details') }} →</a>
           </td>
         </tr>
         {% endfor %}
@@ -47,6 +51,60 @@
   {% endif %}
 </div>
 
+{# ── Meine Anmeldungen ────────────────────────────────────────────────────── #}
+{% if my_registrations %}
+<div class="card mb-4" style="max-width: 680px;">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>{{ _('Meine Anmeldungen') }}</span>
+    <span class="badge bg-secondary">{{ my_registrations | length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>{{ _('Turnier') }}</th>
+          <th>{{ _('Datum') }}</th>
+          <th>{{ _('Hund') }}</th>
+          <th>{{ _('Klasse') }}</th>
+          <th>{{ _('Nr.') }}</th>
+          <th>{{ _('Status') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in my_registrations %}
+        <tr style="cursor:pointer;"
+            onclick="window.location='{{ url_for('club.event_info', event_id=reg.event_id) }}'">
+          <td class="fw-semibold">{{ reg.event.name }}</td>
+          <td class="text-muted small">
+            {% if reg.event.starts_at %}{{ reg.event.starts_at.strftime("%d.%m.%Y") }}{% else %}—{% endif %}
+          </td>
+          <td>{{ reg.dog.name if reg.dog else '—' }}</td>
+          <td class="text-muted small">{{ reg.category_code }} Kl.{{ reg.class_level }}</td>
+          <td>
+            {% if reg.start_number %}
+              <span class="badge bg-primary">{{ reg.start_number }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if reg.status.value == 'PENDING' %}
+              <span class="badge bg-warning text-dark">{{ _('Ausstehend') }}</span>
+            {% elif reg.status.value == 'CONFIRMED' %}
+              <span class="badge bg-success">{{ _('Bestätigt') }}</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ reg.status.value }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── Schnelllinks ─────────────────────────────────────────────────────────── #}
 <div class="card mt-3 mb-3" style="max-width:680px;">
   <div class="card-body d-flex justify-content-between align-items-center">
     <div>

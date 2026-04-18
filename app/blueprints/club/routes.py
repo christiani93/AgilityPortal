@@ -83,14 +83,25 @@ def dashboard():
         return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events,
                                pending_count=pending_count)
 
-    # Teilnehmer ohne Vereinszuordnung: offene Turniere anzeigen (keine Testevents)
+    # Teilnehmer ohne Vereinszuordnung: offene Turniere + eigene Anmeldungen
     if not current_user.club_id:
         open_events = db.session.execute(
             db.select(Event)
             .filter_by(status="open", is_test=False)
             .order_by(Event.starts_at)
         ).scalars().all()
-        return render_template("club/participant_dashboard.html", open_events=open_events)
+        # Eigene Anmeldungen (alle nicht-stornierten, neueste zuerst)
+        my_registrations = []
+        if current_user.person_id:
+            my_registrations = db.session.execute(
+                db.select(Registration)
+                .filter_by(handler_id=current_user.person_id)
+                .filter(Registration.status != RegistrationStatus.CANCELLED)
+                .order_by(Registration.created_at.desc())
+            ).scalars().all()
+        return render_template("club/participant_dashboard.html",
+                               open_events=open_events,
+                               my_registrations=my_registrations)
 
     club = _club_for_user()
     events = _events_for_club(club)
@@ -851,7 +862,41 @@ def dog_update_class(dog_id):
 
 
 # ---------------------------------------------------------------------------
-# Teilnehmer: Event-Ansicht & Anmeldung
+# Teilnehmer: Event-Übersicht (öffentlich verlinkbar, kein Schedule)
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/events/<int:event_id>/info")
+@login_required
+def event_info(event_id):
+    """Teilnehmer-Eventseite: Turnierdaten + eigene Anmeldung + Startnummer."""
+    event = db.session.get(Event, event_id)
+    if not event or event.status not in ("open", "closed", "cancelled"):
+        abort(404)
+    if event.is_test and not current_user.is_superadmin:
+        abort(404)
+
+    my_registrations = []
+    if current_user.person_id:
+        my_registrations = db.session.execute(
+            db.select(Registration)
+            .filter_by(event_id=event_id, handler_id=current_user.person_id)
+            .filter(Registration.status != RegistrationStatus.CANCELLED)
+        ).scalars().all()
+
+    deadline_passed = (
+        event.registration_close_at and event.registration_close_at < datetime.utcnow()
+    )
+    has_start_numbers = event.start_numbers_generated_at is not None
+
+    return render_template("club/event_info.html",
+                           event=event,
+                           my_registrations=my_registrations,
+                           deadline_passed=deadline_passed,
+                           has_start_numbers=has_start_numbers)
+
+
+# ---------------------------------------------------------------------------
+# Teilnehmer: Event-Ansicht & Anmeldung (Superadmin-Zeitplanansicht)
 # ---------------------------------------------------------------------------
 
 _CATEGORY_CODE_MAP = {"L": "Large", "I": "Intermediate", "M": "Medium", "S": "Small"}
