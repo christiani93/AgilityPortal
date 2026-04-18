@@ -280,7 +280,7 @@ def create_test_event_web():
     n = 0
     for discipline, cat, kl in runs:
         category_code = _CAT_MAP.get(cat, cat)
-        for _ in range(count):
+        for _i in range(count):
             n += 1
             person = Person(
                 first_name=_FIRST[(n - 1) % len(_FIRST)],
