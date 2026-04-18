@@ -63,6 +63,10 @@ def create_app():
     mail.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
 
+    @app.context_processor
+    def inject_locale():
+        return {"get_locale": get_locale}
+
     # User-Loader für Flask-Login
     from .models import User
 
