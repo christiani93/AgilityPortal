@@ -126,7 +126,7 @@ class User(UserMixin, db.Model):
     def dogs(self):
         if not self.person:
             return []
-        return [owner.dog for owner in self.person.owners if owner.role.value == "OWNER"]
+        return [owner.dog for owner in self.person.owners]
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -189,6 +189,8 @@ class Dog(db.Model):
     tka_category_confirmed = db.Column(db.String(20))
     tka_master_checked_at = db.Column(db.DateTime)
     tka_issue_message = db.Column(db.Text)
+    category = db.Column(db.String(1), nullable=True)   # L / I / M / S
+    class_level = db.Column(db.Integer, nullable=True)  # 1 / 2 / 3
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     owners = db.relationship("DogOwner", back_populates="dog", cascade="all, delete-orphan")

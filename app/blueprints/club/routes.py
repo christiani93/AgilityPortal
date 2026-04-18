@@ -10,7 +10,7 @@ from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
 from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus
-from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, EventRegistrationForm
+from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, DogClassForm, EventRegistrationForm
 
 
 def _send_notify(subject, body):
@@ -629,14 +629,25 @@ def profile_dogs():
     if form.validate_on_submit():
         try:
             license_kind = LicenseKind[form.license_kind.data]
-            existing = db.session.execute(db.select(Dog).filter_by(license_no=form.license_no.data.strip())).scalar_one_or_none()
+            license_no = form.license_no.data.strip()
+            Dog._validate_license_format(license_kind, license_no)
+            existing = db.session.execute(db.select(Dog).filter_by(license_no=license_no)).scalar_one_or_none()
             if existing:
-                flash(_("Ein Hund mit dieser Lizenznummer ist bereits registriert."), "danger")
+                # Prüfen ob bereits verknüpft
+                already = db.session.execute(
+                    db.select(DogOwner).filter_by(dog_id=existing.id, person_id=current_user.person_id)
+                ).scalar_one_or_none()
+                if already:
+                    flash(_("Du bist bereits mit diesem Hund verknüpft."), "info")
+                else:
+                    db.session.add(DogOwner(dog_id=existing.id, person_id=current_user.person_id, role=DogOwnerRole.HANDLER))
+                    db.session.commit()
+                    flash(_("Hund «%(name)s» wurde deinem Profil als Hundeführer hinzugefügt.", name=existing.name), "success")
+                return redirect(url_for("club.profile_dogs"))
             else:
                 dog = Dog(name=form.name.data.strip())
                 dog.license_kind = license_kind
-                dog.license_no = form.license_no.data.strip()
-                Dog._validate_license_format(license_kind, dog.license_no)
+                dog.license_no = license_no
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
@@ -646,7 +657,49 @@ def profile_dogs():
         except ValueError as e:
             flash(_("Ungültige Lizenznummer: %(error)s", error=str(e)), "danger")
     dogs = current_user.dogs
-    return render_template("club/profile_dogs.html", form=form, dogs=dogs)
+    # Klassen-Formulare je Hund (prefill)
+    class_forms = {}
+    for dog in dogs:
+        cf = DogClassForm(prefix=f"dog_{dog.id}")
+        cf.category.data = dog.category or "L"
+        cf.class_level.data = dog.class_level or 1
+        class_forms[dog.id] = cf
+    return render_template("club/profile_dogs.html", form=form, dogs=dogs, class_forms=class_forms)
+
+
+@club_bp.post("/profile/dogs/<int:dog_id>/class")
+@login_required
+def dog_update_class(dog_id):
+    if not current_user.person:
+        abort(403)
+    dog = db.session.get(Dog, dog_id)
+    if not dog:
+        abort(404)
+    # Nur der Eigentümer darf die Klasse ändern
+    owner = db.session.execute(
+        db.select(DogOwner).filter_by(dog_id=dog_id, person_id=current_user.person_id, role=DogOwnerRole.OWNER)
+    ).scalar_one_or_none()
+    if not owner:
+        abort(403)
+    form = DogClassForm(prefix=f"dog_{dog_id}")
+    if form.validate_on_submit():
+        dog.category = form.category.data
+        dog.class_level = int(form.class_level.data)
+        # Alle offenen Anmeldungen dieses Hundes aktualisieren
+        category_full = _CATEGORY_CODE_MAP.get(dog.category, dog.category)
+        open_regs = db.session.execute(
+            db.select(Registration).filter_by(dog_id=dog_id)
+            .filter(Registration.status.in_([RegistrationStatus.PENDING, RegistrationStatus.SUBMITTED]))
+        ).scalars().all()
+        for reg in open_regs:
+            reg.category_code = category_full
+            reg.class_level = dog.class_level
+        db.session.commit()
+        if open_regs:
+            flash(_("Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden aktualisiert.", n=len(open_regs)), "success")
+        else:
+            flash(_("Klasse/Kategorie gespeichert."), "success")
+    return redirect(url_for("club.profile_dogs"))
 
 
 # ---------------------------------------------------------------------------

@@ -7,42 +7,93 @@
   <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
 </div>
 
-{# Hunde-Tabelle #}
-<div class="card mb-4" style="max-width:680px;">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>{{ _('Registrierte Hunde') }}</span>
-    <span class="badge bg-secondary">{{ dogs | length }}</span>
-  </div>
+{# Hunde-Liste #}
+<div class="mb-4">
   {% if dogs %}
-  <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>{{ _('Name') }}</th>
-          <th>{{ _('Lizenztyp') }}</th>
-          <th>{{ _('Lizenznummer') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for dog in dogs %}
-        <tr>
-          <td class="fw-semibold">{{ dog.name }}</td>
-          <td>
-            {% if dog.license_kind.value == 'CH' %}
-              <span class="badge bg-primary">CH</span>
+    {% for dog in dogs %}
+    {% set owner_rec = dog.owners | selectattr('person_id', 'equalto', current_user.person_id) | first %}
+    {% set is_owner = owner_rec and owner_rec.role.value == 'OWNER' %}
+    <div class="card mb-3" style="max-width:680px;">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">{{ dog.name }}</span>
+        <span>
+          {% if dog.license_kind.value == 'CH' %}
+            <span class="badge bg-primary">CH</span>
+          {% else %}
+            <span class="badge bg-secondary">FOREIGN</span>
+          {% endif %}
+          <span class="font-monospace ms-1">{{ dog.license_no }}</span>
+          {% if is_owner %}
+            <span class="badge bg-success ms-2">{{ _('Besitzer') }}</span>
+          {% else %}
+            <span class="badge bg-info ms-2">{{ _('Hundeführer') }}</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-end g-2">
+          <div class="col-auto">
+            <small class="text-muted d-block">{{ _('Kategorie') }}</small>
+            {% if dog.category %}
+              <span class="badge bg-light text-dark border fs-6">
+                {{ {'L':'Large','I':'Intermediate','M':'Medium','S':'Small'}.get(dog.category, dog.category) }}
+                ({{ dog.category }})
+              </span>
             {% else %}
-              <span class="badge bg-secondary">FOREIGN</span>
+              <span class="text-muted fst-italic">{{ _('nicht gesetzt') }}</span>
             {% endif %}
-          </td>
-          <td class="font-monospace">{{ dog.license_no }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+          </div>
+          <div class="col-auto">
+            <small class="text-muted d-block">{{ _('Klasse') }}</small>
+            {% if dog.class_level %}
+              <span class="badge bg-light text-dark border fs-6">{{ _('Klasse') }} {{ dog.class_level }}</span>
+            {% else %}
+              <span class="text-muted fst-italic">{{ _('nicht gesetzt') }}</span>
+            {% endif %}
+          </div>
+          {% if is_owner %}
+          <div class="col-auto ms-auto">
+            <button class="btn btn-sm btn-outline-primary"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#edit-class-{{ dog.id }}">
+              ✏️ {{ _('Klasse ändern') }}
+            </button>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if is_owner and class_forms[dog.id] is defined %}
+        <div class="collapse mt-3" id="edit-class-{{ dog.id }}">
+          <form method="post" action="{{ url_for('club.dog_update_class', dog_id=dog.id) }}">
+            {{ class_forms[dog.id].hidden_tag() }}
+            <div class="row g-2 align-items-end">
+              <div class="col-auto">
+                {{ class_forms[dog.id].category.label(class="form-label mb-1") }}
+                {{ class_forms[dog.id].category(class="form-select form-select-sm") }}
+              </div>
+              <div class="col-auto">
+                {{ class_forms[dog.id].class_level.label(class="form-label mb-1") }}
+                {{ class_forms[dog.id].class_level(class="form-select form-select-sm") }}
+              </div>
+              <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-success">{{ _('Speichern') }}</button>
+              </div>
+            </div>
+            <small class="text-muted mt-1 d-block">
+              {{ _('Offene Anmeldungen werden automatisch angepasst.') }}
+            </small>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
   {% else %}
-  <div class="card-body text-center text-muted py-4">
-    {{ _('Noch keine Hunde registriert.') }}
+  <div class="card" style="max-width:680px;">
+    <div class="card-body text-center text-muted py-4">
+      {{ _('Noch keine Hunde registriert.') }}
+    </div>
   </div>
   {% endif %}
 </div>
@@ -73,6 +124,9 @@
         {% for err in form.license_no.errors %}
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
+      </div>
+      <div class="form-text text-muted mb-3">
+        {{ _('Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), wirst du automatisch als Hundeführer verknüpft.') }}
       </div>
       {{ form.submit(class="btn btn-primary") }}
     </form>
