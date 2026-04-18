@@ -838,12 +838,17 @@ def event_view(event_id):
             db.session.commit()
             flash(_("Anmeldung erfolgreich."), "success")
             return redirect(url_for("club.event_view", event_id=event_id))
+    sorted_runs = sorted(
+        event.runs,
+        key=lambda r: (r.run_type, _CATEGORY_SORT.get(r.category, 9), r.class_level)
+    )
     return render_template("club/event_view.html", event=event, form=form,
                            dogs=dogs, dogs_data=dogs_data, my_registrations=my_registrations,
                            deadline_passed=deadline_passed,
                            sched_by_ring=sched_by_ring, rings=rings,
                            sched_timeline=sched_timeline,
-                           has_start_numbers=has_start_numbers)
+                           has_start_numbers=has_start_numbers,
+                           sorted_runs=sorted_runs)
 
 
 @club_bp.post("/registrations/<int:reg_id>/cancel")
