@@ -514,6 +514,7 @@ class Registration(db.Model):
     verified_dog_name = db.Column(db.String(120))
     tka_issue_type = db.Column(db.Enum(TkaIssueType, name="tka_issue_type"))
     tka_issue_message = db.Column(db.Text)
+    start_number = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     event = db.relationship("Event")

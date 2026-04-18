@@ -18,8 +18,10 @@
 
 {# Status-Badge #}
 <div class="mb-3">
-  {% if event.status == 'open' %}
+  {% if event.status == 'open' and not deadline_passed %}
     <span class="badge bg-success fs-6">● {{ _('Anmeldungen offen') }}</span>
+  {% elif event.status == 'open' and deadline_passed %}
+    <span class="badge bg-warning text-dark fs-6">● {{ _('Nennschluss abgelaufen') }}</span>
   {% elif event.status == 'closed' %}
     <span class="badge bg-secondary fs-6">● {{ _('Anmeldungen geschlossen') }}</span>
   {% elif event.status == 'cancelled' %}
@@ -29,6 +31,11 @@
   {% endif %}
   {% if event.organiser_club %}
     <span class="badge bg-light text-dark border ms-1">{{ event.organiser_club.name }}</span>
+  {% endif %}
+  {% if event.registration_close_at %}
+    <span class="badge bg-light text-dark border ms-1">
+      {{ _('Nennschluss') }}: {{ event.registration_close_at.strftime("%d.%m.%Y") }}
+    </span>
   {% endif %}
 </div>
 
@@ -57,7 +64,7 @@
 {% endif %}
 
 {# Anmeldung #}
-{% if event.status == 'open' %}
+{% if event.status == 'open' and not deadline_passed %}
   <div class="card mb-4" style="max-width:520px;">
     <div class="card-header">{{ _('Für dieses Turnier anmelden') }}</div>
     <div class="card-body">

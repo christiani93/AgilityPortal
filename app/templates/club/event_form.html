@@ -55,6 +55,13 @@
         </div>
       </div>
 
+      <div class="mb-3">
+        {{ form.registration_close_at.label(class="form-label") }}
+        {{ form.registration_close_at(class="form-control" + (" is-invalid" if form.registration_close_at.errors else "")) }}
+        <div class="form-text text-muted">{{ _('Danach können keine neuen Anmeldungen mehr eingereicht werden.') }}</div>
+        {% for e in form.registration_close_at.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+
       {{ form.submit(class="btn btn-primary") }}
     </form>
   </div>

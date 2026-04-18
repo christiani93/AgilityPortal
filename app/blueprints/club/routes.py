@@ -250,12 +250,17 @@ def event_new():
             datetime.combine(form.ends_at.data, datetime.min.time())
             if form.ends_at.data else None
         )
+        close_at = (
+            datetime.combine(form.registration_close_at.data, datetime.max.time().replace(microsecond=0))
+            if form.registration_close_at.data else None
+        )
         event = Event(
             ais_turniernummer=form.ais_turniernummer.data or None,
             name=form.name.data.strip(),
             location=form.location.data.strip() if form.location.data else None,
             starts_at=starts,
             ends_at=ends,
+            registration_close_at=close_at,
             organiser_club_id=club_id,
             type="regular",
             status="draft",
@@ -356,6 +361,7 @@ def event_edit(event_id):
     if request.method == "GET":
         form.starts_at.data = event.starts_at.date() if event.starts_at else None
         form.ends_at.data = event.ends_at.date() if event.ends_at else None
+        form.registration_close_at.data = event.registration_close_at.date() if event.registration_close_at else None
         if current_user.is_superadmin:
             form.club_id.data = event.organiser_club_id or 0
     if form.validate_on_submit():
@@ -366,6 +372,10 @@ def event_edit(event_id):
         event.ends_at = (
             datetime.combine(form.ends_at.data, datetime.min.time())
             if form.ends_at.data else None
+        )
+        event.registration_close_at = (
+            datetime.combine(form.registration_close_at.data, datetime.max.time().replace(microsecond=0))
+            if form.registration_close_at.data else None
         )
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
@@ -730,8 +740,11 @@ def event_view(event_id):
         my_registrations = db.session.execute(
             db.select(Registration).filter_by(event_id=event_id, handler_id=current_user.person_id)
         ).scalars().all()
+    deadline_passed = (
+        event.registration_close_at and event.registration_close_at < datetime.utcnow()
+    )
     if form.validate_on_submit():
-        if event.status != "open":
+        if event.status != "open" or deadline_passed:
             flash(_("Anmeldungen sind nicht mehr offen."), "danger")
             return redirect(url_for("club.event_view", event_id=event_id))
         if not current_user.person:
@@ -774,7 +787,8 @@ def event_view(event_id):
             flash(_("Anmeldung erfolgreich."), "success")
             return redirect(url_for("club.event_view", event_id=event_id))
     return render_template("club/event_view.html", event=event, form=form,
-                           dogs=dogs, dogs_data=dogs_data, my_registrations=my_registrations)
+                           dogs=dogs, dogs_data=dogs_data, my_registrations=my_registrations,
+                           deadline_passed=deadline_passed)
 
 
 @club_bp.post("/registrations/<int:reg_id>/cancel")
@@ -792,6 +806,106 @@ def registration_cancel(reg_id):
         db.session.commit()
         flash(_("Anmeldung wurde storniert."), "success")
     return redirect(url_for("club.event_view", event_id=reg.event_id))
+
+
+# ---------------------------------------------------------------------------
+# Anmeldungen bestätigen / ablehnen (Veranstalter)
+# ---------------------------------------------------------------------------
+
+# Startnummern-Schema identisch zur AgilitySoftware
+_START_NUMBER_SCHEMA = {
+    "Large-3": 1300, "Large-2": 1200, "Large-1": 1100,
+    "Intermediate-3": 2300, "Intermediate-2": 2200, "Intermediate-1": 2100,
+    "Medium-3": 3300, "Medium-2": 3200, "Medium-1": 3100,
+    "Small-3": 4300, "Small-2": 4200, "Small-1": 4100,
+}
+
+
+@club_bp.post("/registrations/<int:reg_id>/confirm")
+@login_required
+def registration_confirm(reg_id):
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+    if reg.status == RegistrationStatus.PENDING:
+        reg.status = RegistrationStatus.CONFIRMED
+        db.session.commit()
+        flash(_("Anmeldung bestätigt."), "success")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
+@club_bp.post("/registrations/<int:reg_id>/reject")
+@login_required
+def registration_reject(reg_id):
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+    if reg.status != RegistrationStatus.CANCELLED:
+        reg.status = RegistrationStatus.CANCELLED
+        db.session.commit()
+        flash(_("Anmeldung abgelehnt."), "success")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
+@club_bp.post("/events/<int:event_id>/confirm-all")
+@login_required
+def event_confirm_all(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    pending = db.session.execute(
+        db.select(Registration).filter_by(event_id=event_id, status=RegistrationStatus.PENDING)
+    ).scalars().all()
+    for reg in pending:
+        reg.status = RegistrationStatus.CONFIRMED
+    db.session.commit()
+    flash(_("%(n)s Anmeldungen bestätigt.", n=len(pending)), "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/assign-startnumbers")
+@login_required
+def event_assign_startnumbers(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    confirmed = db.session.execute(
+        db.select(Registration)
+        .filter_by(event_id=event_id, status=RegistrationStatus.CONFIRMED)
+        .order_by(Registration.category_code, Registration.class_level,
+                  Registration.handler_id)
+    ).scalars().all()
+    # Zähler pro Kategorie-Klasse aus dem Schema
+    counters = {k: v for k, v in _START_NUMBER_SCHEMA.items()}
+    for reg in confirmed:
+        key = f"{reg.category_code}-{reg.class_level}"
+        if key in counters:
+            reg.start_number = counters[key]
+            counters[key] += 1
+        else:
+            # Fallback: nächste freie Nummer ab 9000
+            reg.start_number = 9000 + confirmed.index(reg)
+    db.session.commit()
+    flash(_("Startnummern wurden vergeben."), "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.post("/registrations/<int:reg_id>/startnumber")
+@login_required
+def registration_set_startnumber(reg_id):
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+    new_nr = request.form.get("start_number", type=int)
+    if new_nr and new_nr > 0:
+        reg.start_number = new_nr
+        db.session.commit()
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
 
 @club_bp.post("/requests/<int:req_id>/reject")
