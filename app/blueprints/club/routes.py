@@ -254,13 +254,23 @@ def event_new():
             datetime.combine(form.registration_close_at.data, datetime.max.time().replace(microsecond=0))
             if form.registration_close_at.data else None
         )
+        open_at = (
+            datetime.combine(form.registration_open_at.data, datetime.min.time())
+            if form.registration_open_at.data else None
+        )
         event = Event(
             ais_turniernummer=form.ais_turniernummer.data or None,
             name=form.name.data.strip(),
             location=form.location.data.strip() if form.location.data else None,
             starts_at=starts,
             ends_at=ends,
+            registration_open_at=open_at,
             registration_close_at=close_at,
+            pruefungsleiter=form.pruefungsleiter.data.strip() if form.pruefungsleiter.data else None,
+            max_participants=form.max_participants.data or None,
+            entry_fee=form.entry_fee.data or None,
+            allows_bitches_in_season=form.allows_bitches_in_season.data,
+            notes_public=form.notes_public.data.strip() if form.notes_public.data else None,
             organiser_club_id=club_id,
             type="regular",
             status="draft",
@@ -361,6 +371,7 @@ def event_edit(event_id):
     if request.method == "GET":
         form.starts_at.data = event.starts_at.date() if event.starts_at else None
         form.ends_at.data = event.ends_at.date() if event.ends_at else None
+        form.registration_open_at.data = event.registration_open_at.date() if event.registration_open_at else None
         form.registration_close_at.data = event.registration_close_at.date() if event.registration_close_at else None
         if current_user.is_superadmin:
             form.club_id.data = event.organiser_club_id or 0
@@ -373,10 +384,19 @@ def event_edit(event_id):
             datetime.combine(form.ends_at.data, datetime.min.time())
             if form.ends_at.data else None
         )
+        event.registration_open_at = (
+            datetime.combine(form.registration_open_at.data, datetime.min.time())
+            if form.registration_open_at.data else None
+        )
         event.registration_close_at = (
             datetime.combine(form.registration_close_at.data, datetime.max.time().replace(microsecond=0))
             if form.registration_close_at.data else None
         )
+        event.pruefungsleiter = form.pruefungsleiter.data.strip() if form.pruefungsleiter.data else None
+        event.max_participants = form.max_participants.data or None
+        event.entry_fee = form.entry_fee.data or None
+        event.allows_bitches_in_season = form.allows_bitches_in_season.data
+        event.notes_public = form.notes_public.data.strip() if form.notes_public.data else None
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
         db.session.commit()

@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField, IntegerField, TextAreaField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
+from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField, IntegerField, TextAreaField, BooleanField, DecimalField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional, NumberRange
 
 
 class AddUserForm(FlaskForm):
@@ -42,10 +42,16 @@ class ChangePasswordForm(FlaskForm):
 class EventForm(FlaskForm):
     ais_turniernummer = IntegerField("Turnier-ID (AIS)", validators=[Optional()])
     name = StringField("Turniername", validators=[DataRequired(), Length(max=200)])
-    location = StringField("Ort", validators=[Optional(), Length(max=200)])
+    location = StringField("Ort / Adresse", validators=[Optional(), Length(max=200)])
     starts_at = DateField("Von (Datum)", validators=[DataRequired()])
     ends_at = DateField("Bis (Datum)", validators=[Optional()])
+    registration_open_at = DateField("Meldebeginn", validators=[Optional()])
     registration_close_at = DateField("Nennschluss", validators=[Optional()])
+    pruefungsleiter = StringField("Prüfungsleiter", validators=[Optional(), Length(max=255)])
+    max_participants = IntegerField("Max. Starter", validators=[Optional(), NumberRange(min=1)])
+    entry_fee = DecimalField("Startgeld (CHF)", validators=[Optional(), NumberRange(min=0)], places=2)
+    allows_bitches_in_season = BooleanField("Läufige Hündinnen erlaubt")
+    notes_public = TextAreaField("Bemerkungen (öffentlich)", validators=[Optional()])
     # Nur für Superadmin befüllt — choices werden in der Route gesetzt
     club_id = SelectField("Verein", coerce=int, validators=[Optional()])
     submit = SubmitField("Speichern")

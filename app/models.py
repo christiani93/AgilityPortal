@@ -312,6 +312,9 @@ class Event(db.Model):
     is_breed_restricted = db.Column(db.Boolean, default=False, nullable=False)
     registration_open_at = db.Column(db.DateTime, nullable=True)
     registration_close_at = db.Column(db.DateTime, nullable=True)
+    max_participants = db.Column(db.Integer, nullable=True)
+    entry_fee = db.Column(db.Numeric(10, 2), nullable=True)
+    notes_public = db.Column(db.Text, nullable=True)
     lizenzcheck_done_at = db.Column(db.DateTime, nullable=True)
     results_submitted_at = db.Column(db.DateTime, nullable=True)
 

@@ -55,11 +55,44 @@
         </div>
       </div>
 
+      <div class="row g-3 mb-3">
+        <div class="col">
+          {{ form.registration_open_at.label(class="form-label") }}
+          {{ form.registration_open_at(class="form-control") }}
+        </div>
+        <div class="col">
+          {{ form.registration_close_at.label(class="form-label") }}
+          {{ form.registration_close_at(class="form-control") }}
+          <div class="form-text text-muted">{{ _('Danach keine neuen Anmeldungen mehr.') }}</div>
+        </div>
+      </div>
+
       <div class="mb-3">
-        {{ form.registration_close_at.label(class="form-label") }}
-        {{ form.registration_close_at(class="form-control" + (" is-invalid" if form.registration_close_at.errors else "")) }}
-        <div class="form-text text-muted">{{ _('Danach können keine neuen Anmeldungen mehr eingereicht werden.') }}</div>
-        {% for e in form.registration_close_at.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        {{ form.pruefungsleiter.label(class="form-label") }}
+        {{ form.pruefungsleiter(class="form-control") }}
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col">
+          {{ form.max_participants.label(class="form-label") }}
+          {{ form.max_participants(class="form-control", placeholder="z.B. 100") }}
+        </div>
+        <div class="col">
+          {{ form.entry_fee.label(class="form-label") }}
+          {{ form.entry_fee(class="form-control", placeholder="z.B. 45.00") }}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="form-check">
+          {{ form.allows_bitches_in_season(class="form-check-input") }}
+          {{ form.allows_bitches_in_season.label(class="form-check-label") }}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        {{ form.notes_public.label(class="form-label") }}
+        {{ form.notes_public(class="form-control", rows=3) }}
       </div>
 
       {{ form.submit(class="btn btn-primary") }}
