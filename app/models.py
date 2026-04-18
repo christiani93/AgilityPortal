@@ -169,6 +169,8 @@ class Person(db.Model):
     external_id = db.Column(db.String(64), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    owners = db.relationship("DogOwner", back_populates="person")
+
 
 class Dog(db.Model):
     __tablename__ = "dogs"
@@ -236,7 +238,7 @@ class DogOwner(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     dog = db.relationship("Dog", back_populates="owners")
-    person = db.relationship("Person")
+    person = db.relationship("Person", back_populates="owners")
 
 
 class DogAuthorization(db.Model):
