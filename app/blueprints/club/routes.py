@@ -864,9 +864,9 @@ def event_view(event_id):
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
         abort(404)
-    # Testevents sind nur für Superadmin sichtbar
-    if event.is_test and not current_user.is_superadmin:
-        abort(404)
+    # Teilnehmeransicht nur für Superadmin
+    if not current_user.is_superadmin:
+        abort(403)
     form = EventRegistrationForm()
     dogs = current_user.dogs if current_user.person else []
     form.dog_id.choices = [(d.id, d.name) for d in dogs]
@@ -1079,24 +1079,115 @@ def event_assign_startnumbers(event_id):
         abort(404)
     _assert_event_access(event)
 
+    MIN_GAP = 20   # Mindest-Lücke zwischen zwei Hunden desselben Handlers
+
+    # ── Alle bestätigten Anmeldungen ─────────────────────────────────────────
     confirmed = db.session.execute(
         db.select(Registration)
         .filter_by(event_id=event_id, status=RegistrationStatus.CONFIRMED)
-        .order_by(Registration.category_code, Registration.class_level,
-                  Registration.is_in_season,   # False (normal) vor True (läufig)
-                  Registration.handler_id)
     ).scalars().all()
 
-    counters = _get_startnumber_schema(event)
-    fallback  = 9001
+    # ── Globale Block-Reihenfolge aus Ring 1 (sort_index) ────────────────────
+    # Jeder unique (category_code, class_level) erscheint nur einmal.
+    ring1_blocks = db.session.execute(
+        db.select(ScheduleBlock)
+        .filter_by(event_id=event_id, ring="Ring 1")
+        .filter(ScheduleBlock.block_type == "run")
+        .order_by(ScheduleBlock.sort_index)
+    ).scalars().all()
+
+    seen_keys: set = set()
+    ordered_keys: list = []
+    for b in ring1_blocks:
+        if b.category_code and b.class_level:
+            key = (b.category_code, b.class_level)
+            if key not in seen_keys:
+                seen_keys.add(key)
+                ordered_keys.append(key)
+
+    # ── Anmeldungen nach (category_code, class_level) gruppieren ─────────────
+    from collections import defaultdict
+    regs_by_key: dict = defaultdict(list)
     for reg in confirmed:
-        key = f"{reg.category_code}-{reg.class_level}"
-        if key in counters:
-            reg.start_number = counters[key]
-            counters[key] += 1
-        else:
-            reg.start_number = fallback
-            fallback += 1
+        regs_by_key[(reg.category_code, reg.class_level)].append(reg)
+
+    # Blöcke die nicht in Ring 1 stehen → hinten, alphabetisch sortiert
+    for key in sorted(set(regs_by_key.keys()) - seen_keys):
+        ordered_keys.append(key)
+
+    # ── Gap-bewusste Platzierung ─────────────────────────────────────────────
+    # handler_last_global: letzte globale Position des Handlers (für Lücken-Prüfung)
+    handler_last_global: dict = {}   # handler_id → int
+    schema   = _get_startnumber_schema(event)
+    fallback = 9001
+    global_offset = 0
+
+    for key in ordered_keys:
+        regs = regs_by_key.get(key, [])
+        if not regs:
+            continue
+
+        n        = len(regs)
+        cat, cls = key
+
+        # Handler mit mehreren Hunden zuerst verarbeiten (mehr Spielraum nötig)
+        handler_count: dict = defaultdict(int)
+        for reg in regs:
+            if reg.handler_id:
+                handler_count[reg.handler_id] += 1
+
+        # Sortierung: läufige Hündinnen ans Ende, Mehrfach-Handler zuerst,
+        # dann handler_id für Stabilität
+        sorted_regs = sorted(regs, key=lambda r: (
+            r.is_in_season,
+            -(handler_count.get(r.handler_id, 1)),
+            r.handler_id or 0,
+            r.id,
+        ))
+
+        placed: list = [None] * n
+
+        for reg in sorted_regs:
+            hid        = reg.handler_id
+            last_global = handler_last_global.get(hid, -(MIN_GAP * 100))
+
+            # Ersten freien Slot suchen, der die Mindestlücke einhält
+            placed_ok = False
+            for p in range(n):
+                if placed[p] is not None:
+                    continue
+                if global_offset + p - last_global >= MIN_GAP:
+                    placed[p] = reg
+                    handler_last_global[hid] = global_offset + p
+                    placed_ok = True
+                    break
+
+            if not placed_ok:
+                # Lücke nicht einzuhalten (zu wenig Starter) → best effort:
+                # kleinsten Abstand wählen
+                best_p, best_gap = None, -1
+                for p in range(n):
+                    if placed[p] is not None:
+                        continue
+                    gap = global_offset + p - last_global
+                    if gap > best_gap:
+                        best_gap, best_p = gap, p
+                if best_p is not None:
+                    placed[best_p] = reg
+                    handler_last_global[hid] = global_offset + best_p
+
+        # Startnummern aus Schema zuweisen
+        schema_key = f"{cat}-{cls}"
+        base_nr    = schema.get(schema_key)
+
+        for p, reg in enumerate(placed):
+            if reg is None:
+                continue
+            reg.start_number = (base_nr + p) if base_nr is not None else fallback
+            if base_nr is None:
+                fallback += 1
+
+        global_offset += n
 
     event.start_numbers_generated_at = datetime.utcnow()
     db.session.commit()

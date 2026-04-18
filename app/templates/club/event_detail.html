@@ -32,6 +32,7 @@
   </div>
   <div class="d-flex gap-2">
     <a href="{{ url_for('club.event_schedule', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">📅 {{ _('Zeitplan') }}</a>
+    <a href="{{ url_for('club.event_view', event_id=event.id) }}" class="btn btn-sm btn-outline-info">👁 {{ _('Teilnehmeransicht') }}</a>
     <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
     <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
     {% if current_user.is_superadmin %}
