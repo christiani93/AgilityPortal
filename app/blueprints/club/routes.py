@@ -909,7 +909,8 @@ def event_view(event_id):
         compute_detailed_segments(sched_by_ring, start_times,
                                   event.starts_at.strftime("%Y-%m-%d") if event.starts_at
                                   else datetime.utcnow().strftime("%Y-%m-%d"),
-                                  round_minutes=5)
+                                  round_minutes=5,
+                                  run_time_config=_get_run_time_config(event))
         if has_start_numbers else {}
     )
 
@@ -991,13 +992,38 @@ def registration_cancel(reg_id):
 # Anmeldungen bestätigen / ablehnen (Veranstalter)
 # ---------------------------------------------------------------------------
 
-# Startnummern-Schema identisch zur AgilitySoftware
-_START_NUMBER_SCHEMA = {
-    "Large-3": 1300, "Large-2": 1200, "Large-1": 1100,
-    "Intermediate-3": 2300, "Intermediate-2": 2200, "Intermediate-1": 2100,
-    "Medium-3": 3300, "Medium-2": 3200, "Medium-1": 3100,
-    "Small-3": 4300, "Small-2": 4200, "Small-1": 4100,
+# Standard-Startnummernschema (xx01 = erster Starter pro Block)
+_START_NUMBER_SCHEMA_DEFAULT = {
+    "Large-1": 1101, "Large-2": 1201, "Large-3": 1301,
+    "Intermediate-1": 2101, "Intermediate-2": 2201, "Intermediate-3": 2301,
+    "Medium-1": 3101, "Medium-2": 3201, "Medium-3": 3301,
+    "Small-1": 4101, "Small-2": 4201, "Small-3": 4301,
 }
+
+# Standard-Laufzeit in Sekunden pro Starter
+_RUN_TIME_CONFIG_DEFAULT = {"agility": 65, "jumping": 60, "open": 65}
+
+
+def _get_startnumber_schema(event) -> dict:
+    """Gibt das Event-spezifische Schema zurück, oder den Default."""
+    import json as _j
+    if event.startnumber_schema:
+        try:
+            return {k: int(v) for k, v in _j.loads(event.startnumber_schema).items()}
+        except Exception:
+            pass
+    return dict(_START_NUMBER_SCHEMA_DEFAULT)
+
+
+def _get_run_time_config(event) -> dict:
+    """Gibt die Event-spezifische Laufzeit-Konfiguration zurück, oder den Default."""
+    import json as _j
+    if event.run_time_config:
+        try:
+            return {k: int(v) for k, v in _j.loads(event.run_time_config).items()}
+        except Exception:
+            pass
+    return dict(_RUN_TIME_CONFIG_DEFAULT)
 
 
 @club_bp.post("/registrations/<int:reg_id>/confirm")
@@ -1061,8 +1087,8 @@ def event_assign_startnumbers(event_id):
                   Registration.handler_id)
     ).scalars().all()
 
-    counters = {k: v for k, v in _START_NUMBER_SCHEMA.items()}
-    fallback  = 9000
+    counters = _get_startnumber_schema(event)
+    fallback  = 9001
     for reg in confirmed:
         key = f"{reg.category_code}-{reg.class_level}"
         if key in counters:
@@ -1163,9 +1189,14 @@ def event_schedule(event_id):
         if block.ring in blocks_by_ring:
             blocks_by_ring[block.ring].append(block)
 
+    # Event-Konfiguration laden
+    run_time_cfg   = _get_run_time_config(event)
+    startnr_schema = _get_startnumber_schema(event)
+
     # Timeline berechnen
     event_date = event.starts_at.strftime("%Y-%m-%d") if event.starts_at else datetime.utcnow().strftime("%Y-%m-%d")
-    timeline = compute_timeline(blocks_by_ring, start_times, event_date)
+    timeline = compute_timeline(blocks_by_ring, start_times, event_date,
+                                run_time_config=run_time_cfg)
 
     # Noch nicht eingeplante EventRuns — sortiert nach L→I→M→S, dann Klasse
     scheduled_keys = {
@@ -1190,6 +1221,10 @@ def event_schedule(event_id):
         timeline=timeline,
         unscheduled_runs=unscheduled_runs,
         event_judges=event_judges,
+        run_time_cfg=run_time_cfg,
+        startnr_schema=startnr_schema,
+        sn_defaults=_START_NUMBER_SCHEMA_DEFAULT,
+        rt_defaults=_RUN_TIME_CONFIG_DEFAULT,
     )
 
 
@@ -1220,6 +1255,40 @@ def schedule_save_rings(event_id):
     event.ring_start_times = _json.dumps(times)
     db.session.commit()
     flash(_("Ringkonfiguration gespeichert."), "success")
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/settings")
+@login_required
+def schedule_save_settings(event_id):
+    """Speichert Startnummern-Schema und Laufzeit-Konfiguration."""
+    import json as _json
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    # ── Startnummern-Schema ────────────────────────────────────────────────
+    schema = {}
+    for cat in ("Large", "Intermediate", "Medium", "Small"):
+        for kl in (1, 2, 3):
+            key  = f"{cat}-{kl}"
+            val  = request.form.get(f"sn_{cat}_{kl}", type=int)
+            base = _START_NUMBER_SCHEMA_DEFAULT[key]
+            schema[key] = val if val and val > 0 else base
+    event.startnumber_schema = _json.dumps(schema)
+
+    # ── Laufzeit pro Disziplin ─────────────────────────────────────────────
+    run_cfg = {}
+    for disc in ("agility", "jumping", "open"):
+        val = request.form.get(f"rt_{disc}", type=int)
+        default = _RUN_TIME_CONFIG_DEFAULT[disc]
+        run_cfg[disc] = val if val and val > 0 else default
+    event.run_time_config = _json.dumps(run_cfg)
+
+    db.session.commit()
+    flash(_("Einstellungen gespeichert."), "success")
     return redirect(url_for("club.event_schedule", event_id=event_id))
 
 

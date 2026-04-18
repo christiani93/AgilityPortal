@@ -48,7 +48,83 @@
   </div>
 </div>
 
-{# ── 2. RINGE MIT BLOCKS ──────────────────────────────────────────────────── #}
+{# ── 2. EINSTELLUNGEN ────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>⚙️ {{ _('Einstellungen') }}</span>
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#settings-panel">
+      {{ _('Bearbeiten') }}
+    </button>
+  </div>
+  <div class="collapse" id="settings-panel">
+    <div class="card-body border-top">
+      <form method="post" action="{{ url_for('club.schedule_save_settings', event_id=event.id) }}"
+            class="row g-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# ── Laufzeit pro Disziplin ── #}
+        <div class="col-12">
+          <h6 class="mb-2">{{ _('Laufzeit pro Starter') }}</h6>
+          <div class="d-flex flex-wrap gap-3">
+            {% for disc, label in [('agility','Agility'), ('jumping','Jumping'), ('open','Open')] %}
+            <div>
+              <label class="form-label small mb-1">{{ label }}</label>
+              <div class="input-group input-group-sm" style="width:130px;">
+                <input type="number" name="rt_{{ disc }}"
+                       value="{{ run_time_cfg.get(disc, rt_defaults.get(disc, 65)) }}"
+                       min="30" max="120" class="form-control">
+                <span class="input-group-text">{{ _('Sek.') }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# ── Startnummern-Schema ── #}
+        <div class="col-12">
+          <h6 class="mb-2">{{ _('Startnummern (erster Starter pro Block)') }}</h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered mb-0" style="max-width:500px;">
+              <thead class="table-light">
+                <tr>
+                  <th></th>
+                  <th class="text-center">{{ _('Kl. 1') }}</th>
+                  <th class="text-center">{{ _('Kl. 2') }}</th>
+                  <th class="text-center">{{ _('Kl. 3') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cat in ['Large', 'Intermediate', 'Medium', 'Small'] %}
+                <tr>
+                  <td class="fw-semibold">{{ cat }}</td>
+                  {% for kl in [1, 2, 3] %}
+                  <td>
+                    <input type="number" name="sn_{{ cat }}_{{ kl }}"
+                           value="{{ startnr_schema.get(cat ~ '-' ~ kl, sn_defaults.get(cat ~ '-' ~ kl, '')) }}"
+                           min="1" max="9999" class="form-control form-control-sm text-center"
+                           style="width:90px;">
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="form-text text-muted mt-1">
+            {{ _('Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102 usw.') }}
+          </div>
+        </div>
+
+        <div class="col-12">
+          <button type="submit" class="btn btn-sm btn-primary">{{ _('Einstellungen speichern') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── 3. RINGE MIT BLOCKS ──────────────────────────────────────────────────── #}
 {% for ring in rings %}
 {% set ring_blocks = blocks_by_ring.get(ring, []) | sort(attribute='sort_index') %}
 <div class="card mb-3">
@@ -151,7 +227,7 @@
 </div>
 {% endfor %}
 
-{# ── 3. NOCH NICHT EINGEPLANTE LÄUFE ──────────────────────────────────────── #}
+{# ── 4. NOCH NICHT EINGEPLANTE LÄUFE ──────────────────────────────────────── #}
 {% if unscheduled_runs %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">

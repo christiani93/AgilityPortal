@@ -54,9 +54,17 @@ def _briefing_seconds(participant_count: int) -> int:
     return blocks * BRIEFING_MINUTES_PER_50 * 60
 
 
-def estimate_block(discipline: str, participant_count: int) -> dict:
+def _secs_per_starter(discipline: str, run_time_config: dict | None) -> int:
+    """Sekunden pro Starter für eine Disziplin (Event-Konfiguration oder Default)."""
+    cfg = run_time_config or SECONDS_PER_STARTER
+    return cfg.get((discipline or "agility").lower(),
+                   SECONDS_PER_STARTER.get((discipline or "agility").lower(), 65))
+
+
+def estimate_block(discipline: str, participant_count: int,
+                   run_time_config: dict | None = None) -> dict:
     """Geschätzte Dauer eines Lauf-Blocks (inkl. Umbau-Anteil)."""
-    secs        = SECONDS_PER_STARTER.get((discipline or "agility").lower(), 65)
+    secs        = _secs_per_starter(discipline, run_time_config)
     run_seconds = participant_count * secs
     brief_secs  = _briefing_seconds(participant_count)
     total       = CHANGEOVER_SECONDS + brief_secs + run_seconds
@@ -129,7 +137,8 @@ def _briefing_label(run_group: list) -> str:
 
 
 def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
-                     event_date_str: str, round_minutes: int = 0) -> dict:
+                     event_date_str: str, round_minutes: int = 0,
+                     run_time_config: dict | None = None) -> dict:
     """
     Timeline für den Zeitplan-Editor (ein Item pro Block).
     Gruppenmodell: Umbau + Briefing (gesamt) + Läufe in Folge.
@@ -178,7 +187,7 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                 run_times = {}
                 for b in run_group:
                     count = getattr(b, "_participant_count", 0)
-                    secs  = SECONDS_PER_STARTER.get((b.discipline or "agility").lower(), 65)
+                    secs  = _secs_per_starter(b.discipline, run_time_config)
                     run_s = max(count * secs, 60)
                     s, e, current = _advance(current, run_s, round_minutes)
                     run_times[b.id] = (s, e)
@@ -187,7 +196,7 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                 first = True
                 for b in run_group:
                     count  = getattr(b, "_participant_count", 0)
-                    secs   = SECONDS_PER_STARTER.get((b.discipline or "agility").lower(), 65)
+                    secs   = _secs_per_starter(b.discipline, run_time_config)
                     run_s  = count * secs
                     _, r_end = run_times[b.id]
 
@@ -210,7 +219,8 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
 
 
 def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
-                               event_date_str: str, round_minutes: int = 5) -> dict:
+                               event_date_str: str, round_minutes: int = 5,
+                               run_time_config: dict | None = None) -> dict:
     """
     Detaillierte Segment-Timeline für die Teilnehmer-Ansicht.
 
@@ -288,7 +298,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                 for b in run_group:
                     title  = getattr(b, "_display_title", None) or b.title or ""
                     count  = getattr(b, "_participant_count", 0)
-                    secs_s = SECONDS_PER_STARTER.get((b.discipline or "agility").lower(), 65)
+                    secs_s = _secs_per_starter(b.discipline, run_time_config)
                     run_s  = max(count * secs_s, 60)
                     s, e, current = _advance(current, run_s, round_minutes)
                     items.append({

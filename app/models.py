@@ -345,6 +345,12 @@ class Event(db.Model):
     start_numbers_rule_set = db.Column(db.Text)
     schedule_locked = db.Column(db.Boolean, default=False, nullable=False)
 
+    # Konfigurierbare Einstellungen (JSON)
+    # startnumber_schema: {"Large-1": 1101, "Large-2": 1201, ...}
+    startnumber_schema = db.Column(db.Text, nullable=True)
+    # run_time_config: {"agility": 65, "jumping": 60, "open": 65}
+    run_time_config = db.Column(db.Text, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     organiser_club = db.relationship("Club", foreign_keys=[organiser_club_id])
