@@ -1195,6 +1195,66 @@ def event_assign_startnumbers(event_id):
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
+@club_bp.get("/events/<int:event_id>/startlist")
+def event_startlist(event_id):
+    """Öffentliche Startliste — kein Login nötig, direkt verlinkbar."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+
+    # Kategorie-Reihenfolge
+    CAT_ORDER = {"Large": 0, "Intermediate": 1, "Medium": 2, "Small": 3}
+
+    # Alle bestätigten Anmeldungen mit vergebener Startnummer
+    regs = db.session.execute(
+        db.select(Registration)
+        .filter_by(event_id=event_id, status=RegistrationStatus.CONFIRMED)
+        .filter(Registration.start_number.isnot(None))
+        .order_by(Registration.category_code, Registration.class_level,
+                  Registration.start_number)
+    ).scalars().all()
+
+    # Nach (Kategorie, Klasse) gruppieren — in definierter Reihenfolge
+    from collections import defaultdict
+    groups: dict = defaultdict(list)
+    for reg in regs:
+        groups[(reg.category_code, reg.class_level)].append(reg)
+
+    sorted_groups = sorted(
+        groups.items(),
+        key=lambda kv: (CAT_ORDER.get(kv[0][0], 9), kv[0][1])
+    )
+
+    has_numbers = event.start_numbers_generated_at is not None
+
+    return render_template(
+        "club/startlist.html",
+        event=event,
+        sorted_groups=sorted_groups,
+        has_numbers=has_numbers,
+    )
+
+
+@club_bp.post("/events/<int:event_id>/reset-startnumbers")
+@login_required
+def event_reset_startnumbers(event_id):
+    """Alle Startnummern löschen (nur Superadmin)."""
+    if not current_user.is_superadmin:
+        abort(403)
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    db.session.execute(
+        db.update(Registration)
+        .where(Registration.event_id == event_id)
+        .values(start_number=None)
+    )
+    event.start_numbers_generated_at = None
+    db.session.commit()
+    flash(_("Startnummern wurden zurückgesetzt."), "warning")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
 @club_bp.post("/registrations/<int:reg_id>/startnumber")
 @login_required
 def registration_set_startnumber(reg_id):

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Startliste – {{ event.name }}{% endblock %}
+
+{% block content %}
+{# ── Kopfzeile ──────────────────────────────────────────────────────────── #}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="mb-0">📋 Startliste — {{ event.name }}</h2>
+    <small class="text-muted">
+      {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+      {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
+        – {{ event.ends_at.strftime("%d.%m.%Y") }}
+      {% endif %}
+      {% if event.location %} · {{ event.location }}{% endif %}
+    </small>
+  </div>
+  {% if current_user.is_authenticated and current_user.is_superadmin %}
+  <a href="{{ url_for('club.event_detail', event_id=event.id) }}"
+     class="btn btn-sm btn-outline-secondary">← Turnierverwaltung</a>
+  {% endif %}
+</div>
+
+{# ── Hinweis wenn noch keine Startnummern vergeben ─────────────────────── #}
+{% if not has_numbers %}
+<div class="alert alert-warning">
+  ⚠️ Für dieses Turnier wurden noch keine Startnummern vergeben.
+</div>
+{% elif not sorted_groups %}
+<div class="alert alert-info">
+  Noch keine bestätigten Anmeldungen mit Startnummer vorhanden.
+</div>
+{% endif %}
+
+{# ── Inhaltsverzeichnis (Anker-Links) ──────────────────────────────────── #}
+{% if sorted_groups %}
+<div class="mb-4 d-flex flex-wrap gap-2">
+  {% for (cat, cls), regs in sorted_groups %}
+  <a href="#group-{{ cat }}-{{ cls }}"
+     class="btn btn-sm btn-outline-primary">
+    {{ cat }} Kl.{{ cls }}
+    <span class="badge bg-primary ms-1">{{ regs | length }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+{# ── Hinweis: Startnummer gilt für alle Laufarten ─────────────────────── #}
+<div class="alert alert-light border small text-muted mb-4">
+  ℹ️ Die Startnummer gilt für alle Laufarten (Agility und Jumping).
+  Die Startreihenfolge ist in beiden Läufen identisch.
+</div>
+
+{# ── Tabellen pro Kategorie × Klasse ──────────────────────────────────── #}
+{% for (cat, cls), regs in sorted_groups %}
+<div class="card mb-4" id="group-{{ cat }}-{{ cls }}">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">{{ cat }} — Klasse {{ cls }}</span>
+    <span class="badge bg-secondary">{{ regs | length }} Starter</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover table-striped mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:80px;">Nr.</th>
+          <th>Hund</th>
+          <th>Hundeführer</th>
+          <th>Verein</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in regs | sort(attribute='start_number') %}
+        <tr {% if reg.is_in_season %}class="table-warning"{% endif %}>
+          <td class="fw-bold">{{ reg.start_number }}</td>
+          <td>
+            {{ reg.dog.name if reg.dog else '—' }}
+            {% if reg.is_in_season %}
+              <span class="badge bg-warning text-dark ms-1" title="Läufige Hündin">♀</span>
+            {% endif %}
+          </td>
+          <td class="text-muted">
+            {% if reg.handler %}
+              {{ reg.handler.first_name }} {{ reg.handler.last_name }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-muted small">{{ reg.club_name or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+
+{% endif %}
+
+{# ── Footer ─────────────────────────────────────────────────────────────── #}
+<div class="text-muted small text-center mt-4">
+  {% if event.start_numbers_generated_at %}
+    Stand: {{ event.start_numbers_generated_at.strftime("%d.%m.%Y %H:%M") }} Uhr
+  {% endif %}
+</div>
+
+{% endblock %}

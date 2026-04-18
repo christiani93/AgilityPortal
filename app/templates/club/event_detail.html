@@ -375,6 +375,15 @@
         <button class="btn btn-sm btn-primary">🔢 {{ _('Startnummern vergeben') }}</button>
       </form>
       {% endif %}
+      <a href="{{ url_for('club.event_startlist', event_id=event.id) }}"
+         class="btn btn-sm btn-outline-secondary" target="_blank">📋 {{ _('Startliste') }}</a>
+      {% if current_user.is_superadmin and event.start_numbers_generated_at %}
+      <form method="post" action="{{ url_for('club.event_reset_startnumbers', event_id=event.id) }}"
+            onsubmit="return confirm('{{ _('Alle Startnummern wirklich löschen?') }}')">
+        {{ run_form.hidden_tag() }}
+        <button class="btn btn-sm btn-outline-danger">🗑 {{ _('Startnummern löschen') }}</button>
+      </form>
+      {% endif %}
     </div>
   </div>
   {% if registrations %}
