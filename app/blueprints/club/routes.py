@@ -265,56 +265,57 @@ def create_test_event_web():
     db.session.add(event)
     db.session.flush()
 
-    # Alle Standard-Läufe anlegen
-    runs = []
+    # Alle Standard-Läufe anlegen (Agility + Jumping, alle Kategorien, Kl.1–3)
+    run_count = 0
     for discipline in ("agility", "jumping"):
         for cat in ("L", "I", "M", "S"):
             for kl in (1, 2, 3):
-                run = EventRun(event_id=event.id, run_type=discipline,
-                               category=cat, class_level=kl)
-                db.session.add(run)
-                runs.append((discipline, cat, kl))
+                db.session.add(EventRun(event_id=event.id, run_type=discipline,
+                                        category=cat, class_level=kl))
+                run_count += 1
     db.session.flush()
 
-    # Testanmeldungen befüllen
+    # Anmeldungen: eine pro (Kategorie, Klasse) — gilt für alle Disziplinen
+    # (Agility + Jumping teilen sich denselben Teilnehmerkreis pro Kat./Klasse)
     n = 0
-    for discipline, cat, kl in runs:
-        category_code = _CAT_MAP.get(cat, cat)
-        for _i in range(count):
-            n += 1
-            person = Person(
-                first_name=_FIRST[(n - 1) % len(_FIRST)],
-                last_name=_LAST[(n - 1) % len(_LAST)],
-                email=f"test{n}@test.invalid",
-                external_id=f"TEST_{event.id}_{n:04d}",
-            )
-            db.session.add(person)
-            db.session.flush()
+    for cat in ("L", "I", "M", "S"):
+        for kl in (1, 2, 3):
+            category_code = _CAT_MAP.get(cat, cat)
+            for _i in range(count):
+                n += 1
+                person = Person(
+                    first_name=_FIRST[(n - 1) % len(_FIRST)],
+                    last_name=_LAST[(n - 1) % len(_LAST)],
+                    email=f"test{n}@test.invalid",
+                    external_id=f"TEST_{event.id}_{n:04d}",
+                )
+                db.session.add(person)
+                db.session.flush()
 
-            dog = Dog(
-                name=_DOGS[(n - 1) % len(_DOGS)],
-                license_no=f"TST-E{event.id:04d}N{n:05d}",
-                license_kind=LicenseKind.FOREIGN,
-                category=cat, class_level=kl,
-                tka_master_status=TkaMasterStatus.NOT_REQUIRED,
-                external_id=f"TESTDOG_{event.id}_{n:04d}",
-            )
-            db.session.add(dog)
-            db.session.flush()
+                dog = Dog(
+                    name=_DOGS[(n - 1) % len(_DOGS)],
+                    license_no=f"TST-E{event.id:04d}N{n:05d}",
+                    license_kind=LicenseKind.FOREIGN,
+                    category=cat, class_level=kl,
+                    tka_master_status=TkaMasterStatus.NOT_REQUIRED,
+                    external_id=f"TESTDOG_{event.id}_{n:04d}",
+                )
+                db.session.add(dog)
+                db.session.flush()
 
-            db.session.add(DogOwner(dog_id=dog.id, person_id=person.id,
-                                    role=DogOwnerRole.OWNER))
-            db.session.add(Registration(
-                event_id=event.id, dog_id=dog.id, handler_id=person.id,
-                category_code=category_code, class_level=kl,
-                status=RegistrationStatus.CONFIRMED,
-                external_id=f"TESTREG_{event.id}_{n:04d}",
-            ))
+                db.session.add(DogOwner(dog_id=dog.id, person_id=person.id,
+                                        role=DogOwnerRole.OWNER))
+                db.session.add(Registration(
+                    event_id=event.id, dog_id=dog.id, handler_id=person.id,
+                    category_code=category_code, class_level=kl,
+                    status=RegistrationStatus.CONFIRMED,
+                    external_id=f"TESTREG_{event.id}_{n:04d}",
+                ))
 
     db.session.commit()
     flash(_(
         "Testturnier «%(name)s» erstellt: %(runs)s Läufe, %(regs)s Anmeldungen.",
-        name=name, runs=len(runs), regs=n
+        name=name, runs=run_count, regs=n
     ), "success")
     return redirect(url_for("club.event_detail", event_id=event.id))
 
@@ -444,6 +445,29 @@ def event_judge_remove(event_id, judge_id):
         db.session.delete(ej)
         db.session.commit()
     return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/delete")
+@login_required
+def event_delete(event_id):
+    if not current_user.is_superadmin:
+        abort(403)
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+
+    # Manuell löschen was nicht via cascade abgedeckt ist
+    db.session.execute(
+        db.delete(Registration).where(Registration.event_id == event_id)
+    )
+    db.session.execute(
+        db.delete(ScheduleBlock).where(ScheduleBlock.event_id == event_id)
+    )
+    name = event.name
+    db.session.delete(event)   # cascaded: EventRun, EventJudge
+    db.session.commit()
+    flash(_("Turnier «%(name)s» wurde gelöscht.", name=name), "success")
+    return redirect(url_for("club.dashboard"))
 
 
 @club_bp.get("/events/<int:event_id>/edit")
@@ -1028,22 +1052,27 @@ def event_assign_startnumbers(event_id):
     if not event:
         abort(404)
     _assert_event_access(event)
+
     confirmed = db.session.execute(
         db.select(Registration)
         .filter_by(event_id=event_id, status=RegistrationStatus.CONFIRMED)
         .order_by(Registration.category_code, Registration.class_level,
+                  Registration.is_in_season,   # False (normal) vor True (läufig)
                   Registration.handler_id)
     ).scalars().all()
-    # Zähler pro Kategorie-Klasse aus dem Schema
+
     counters = {k: v for k, v in _START_NUMBER_SCHEMA.items()}
+    fallback  = 9000
     for reg in confirmed:
         key = f"{reg.category_code}-{reg.class_level}"
         if key in counters:
             reg.start_number = counters[key]
             counters[key] += 1
         else:
-            # Fallback: nächste freie Nummer ab 9000
-            reg.start_number = 9000 + confirmed.index(reg)
+            reg.start_number = fallback
+            fallback += 1
+
+    event.start_numbers_generated_at = datetime.utcnow()
     db.session.commit()
     flash(_("Startnummern wurden vergeben."), "success")
     return redirect(url_for("club.event_detail", event_id=event_id))

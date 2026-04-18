@@ -72,11 +72,21 @@ def seed_test_regs(event_id: int, count: int):
         .where(Person.external_id.like(f"TEST_{event_id}_%"))
     ).scalar() or 0
 
+    # Eindeutige (Kategorie, Klasse)-Kombinationen — eine Anmeldung gilt
+    # für alle Disziplinen (Agility + Jumping teilen denselben Teilnehmerkreis)
+    seen = set()
+    cat_class_combos = []
+    for run in runs:
+        key = (run.category, run.class_level)
+        if key not in seen:
+            seen.add(key)
+            cat_class_combos.append((run.category, run.class_level))
+
     created = 0
     n = existing
 
-    for run in runs:
-        category_code = _CATEGORY_MAP.get(run.category, run.category)
+    for cat, kl in cat_class_combos:
+        category_code = _CATEGORY_MAP.get(cat, cat)
         for _ in range(count):
             n += 1
             ext_id = _test_external_id(event_id, n)
@@ -100,8 +110,8 @@ def seed_test_regs(event_id: int, count: int):
                 name=dog_name,
                 license_no=f"TST-{n:06d}",
                 license_kind=LicenseKind.FOREIGN,
-                category=run.category,
-                class_level=run.class_level,
+                category=cat,
+                class_level=kl,
                 tka_master_status=TkaMasterStatus.NOT_REQUIRED,
                 external_id=f"TESTDOG_{event_id}_{n:04d}",
             )
@@ -119,7 +129,7 @@ def seed_test_regs(event_id: int, count: int):
                 dog_id=dog.id,
                 handler_id=person.id,
                 category_code=category_code,
-                class_level=run.class_level,
+                class_level=kl,
                 status=RegistrationStatus.CONFIRMED,
                 external_id=f"TESTREG_{event_id}_{n:04d}",
             )

@@ -34,6 +34,13 @@
     <a href="{{ url_for('club.event_schedule', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">📅 {{ _('Zeitplan') }}</a>
     <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
     <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
+    {% if current_user.is_superadmin %}
+    <form method="post" action="{{ url_for('club.event_delete', event_id=event.id) }}"
+          onsubmit="return confirm('Turnier «{{ event.name }}» wirklich löschen? Alle Anmeldungen und Zeitpläne werden unwiderruflich gelöscht.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-danger">🗑 {{ _('Löschen') }}</button>
+    </form>
+    {% endif %}
   </div>
 </div>
 
