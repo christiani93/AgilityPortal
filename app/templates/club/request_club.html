@@ -1,17 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Verein beantragen{% endblock %}
+{% block title %}{{ _('Verein beantragen') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Verein hinzufügen lassen</h2>
-  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Zurück</a>
+  <h2>{{ _('Verein hinzufügen lassen') }}</h2>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Zurück') }}</a>
 </div>
 
 <div class="card" style="max-width:500px;">
   <div class="card-body">
     <p class="text-muted small mb-3">
-      Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen ein —
-      der Administrator prüft die Angaben und legt den Verein an.
+      {{ _('Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen ein — der Administrator prüft die Angaben und legt den Verein an.') }}
     </p>
     <form method="post">
       {{ form.hidden_tag() }}
@@ -30,7 +29,7 @@
 
       <div class="mb-3">
         {{ form.note.label(class="form-label") }}
-        {{ form.note(class="form-control", rows=2, placeholder="Optionale Bemerkung…") }}
+        {{ form.note(class="form-control", rows=2, placeholder="{{ _('Optionale Bemerkung…') }}") }}
       </div>
 
       {{ form.submit(class="btn btn-primary") }}

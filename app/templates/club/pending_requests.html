@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Anfragen{% endblock %}
+{% block title %}{{ _('Anfragen') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Offene Anfragen</h2>
+  <h2>{{ _('Offene Anfragen') }}</h2>
   <div class="d-flex gap-2 align-items-center">
-    <span class="badge bg-warning text-dark fs-6">{{ requests_pending | length }} offen</span>
-    <a href="{{ url_for('club.test_mail') }}" class="btn btn-sm btn-outline-secondary">📧 Testmail senden</a>
+    <span class="badge bg-warning text-dark fs-6">{{ requests_pending | length }} {{ _('offen') }}</span>
+    <a href="{{ url_for('club.test_mail') }}" class="btn btn-sm btn-outline-secondary">📧 {{ _('Testmail senden') }}</a>
   </div>
 </div>
 
@@ -16,11 +16,11 @@
     <table class="table table-hover mb-0">
       <thead class="table-light">
         <tr>
-          <th>Typ</th>
-          <th>Details</th>
-          <th>Einreicher</th>
-          <th>Datum</th>
-          <th>Bemerkung</th>
+          <th>{{ _('Typ') }}</th>
+          <th>{{ _('Details') }}</th>
+          <th>{{ _('Einreicher') }}</th>
+          <th>{{ _('Datum') }}</th>
+          <th>{{ _('Bemerkung') }}</th>
           <th></th>
         </tr>
       </thead>
@@ -29,9 +29,9 @@
         <tr>
           <td>
             {% if req.request_type == 'judge' %}
-              <span class="badge bg-info text-dark">Richter</span>
+              <span class="badge bg-info text-dark">{{ _('Richter') }}</span>
             {% else %}
-              <span class="badge bg-secondary">Verein</span>
+              <span class="badge bg-secondary">{{ _('Verein') }}</span>
             {% endif %}
           </td>
           <td>
@@ -51,7 +51,7 @@
               <form method="post" action="{{ url_for('club.request_approve', req_id=req.id) }}">
                 {{ csrf_form.hidden_tag() if csrf_form else "" }}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-success">✓ Genehmigen</button>
+                <button class="btn btn-sm btn-success">✓ {{ _('Genehmigen') }}</button>
               </form>
               <button class="btn btn-sm btn-outline-danger"
                       data-bs-toggle="collapse"
@@ -61,8 +61,8 @@
               <form method="post" action="{{ url_for('club.request_reject', req_id=req.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="input-group input-group-sm">
-                  <input type="text" name="admin_note" class="form-control" placeholder="Grund (optional)">
-                  <button type="submit" class="btn btn-danger">Ablehnen</button>
+                  <input type="text" name="admin_note" class="form-control" placeholder="{{ _('Grund (optional)') }}">
+                  <button type="submit" class="btn btn-danger">{{ _('Ablehnen') }}</button>
                 </div>
               </form>
             </div>
@@ -74,27 +74,27 @@
   </div>
 </div>
 {% else %}
-<div class="alert alert-success">Keine offenen Anfragen. ✓</div>
+<div class="alert alert-success">{{ _('Keine offenen Anfragen.') }} ✓</div>
 {% endif %}
 
 {% if requests_done %}
-<h5 class="text-muted mt-4 mb-3">Zuletzt bearbeitet</h5>
+<h5 class="text-muted mt-4 mb-3">{{ _('Zuletzt bearbeitet') }}</h5>
 <div class="card">
   <div class="table-responsive">
     <table class="table table-sm mb-0">
       <thead class="table-light">
-        <tr><th>Typ</th><th>Details</th><th>Status</th><th>Datum</th></tr>
+        <tr><th>{{ _('Typ') }}</th><th>{{ _('Details') }}</th><th>{{ _('Status') }}</th><th>{{ _('Datum') }}</th></tr>
       </thead>
       <tbody>
         {% for req in requests_done %}
         <tr class="text-muted">
-          <td><small>{% if req.request_type == 'judge' %}Richter{% else %}Verein{% endif %}</small></td>
+          <td><small>{% if req.request_type == 'judge' %}{{ _('Richter') }}{% else %}{{ _('Verein') }}{% endif %}</small></td>
           <td><small>{{ req.display_title }}</small></td>
           <td>
             {% if req.status == 'approved' %}
-              <span class="badge bg-success">Genehmigt</span>
+              <span class="badge bg-success">{{ _('Genehmigt') }}</span>
             {% else %}
-              <span class="badge bg-secondary">Abgelehnt</span>
+              <span class="badge bg-secondary">{{ _('Abgelehnt') }}</span>
               {% if req.admin_note %}<small class="ms-1">{{ req.admin_note }}</small>{% endif %}
             {% endif %}
           </td>

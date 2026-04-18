@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ get_locale() }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Vereinsportal{% endblock %} | Zeitnehmung Braunschweiler</title>
+  <title>{% block title %}{{ _('Vereinsportal') }}{% endblock %} | Zeitnehmung Braunschweiler</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <style>
     body { background-color: #f4f6f9; }
@@ -37,17 +37,22 @@
 <nav class="navbar navbar-dark bg-dark">
   <div class="container-fluid">
     <span class="navbar-brand">z-b Vereinsportal</span>
-    {% if current_user.is_authenticated %}
-    <div class="d-flex align-items-center gap-3">
+    <div class="d-flex align-items-center gap-2">
+      {% if current_user.is_authenticated %}
       <span class="text-light small">
         {{ current_user.full_name }}
         {% if current_user.club %}
           <span class="text-secondary">— {{ current_user.club.name }}</span>
         {% endif %}
       </span>
-      <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-light">Logout</a>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-light">{{ _('Logout') }}</a>
+      {% endif %}
+      <div class="ms-2">
+        <a href="/lang/de" class="btn btn-sm {% if session.get('lang','de') == 'de' %}btn-primary{% else %}btn-outline-secondary{% endif %}">DE</a>
+        <a href="/lang/fr" class="btn btn-sm {% if session.get('lang','de') == 'fr' %}btn-primary{% else %}btn-outline-secondary{% endif %}">FR</a>
+        <a href="/lang/en" class="btn btn-sm {% if session.get('lang','de') == 'en' %}btn-primary{% else %}btn-outline-secondary{% endif %}">EN</a>
+      </div>
     </div>
-    {% endif %}
   </div>
 </nav>
 
@@ -57,41 +62,41 @@
     <nav class="col-md-2 d-none d-md-block sidebar">
       <a href="{{ url_for('club.dashboard') }}"
          class="{% if request.endpoint == 'club.dashboard' %}active{% endif %}">
-        Dashboard
+        {{ _('Dashboard') }}
       </a>
       {% if current_user.can_manage_club %}
-      <div class="nav-section">Turniere</div>
+      <div class="nav-section">{{ _('Turniere') }}</div>
       <a href="{{ url_for('club.event_new') }}"
          class="{% if request.endpoint == 'club.event_new' %}active{% endif %}">
-        + Turnier erstellen
+        + {{ _('Turnier erstellen') }}
       </a>
       {% endif %}
       {% if current_user.is_superadmin %}
-      <div class="nav-section">Anfragen</div>
+      <div class="nav-section">{{ _('Anfragen') }}</div>
       <a href="{{ url_for('club.pending_requests') }}"
          class="{% if request.endpoint == 'club.pending_requests' %}active{% endif %}">
-        Anfragen
+        {{ _('Anfragen') }}
         {# Badge wird via JS nachgeladen oder per Template-Variable gesetzt #}
       </a>
       {% endif %}
       {% if not current_user.can_manage_club and not current_user.is_superadmin %}
-      <div class="nav-section">Mein Profil</div>
+      <div class="nav-section">{{ _('Mein Profil') }}</div>
       <a href="{{ url_for('club.profile_dogs') }}"
          class="{% if request.endpoint == 'club.profile_dogs' %}active{% endif %}">
-        Meine Hunde
+        {{ _('Meine Hunde') }}
       </a>
       {% endif %}
       {% if current_user.can_manage_club %}
-      <div class="nav-section">Verwaltung</div>
+      <div class="nav-section">{{ _('Verwaltung') }}</div>
       {% if current_user.is_superadmin %}
       <a href="{{ url_for('club.users') }}"
          class="{% if request.endpoint == 'club.users' %}active{% endif %}">
-        Alle Benutzer
+        {{ _('Alle Benutzer') }}
       </a>
       {% else %}
       <a href="{{ url_for('club.users') }}"
          class="{% if 'users' in request.endpoint %}active{% endif %}">
-        Mitglieder
+        {{ _('Mitglieder') }}
       </a>
       {% endif %}
       {% endif %}

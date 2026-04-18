@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Meine Hunde{% endblock %}
+{% block title %}{{ _('Meine Hunde') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2 class="mb-0">Meine Hunde</h2>
-  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+  <h2 class="mb-0">{{ _('Meine Hunde') }}</h2>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
 </div>
 
 {# Hunde-Tabelle #}
 <div class="card mb-4" style="max-width:680px;">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Registrierte Hunde</span>
+    <span>{{ _('Registrierte Hunde') }}</span>
     <span class="badge bg-secondary">{{ dogs | length }}</span>
   </div>
   {% if dogs %}
@@ -18,9 +18,9 @@
     <table class="table table-hover mb-0">
       <thead class="table-light">
         <tr>
-          <th>Name</th>
-          <th>Lizenz-Typ</th>
-          <th>Lizenznummer</th>
+          <th>{{ _('Name') }}</th>
+          <th>{{ _('Lizenztyp') }}</th>
+          <th>{{ _('Lizenznummer') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -42,14 +42,14 @@
   </div>
   {% else %}
   <div class="card-body text-center text-muted py-4">
-    Noch keine Hunde registriert.
+    {{ _('Noch keine Hunde registriert.') }}
   </div>
   {% endif %}
 </div>
 
 {# Hund hinzufügen #}
 <div class="card" style="max-width:480px;">
-  <div class="card-header">Hund hinzufügen</div>
+  <div class="card-header">{{ _('Hund hinzufügen') }}</div>
   <div class="card-body">
     <form method="post">
       {{ form.hidden_tag() }}
@@ -64,7 +64,7 @@
         {{ form.license_kind.label(class="form-label") }}
         {{ form.license_kind(class="form-select") }}
         <div class="form-text text-muted">
-          CH = nur Ziffern (z.B. 12345) · FOREIGN = AAA-12345 (Länderkürzel-Nummer)
+          {{ _('CH = nur Ziffern (z.B. 12345) · FOREIGN = AAA-12345 (Länderkürzel-Nummer)') }}
         </div>
       </div>
       <div class="mb-3">

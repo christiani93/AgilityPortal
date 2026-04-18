@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_babel import _
 from app.extensions import db
 from app.models import User, Person
 from .forms import LoginForm, RegisterForm
@@ -24,7 +25,7 @@ def login():
             next_page = request.args.get("next")
             return redirect(next_page or url_for("club.dashboard"))
 
-        flash("E-Mail oder Passwort ungültig.", "danger")
+        flash(_("E-Mail oder Passwort ungültig."), "danger")
 
     return render_template("auth/login.html", form=form)
 
@@ -41,7 +42,7 @@ def register():
             db.select(User).filter_by(email=email)
         ).scalar_one_or_none()
         if existing:
-            flash("Diese E-Mail-Adresse ist bereits registriert.", "danger")
+            flash(_("Diese E-Mail-Adresse ist bereits registriert."), "danger")
         else:
             user = User(
                 email=email,
@@ -63,7 +64,7 @@ def register():
             user.person_id = person.id
             db.session.commit()
             login_user(user)
-            flash(f"Willkommen, {user.first_name}! Dein Konto wurde erstellt.", "success")
+            flash(_("Willkommen, %(name)s! Dein Konto wurde erstellt.", name=user.first_name), "success")
             return redirect(url_for("club.dashboard"))
     return render_template("auth/register.html", form=form)
 

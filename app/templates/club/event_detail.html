@@ -26,8 +26,8 @@
     </small>
   </div>
   <div class="d-flex gap-2">
-    <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">Bearbeiten</a>
-    <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+    <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
+    <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
   </div>
 </div>
 
@@ -36,13 +36,13 @@
 
     {# Status-Badge #}
     {% if event.status == 'open' %}
-      <span class="badge bg-success fs-6">● Anmeldungen offen</span>
+      <span class="badge bg-success fs-6">● {{ _('Anmeldungen offen') }}</span>
     {% elif event.status == 'closed' %}
-      <span class="badge bg-secondary fs-6">● Anmeldungen geschlossen</span>
+      <span class="badge bg-secondary fs-6">● {{ _('Anmeldungen geschlossen') }}</span>
     {% elif event.status == 'cancelled' %}
-      <span class="badge bg-danger fs-6">● Abgesagt</span>
+      <span class="badge bg-danger fs-6">● {{ _('Abgesagt') }}</span>
     {% else %}
-      <span class="badge bg-light text-dark border fs-6">● Entwurf</span>
+      <span class="badge bg-light text-dark border fs-6">● {{ _('Entwurf') }}</span>
     {% endif %}
 
     {% if event.ais_turniernummer %}
@@ -56,47 +56,47 @@
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}">
           {{ run_form.hidden_tag() }}
           <input type="hidden" name="status" value="open">
-          <button class="btn btn-sm btn-success">Anmeldungen öffnen</button>
+          <button class="btn btn-sm btn-success">{{ _('Anmeldungen öffnen') }}</button>
         </form>
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
-              onsubmit="return confirm('Turnier absagen?')">
+              onsubmit="return confirm('{{ _('Turnier absagen?') }}')">
           {{ run_form.hidden_tag() }}
           <input type="hidden" name="status" value="cancelled">
-          <button class="btn btn-sm btn-outline-danger">Absagen</button>
+          <button class="btn btn-sm btn-outline-danger">{{ _('Absagen') }}</button>
         </form>
 
       {% elif event.status == 'open' %}
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}">
           {{ run_form.hidden_tag() }}
           <input type="hidden" name="status" value="closed">
-          <button class="btn btn-sm btn-secondary">Anmeldungen schliessen</button>
+          <button class="btn btn-sm btn-secondary">{{ _('Anmeldungen schliessen') }}</button>
         </form>
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
-              onsubmit="return confirm('Turnier absagen?')">
+              onsubmit="return confirm('{{ _('Turnier absagen?') }}')">
           {{ run_form.hidden_tag() }}
           <input type="hidden" name="status" value="cancelled">
-          <button class="btn btn-sm btn-outline-danger">Absagen</button>
+          <button class="btn btn-sm btn-outline-danger">{{ _('Absagen') }}</button>
         </form>
 
       {% elif event.status == 'closed' %}
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}">
           {{ run_form.hidden_tag() }}
           <input type="hidden" name="status" value="open">
-          <button class="btn btn-sm btn-outline-success">Anmeldungen wieder öffnen</button>
+          <button class="btn btn-sm btn-outline-success">{{ _('Anmeldungen wieder öffnen') }}</button>
         </form>
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
-              onsubmit="return confirm('Turnier absagen?')">
+              onsubmit="return confirm('{{ _('Turnier absagen?') }}')">
           {{ run_form.hidden_tag() }}
           <input type="hidden" name="status" value="cancelled">
-          <button class="btn btn-sm btn-outline-danger">Absagen</button>
+          <button class="btn btn-sm btn-outline-danger">{{ _('Absagen') }}</button>
         </form>
 
       {% elif event.status == 'cancelled' %}
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}"
-              onsubmit="return confirm('Turnier reaktivieren?')">
+              onsubmit="return confirm('{{ _('Turnier reaktivieren?') }}')">
           {{ run_form.hidden_tag() }}
           <input type="hidden" name="status" value="draft">
-          <button class="btn btn-sm btn-outline-secondary">Reaktivieren (→ Entwurf)</button>
+          <button class="btn btn-sm btn-outline-secondary">{{ _('Reaktivieren (→ Entwurf)') }}</button>
         </form>
       {% endif %}
     </div>
@@ -107,10 +107,10 @@
 {# ── 1. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Läufe ({{ sorted_runs | length }})</span>
+    <span>{{ _('Läufe') }} ({{ sorted_runs | length }})</span>
     <button class="btn btn-sm btn-outline-secondary" type="button"
             data-bs-toggle="collapse" data-bs-target="#add-run-panel">
-      + Lauf hinzufügen
+      + {{ _('Lauf hinzufügen') }}
     </button>
   </div>
 
@@ -119,7 +119,7 @@
   <div class="table-responsive">
     <table class="table table-sm table-hover mb-0">
       <thead class="table-light">
-        <tr><th>Typ</th><th>Kategorie</th><th>Klasse</th><th>Richter</th><th></th></tr>
+        <tr><th>{{ _('Typ') }}</th><th>{{ _('Kategorie') }}</th><th>{{ _('Klasse') }}</th><th>{{ _('Richter') }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for run in sorted_runs %}
@@ -130,12 +130,12 @@
             {% else %}<span class="badge bg-warning text-dark">Open</span>{% endif %}
           </td>
           <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
-          <td>Klasse {{ run.class_level }}</td>
+          <td>{{ _('Klasse') }} {{ run.class_level }}</td>
           <td class="text-muted small">{{ run.judge.full_name if run.judge else "—" }}</td>
           <td class="text-end">
             <form method="post"
                   action="{{ url_for('club.event_run_delete', event_id=event.id, run_id=run.id) }}"
-                  onsubmit="return confirm('Lauf entfernen?')">
+                  onsubmit="return confirm('{{ _('Lauf entfernen?') }}')">
               {{ run_form.hidden_tag() }}
               <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
             </form>
@@ -146,7 +146,7 @@
     </table>
   </div>
   {% else %}
-  <div class="card-body text-muted text-center py-4">Noch keine Läufe vorbereitet.</div>
+  <div class="card-body text-muted text-center py-4">{{ _('Noch keine Läufe vorbereitet.') }}</div>
   {% endif %}
 
 
@@ -169,16 +169,16 @@
           {{ run_form.class_level(class="form-select form-select-sm") }}
         </div>
         <div class="col-auto">
-          <button type="submit" class="btn btn-primary btn-sm">Hinzufügen</button>
+          <button type="submit" class="btn btn-primary btn-sm">{{ _('Hinzufügen') }}</button>
         </div>
       </form>
 
       <hr class="my-3">
-      <p class="text-muted small mb-2">Alle Läufe auf einmal:</p>
+      <p class="text-muted small mb-2">{{ _('Alle Läufe auf einmal:') }}</p>
       <div class="d-flex flex-wrap gap-1">
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-agility">Alle Agility</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-jumping">Alle Jumping</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-standard">Standard (Agi+Jump S/M/I/L × 1/2/3)</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-agility">{{ _('Alle Agility') }}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-jumping">{{ _('Alle Jumping') }}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-standard">{{ _('Standard (Agi+Jump S/M/I/L × 1/2/3)') }}</button>
       </div>
     </div>
   </div>
@@ -187,7 +187,7 @@
 {# ── 2. ANWESENDE RICHTER ─────────────────────────────────────────────────── #}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Anwesende Richter</span>
+    <span>{{ _('Anwesende Richter') }}</span>
     <span class="badge bg-secondary">{{ event.event_judges | length }}</span>
   </div>
   <div class="card-body">
@@ -203,11 +203,11 @@
           {{ ej.judge.full_name }}
           {% if ej.judge.ais_judge_id %}<span class="opacity-75 small">({{ ej.judge.ais_judge_id }})</span>{% endif %}
           <button type="submit" class="btn-close btn-close-white ms-1" style="font-size:.6rem;"
-                  title="Richter entfernen"></button>
+                  title="{{ _('Richter entfernen') }}"></button>
         </span>
       </form>
       {% else %}
-      <span class="text-muted small">Noch keine Richter hinzugefügt.</span>
+      <span class="text-muted small">{{ _('Noch keine Richter hinzugefügt.') }}</span>
       {% endfor %}
     </div>
 
@@ -217,17 +217,17 @@
           class="d-flex gap-2" style="max-width:420px;">
       {{ run_form.hidden_tag() }}
       <select name="judge_id" class="form-select form-select-sm">
-        <option value="">— Richter wählen —</option>
+        <option value="">— {{ _('Richter wählen') }} —</option>
         {% for judge in available_judges %}
         <option value="{{ judge.id }}">
           {{ judge.full_name }}{% if judge.ais_judge_id %} ({{ judge.ais_judge_id }}){% endif %}
         </option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">+ Hinzufügen</button>
+      <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">+ {{ _('Hinzufügen') }}</button>
     </form>
     {% else %}
-    <p class="text-muted small mb-0">Alle Richter sind bereits hinzugefügt.</p>
+    <p class="text-muted small mb-0">{{ _('Alle Richter sind bereits hinzugefügt.') }}</p>
     {% endif %}
 
   </div>
@@ -237,15 +237,15 @@
 {% if event.runs and event.event_judges %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Läufe zuordnen</span>
-    <small class="text-muted">Läufe per Drag &amp; Drop den Richtern zuweisen</small>
+    <span>{{ _('Läufe zuordnen') }}</span>
+    <small class="text-muted">{{ _('Läufe per Drag & Drop den Richtern zuweisen') }}</small>
   </div>
   <div class="card-body p-0">
     <div class="d-flex gap-0 overflow-auto" id="dnd-board" style="min-height:220px;">
 
       {# Spalte: Nicht zugewiesen #}
       <div class="dnd-col flex-shrink-0 border-end p-3" style="min-width:200px;">
-        <div class="fw-semibold text-muted small text-uppercase mb-2">Nicht zugewiesen</div>
+        <div class="fw-semibold text-muted small text-uppercase mb-2">{{ _('Nicht zugewiesen') }}</div>
         <div class="dnd-list" data-judge-id="0" style="min-height:120px;">
           {% for run in sorted_runs if run.judge_id is none %}
             {{ _run_card(run) }}
@@ -269,25 +269,25 @@
   </div>
 </div>
 {% elif event.runs and not event.event_judges %}
-<div class="alert alert-info">Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können.</div>
+<div class="alert alert-info">{{ _('Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können.') }}</div>
 {% endif %}
 
 {# ── 4. ANMELDUNGEN ───────────────────────────────────────────────────────── #}
 {% if registrations is defined %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Anmeldungen ({{ registrations | length }})</span>
+    <span>{{ _('Anmeldungen') }} ({{ registrations | length }})</span>
   </div>
   {% if registrations %}
   <div class="table-responsive">
     <table class="table table-sm table-hover mb-0">
       <thead class="table-light">
         <tr>
-          <th>Hund</th>
-          <th>Kategorie</th>
-          <th>Klasse</th>
-          <th>Hundeführer</th>
-          <th>Status</th>
+          <th>{{ _('Hund') }}</th>
+          <th>{{ _('Kategorie') }}</th>
+          <th>{{ _('Klasse') }}</th>
+          <th>{{ _('Hundeführer') }}</th>
+          <th>{{ _('Status') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -295,7 +295,7 @@
         <tr>
           <td class="fw-semibold">{{ reg.dog.name }}</td>
           <td>{{ reg.category_code }}</td>
-          <td>Klasse {{ reg.class_level }}</td>
+          <td>{{ _('Klasse') }} {{ reg.class_level }}</td>
           <td class="text-muted small">
             {% if reg.handler %}
               {{ reg.handler.first_name }} {{ reg.handler.last_name }}
@@ -303,13 +303,13 @@
           </td>
           <td>
             {% if reg.status.value == 'PENDING' %}
-              <span class="badge bg-warning text-dark">Ausstehend</span>
+              <span class="badge bg-warning text-dark">{{ _('Ausstehend') }}</span>
             {% elif reg.status.value == 'SUBMITTED' %}
-              <span class="badge bg-primary">Eingereicht</span>
+              <span class="badge bg-primary">{{ _('Eingereicht') }}</span>
             {% elif reg.status.value == 'CONFIRMED' %}
-              <span class="badge bg-success">Bestätigt</span>
+              <span class="badge bg-success">{{ _('Bestätigt') }}</span>
             {% elif reg.status.value == 'CANCELLED' %}
-              <span class="badge bg-secondary">Storniert</span>
+              <span class="badge bg-secondary">{{ _('Storniert') }}</span>
             {% endif %}
           </td>
         </tr>
@@ -318,7 +318,7 @@
     </table>
   </div>
   {% else %}
-  <div class="card-body text-center text-muted py-3">Noch keine Anmeldungen.</div>
+  <div class="card-body text-center text-muted py-3">{{ _('Noch keine Anmeldungen.') }}</div>
   {% endif %}
 </div>
 {% endif %}

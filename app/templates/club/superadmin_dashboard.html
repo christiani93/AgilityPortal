@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Übersicht{% endblock %}
+{% block title %}{{ _('Übersicht') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Portal-Übersicht</h2>
+  <h2>{{ _('Portal-Übersicht') }}</h2>
   <span class="badge bg-dark fs-6">Superadmin</span>
 </div>
 
@@ -11,8 +11,8 @@
 <div class="alert alert-warning d-flex align-items-center gap-3 mb-4">
   <span class="fs-4">🔔</span>
   <div>
-    <strong>{{ pending_count }} offene Anfrage{{ 'n' if pending_count != 1 else '' }}</strong> warten auf Prüfung.
-    <a href="{{ url_for('club.pending_requests') }}" class="alert-link ms-2">Jetzt prüfen →</a>
+    <strong>{{ pending_count }} {{ _('offene Anfrage') }}{{ 'n' if pending_count != 1 else '' }}</strong> {{ _('warten auf Prüfung.') }}
+    <a href="{{ url_for('club.pending_requests') }}" class="alert-link ms-2">{{ _('Jetzt prüfen') }} →</a>
   </div>
 </div>
 {% endif %}
@@ -22,7 +22,7 @@
     <div class="card text-center">
       <div class="card-body">
         <div class="fs-1 fw-bold text-primary">{{ clubs | length }}</div>
-        <div class="text-muted small">Vereine</div>
+        <div class="text-muted small">{{ _('Vereine') }}</div>
       </div>
     </div>
   </div>
@@ -30,7 +30,7 @@
     <div class="card text-center">
       <div class="card-body">
         <div class="fs-1 fw-bold text-success">{{ events | selectattr('status', 'eq', 'open') | list | length }}</div>
-        <div class="text-muted small">Offene Turniere</div>
+        <div class="text-muted small">{{ _('Offene Turniere') }}</div>
       </div>
     </div>
   </div>
@@ -38,7 +38,7 @@
     <div class="card text-center">
       <div class="card-body">
         <div class="fs-1 fw-bold text-secondary">{{ events | length }}</div>
-        <div class="text-muted small">Turniere total</div>
+        <div class="text-muted small">{{ _('Turniere total') }}</div>
       </div>
     </div>
   </div>
@@ -46,18 +46,18 @@
 
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Alle Turniere</span>
-    <a href="{{ url_for('club.event_new') }}" class="btn btn-sm btn-primary">+ Turnier erstellen</a>
+    <span>{{ _('Alle Turniere') }}</span>
+    <a href="{{ url_for('club.event_new') }}" class="btn btn-sm btn-primary">+ {{ _('Turnier erstellen') }}</a>
   </div>
   <div class="table-responsive">
     <table class="table table-hover mb-0">
       <thead class="table-light">
         <tr>
-          <th>Turnier</th>
-          <th>Verein</th>
-          <th>Ort</th>
-          <th>Datum</th>
-          <th>Status</th>
+          <th>{{ _('Turnier') }}</th>
+          <th>{{ _('Verein') }}</th>
+          <th>{{ _('Ort') }}</th>
+          <th>{{ _('Datum') }}</th>
+          <th>{{ _('Status') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -72,14 +72,14 @@
             {% else %}—{% endif %}
           </td>
           <td>
-            {% if event.status == 'open' %}<span class="badge bg-success">Offen</span>
-            {% elif event.status == 'closed' %}<span class="badge bg-secondary">Geschlossen</span>
-            {% elif event.status == 'cancelled' %}<span class="badge bg-danger">Abgesagt</span>
-            {% else %}<span class="badge bg-light text-dark">Entwurf</span>{% endif %}
+            {% if event.status == 'open' %}<span class="badge bg-success">{{ _('Offen') }}</span>
+            {% elif event.status == 'closed' %}<span class="badge bg-secondary">{{ _('Geschlossen') }}</span>
+            {% elif event.status == 'cancelled' %}<span class="badge bg-danger">{{ _('Abgesagt') }}</span>
+            {% else %}<span class="badge bg-light text-dark">{{ _('Entwurf') }}</span>{% endif %}
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="text-center text-muted py-3">Noch keine Turniere.</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-3">{{ _('Noch keine Turniere.') }}</td></tr>
         {% endfor %}
       </tbody>
     </table>

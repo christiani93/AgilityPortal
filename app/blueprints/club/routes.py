@@ -4,6 +4,7 @@ from datetime import datetime
 
 from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
 from flask_login import login_required, current_user
+from flask_babel import _
 
 from app.extensions import db
 from flask_mail import Message
@@ -133,7 +134,7 @@ def add_user():
         ).scalar_one_or_none()
 
         if existing:
-            flash("Diese E-Mail-Adresse ist bereits registriert.", "danger")
+            flash(_("Diese E-Mail-Adresse ist bereits registriert."), "danger")
         else:
             user = User(
                 email=email,
@@ -146,7 +147,7 @@ def add_user():
             user.set_password(form.password.data)
             db.session.add(user)
             db.session.commit()
-            flash(f"Benutzer {user.full_name} wurde erstellt.", "success")
+            flash(_("Benutzer %(name)s wurde erstellt.", name=user.full_name), "success")
             return redirect(url_for("club.users"))
 
     return render_template("club/add_user.html", form=form)
@@ -162,15 +163,15 @@ def deactivate_user(user_id):
     if not current_user.is_superadmin and user.club_id != current_user.club_id:
         abort(404)
     if user.id == current_user.id:
-        flash("Du kannst deinen eigenen Account nicht deaktivieren.", "danger")
+        flash(_("Du kannst deinen eigenen Account nicht deaktivieren."), "danger")
         return redirect(url_for("club.users"))
     if user.is_superadmin:
-        flash("Superadmin-Accounts können nicht deaktiviert werden.", "danger")
+        flash(_("Superadmin-Accounts können nicht deaktiviert werden."), "danger")
         return redirect(url_for("club.users"))
 
     user.is_active = False
     db.session.commit()
-    flash(f"{user.full_name} wurde deaktiviert.", "success")
+    flash(_("%(name)s wurde deaktiviert.", name=user.full_name), "success")
     return redirect(url_for("club.users"))
 
 
@@ -184,7 +185,7 @@ def activate_user(user_id):
         abort(404)
     user.is_active = True
     db.session.commit()
-    flash(f"{user.full_name} wurde aktiviert.", "success")
+    flash(_("%(name)s wurde aktiviert.", name=user.full_name), "success")
     return redirect(url_for("club.users"))
 
 
@@ -202,7 +203,7 @@ def reset_password(user_id):
     if form.validate_on_submit():
         user.set_password(form.password.data)
         db.session.commit()
-        flash(f"Passwort für {user.full_name} wurde geändert.", "success")
+        flash(_("Passwort für %(name)s wurde geändert.", name=user.full_name), "success")
         return redirect(url_for("club.users"))
 
     return render_template("club/reset_password.html", form=form, member=user)
@@ -261,7 +262,7 @@ def event_new():
         )
         db.session.add(event)
         db.session.commit()
-        flash(f"Turnier «{event.name}» wurde erstellt.", "success")
+        flash(_("Turnier «%(name)s» wurde erstellt.", name=event.name), "success")
         return redirect(url_for("club.event_detail", event_id=event.id))
     return render_template("club/event_form.html", form=form, event=None,
                            is_superadmin=current_user.is_superadmin)
@@ -369,7 +370,7 @@ def event_edit(event_id):
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
         db.session.commit()
-        flash("Turnier gespeichert.", "success")
+        flash(_("Turnier gespeichert."), "success")
         return redirect(url_for("club.event_detail", event_id=event.id))
     return render_template("club/event_form.html", form=form, event=event,
                            is_superadmin=current_user.is_superadmin)
@@ -393,11 +394,11 @@ def event_set_status(event_id):
     if new_status in transitions.get(event.status, []):
         event.status = new_status
         db.session.commit()
-        labels = {"open": "geöffnet", "closed": "geschlossen",
-                  "cancelled": "abgesagt", "draft": "auf Entwurf zurückgesetzt"}
-        flash(f"Turnier wurde {labels.get(new_status, new_status)}.", "success")
+        labels = {"open": _("geöffnet"), "closed": _("geschlossen"),
+                  "cancelled": _("abgesagt"), "draft": _("auf Entwurf zurückgesetzt")}
+        flash(_("Turnier wurde %(status)s.", status=labels.get(new_status, new_status)), "success")
     else:
-        flash("Ungültiger Statuswechsel.", "danger")
+        flash(_("Ungültiger Statuswechsel."), "danger")
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
@@ -419,7 +420,7 @@ def event_run_add(event_id):
             )
         ).scalar_one_or_none()
         if existing:
-            flash("Dieser Lauf ist bereits vorhanden.", "warning")
+            flash(_("Dieser Lauf ist bereits vorhanden."), "warning")
         else:
             db.session.add(EventRun(
                 event_id=event_id,
@@ -428,7 +429,7 @@ def event_run_add(event_id):
                 class_level=int(form.class_level.data),
             ))
             db.session.commit()
-            flash("Lauf hinzugefügt.", "success")
+            flash(_("Lauf hinzugefügt."), "success")
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
@@ -460,7 +461,7 @@ def event_run_delete(event_id, run_id):
         abort(404)
     db.session.delete(run)
     db.session.commit()
-    flash("Lauf entfernt.", "success")
+    flash(_("Lauf entfernt."), "success")
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
@@ -496,7 +497,7 @@ def request_judge():
                 f"Prüfen: portal.z-b.tech/club/requests"
             ),
         )
-        flash("Anfrage wurde gesendet. Der Administrator wird sie prüfen.", "success")
+        flash(_("Anfrage wurde gesendet. Der Administrator wird sie prüfen."), "success")
         return redirect(url_for("club.dashboard"))
     return render_template("club/request_judge.html", form=form)
 
@@ -526,7 +527,7 @@ def request_club():
                 f"Prüfen: portal.z-b.tech/club/requests"
             ),
         )
-        flash("Anfrage wurde gesendet. Der Administrator wird sie prüfen.", "success")
+        flash(_("Anfrage wurde gesendet. Der Administrator wird sie prüfen."), "success")
         return redirect(url_for("club.dashboard"))
     return render_template("club/request_club.html", form=form)
 
@@ -575,7 +576,8 @@ def request_approve(req_id):
     req.status = "approved"
     req.resolved_at = datetime.utcnow()
     db.session.commit()
-    flash(f"Anfrage genehmigt und {('Richter' if req.request_type == 'judge' else 'Verein')} erstellt.", "success")
+    flash(_("Anfrage genehmigt und %(type)s erstellt.",
+            type=(_("Richter") if req.request_type == "judge" else _("Verein"))), "success")
     return redirect(url_for("club.pending_requests"))
 
 
@@ -587,7 +589,7 @@ def test_mail():
     from flask import current_app
     server = current_app.config.get("MAIL_SERVER", "")
     if not server:
-        flash("MAIL_SERVER ist nicht in der .env konfiguriert.", "danger")
+        flash(_("MAIL_SERVER ist nicht in der .env konfiguriert."), "danger")
         return redirect(url_for("club.pending_requests"))
     try:
         notify_email = current_app.config.get("NOTIFY_EMAIL", "info@z-b.tech")
@@ -602,9 +604,9 @@ def test_mail():
             ),
         )
         mail.send(msg)
-        flash(f"✓ Testmail erfolgreich an {notify_email} gesendet (Server: {server}).", "success")
+        flash(_("✓ Testmail erfolgreich an %(email)s gesendet (Server: %(server)s).", email=notify_email, server=server), "success")
     except BaseException as e:
-        flash(f"✗ Fehler beim Senden: {e}", "danger")
+        flash(_("✗ Fehler beim Senden: %(error)s", error=str(e)), "danger")
     return redirect(url_for("club.pending_requests"))
 
 
@@ -629,17 +631,17 @@ def profile_dogs():
             license_kind = LicenseKind[form.license_kind.data]
             existing = db.session.execute(db.select(Dog).filter_by(license_no=form.license_no.data.strip())).scalar_one_or_none()
             if existing:
-                flash("Ein Hund mit dieser Lizenznummer ist bereits registriert.", "danger")
+                flash(_("Ein Hund mit dieser Lizenznummer ist bereits registriert."), "danger")
             else:
                 dog = Dog(license_kind=license_kind, license_no=form.license_no.data.strip(), name=form.name.data.strip())
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
                 db.session.commit()
-                flash(f"Hund «{dog.name}» wurde hinzugefügt.", "success")
+                flash(_("Hund «%(name)s» wurde hinzugefügt.", name=dog.name), "success")
                 return redirect(url_for("club.profile_dogs"))
         except ValueError as e:
-            flash(f"Ungültige Lizenznummer: {e}", "danger")
+            flash(_("Ungültige Lizenznummer: %(error)s", error=str(e)), "danger")
     dogs = current_user.dogs
     return render_template("club/profile_dogs.html", form=form, dogs=dogs)
 
@@ -669,17 +671,17 @@ def event_view(event_id):
         ).scalars().all()
     if form.validate_on_submit():
         if event.status != "open":
-            flash("Anmeldungen sind nicht mehr offen.", "danger")
+            flash(_("Anmeldungen sind nicht mehr offen."), "danger")
             return redirect(url_for("club.event_view", event_id=event_id))
         if not current_user.person:
-            flash("Bitte füge zuerst einen Hund in deinem Profil hinzu.", "warning")
+            flash(_("Bitte füge zuerst einen Hund in deinem Profil hinzu."), "warning")
             return redirect(url_for("club.profile_dogs"))
         # Prüfen ob bereits angemeldet (gleicher Hund)
         existing = db.session.execute(
             db.select(Registration).filter_by(event_id=event_id, dog_id=form.dog_id.data)
         ).scalar_one_or_none()
         if existing:
-            flash("Dieser Hund ist für dieses Turnier bereits angemeldet.", "warning")
+            flash(_("Dieser Hund ist für dieses Turnier bereits angemeldet."), "warning")
         else:
             category_full = _CATEGORY_CODE_MAP.get(form.category_code.data, form.category_code.data)
             reg = Registration(
@@ -692,7 +694,7 @@ def event_view(event_id):
             )
             db.session.add(reg)
             db.session.commit()
-            flash("Anmeldung erfolgreich.", "success")
+            flash(_("Anmeldung erfolgreich."), "success")
             return redirect(url_for("club.event_view", event_id=event_id))
     return render_template("club/event_view.html", event=event, form=form,
                            dogs=dogs, my_registrations=my_registrations)
@@ -707,11 +709,11 @@ def registration_cancel(reg_id):
     if not current_user.person or reg.handler_id != current_user.person_id:
         abort(403)
     if reg.status == RegistrationStatus.CANCELLED:
-        flash("Anmeldung ist bereits storniert.", "info")
+        flash(_("Anmeldung ist bereits storniert."), "info")
     else:
         reg.status = RegistrationStatus.CANCELLED
         db.session.commit()
-        flash("Anmeldung wurde storniert.", "success")
+        flash(_("Anmeldung wurde storniert."), "success")
     return redirect(url_for("club.event_view", event_id=reg.event_id))
 
 
@@ -727,5 +729,5 @@ def request_reject(req_id):
     req.admin_note = request.form.get("admin_note", "").strip() or None
     req.resolved_at = datetime.utcnow()
     db.session.commit()
-    flash("Anfrage abgelehnt.", "info")
+    flash(_("Anfrage abgelehnt."), "info")
     return redirect(url_for("club.pending_requests"))

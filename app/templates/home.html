@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Willkommen{% endblock %}
+{% block title %}{{ _('Willkommen') }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mt-5">
   <div class="col-md-8 text-center mb-5">
     <h1 class="fw-bold">z-b Vereinsportal</h1>
-    <p class="text-muted lead">Turnierverwaltung und Anmeldung für Agility-Veranstaltungen</p>
+    <p class="text-muted lead">{{ _('Turnierverwaltung und Anmeldung für Agility-Veranstaltungen') }}</p>
   </div>
 </div>
 
@@ -16,14 +16,14 @@
     <div class="card h-100 shadow-sm border-0">
       <div class="card-body text-center p-5">
         <div class="mb-3" style="font-size:3rem;">🐕</div>
-        <h3 class="card-title fw-bold">Ich bin Teilnehmer</h3>
+        <h3 class="card-title fw-bold">{{ _('Ich bin Teilnehmer') }}</h3>
         <p class="text-muted mb-4">
-          Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde zu verwalten.
+          {{ _('Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde zu verwalten.') }}
         </p>
         <a href="{{ url_for('auth.login') }}?next={{ url_for('club.dashboard') }}"
-           class="btn btn-primary w-100 mb-2">Einloggen</a>
+           class="btn btn-primary w-100 mb-2">{{ _('Einloggen') }}</a>
         <a href="{{ url_for('auth.register') }}"
-           class="btn btn-outline-primary w-100">Neues Konto erstellen</a>
+           class="btn btn-outline-primary w-100">{{ _('Neues Konto erstellen') }}</a>
       </div>
     </div>
   </div>
@@ -33,14 +33,14 @@
     <div class="card h-100 shadow-sm border-0">
       <div class="card-body text-center p-5">
         <div class="mb-3" style="font-size:3rem;">🏆</div>
-        <h3 class="card-title fw-bold">Ich bin Vereinsmitglied</h3>
+        <h3 class="card-title fw-bold">{{ _('Ich bin Vereinsmitglied') }}</h3>
         <p class="text-muted mb-4">
-          Verwalte Turniere deines Vereins, bereite Läufe vor und weise Richter zu.
+          {{ _('Verwalte Turniere deines Vereins, bereite Läufe vor und weise Richter zu.') }}
         </p>
         <a href="{{ url_for('auth.login') }}"
-           class="btn btn-secondary w-100">Einloggen</a>
+           class="btn btn-secondary w-100">{{ _('Einloggen') }}</a>
         <p class="text-muted small mt-3 mb-0">
-          Konto wird vom Vereins-Admin erstellt.
+          {{ _('Konto wird vom Vereins-Admin erstellt.') }}
         </p>
       </div>
     </div>

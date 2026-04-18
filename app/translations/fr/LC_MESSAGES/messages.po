@@ -1,0 +1,584 @@
+# French translations for AgilityPortal
+# Copyright (C) 2026
+msgid ""
+msgstr ""
+"Project-Id-Version: AgilityPortal 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-18 00:00+0000\n"
+"PO-Revision-Date: 2026-04-18 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# base.html
+msgid "Vereinsportal"
+msgstr "Portail du club"
+
+msgid "Logout"
+msgstr "Déconnexion"
+
+msgid "Dashboard"
+msgstr "Tableau de bord"
+
+msgid "Turniere"
+msgstr "Tournois"
+
+msgid "Turnier erstellen"
+msgstr "Créer un tournoi"
+
+msgid "Anfragen"
+msgstr "Demandes"
+
+msgid "Mein Profil"
+msgstr "Mon profil"
+
+msgid "Meine Hunde"
+msgstr "Mes chiens"
+
+msgid "Verwaltung"
+msgstr "Administration"
+
+msgid "Alle Benutzer"
+msgstr "Tous les utilisateurs"
+
+msgid "Mitglieder"
+msgstr "Membres"
+
+# home.html
+msgid "Willkommen"
+msgstr "Bienvenue"
+
+msgid "Turnierverwaltung und Anmeldung für Agility-Veranstaltungen"
+msgstr "Gestion des tournois et inscription aux événements d'agility"
+
+msgid "Ich bin Teilnehmer"
+msgstr "Je suis participant"
+
+msgid "Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde zu verwalten."
+msgstr "Inscrivez-vous aux tournois ouverts ou créez un compte pour gérer vos chiens."
+
+msgid "Einloggen"
+msgstr "Connexion"
+
+msgid "Neues Konto erstellen"
+msgstr "Créer un nouveau compte"
+
+msgid "Ich bin Vereinsmitglied"
+msgstr "Je suis membre du club"
+
+msgid "Verwalte Turniere deines Vereins, bereite Läufe vor und weise Richter zu."
+msgstr "Gérez les tournois de votre club, préparez les épreuves et assignez les juges."
+
+msgid "Konto wird vom Vereins-Admin erstellt."
+msgstr "Le compte est créé par l'administrateur du club."
+
+# auth/login.html
+msgid "Login"
+msgstr "Connexion"
+
+msgid "Anmeldung"
+msgstr "Connexion"
+
+msgid "Noch kein Konto?"
+msgstr "Pas encore de compte ?"
+
+msgid "Jetzt registrieren"
+msgstr "S'inscrire maintenant"
+
+# auth/register.html
+msgid "Registrieren"
+msgstr "S'inscrire"
+
+msgid "Konto erstellen"
+msgstr "Créer un compte"
+
+msgid "Für die Turnieranmeldung als Teilnehmer"
+msgstr "Pour l'inscription au tournoi en tant que participant"
+
+msgid "Bereits ein Konto?"
+msgstr "Déjà un compte ?"
+
+# club/dashboard.html
+msgid "Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den Administrator."
+msgstr "Votre compte n'est associé à aucun club. Veuillez contacter l'administrateur."
+
+msgid "Offene Turniere"
+msgstr "Tournois ouverts"
+
+msgid "Turniere total"
+msgstr "Total tournois"
+
+msgid "Aktive Mitglieder"
+msgstr "Membres actifs"
+
+msgid "Turnier"
+msgstr "Tournoi"
+
+msgid "Ort"
+msgstr "Lieu"
+
+msgid "Datum"
+msgstr "Date"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Offen"
+msgstr "Ouvert"
+
+msgid "Geschlossen"
+msgstr "Fermé"
+
+msgid "Abgesagt"
+msgstr "Annulé"
+
+msgid "Entwurf"
+msgstr "Brouillon"
+
+msgid "Keine Turniere vorhanden."
+msgstr "Aucun tournoi disponible."
+
+msgid "Richter fehlt in der Liste?"
+msgstr "Un juge manque dans la liste ?"
+
+msgid "Beantrage die Aufnahme — der Administrator prüft die AIS-Nummer."
+msgstr "Demandez l'ajout — l'administrateur vérifiera le numéro AIS."
+
+msgid "Richter beantragen"
+msgstr "Demander un juge"
+
+# club/superadmin_dashboard.html
+msgid "Übersicht"
+msgstr "Vue d'ensemble"
+
+msgid "Portal-Übersicht"
+msgstr "Vue d'ensemble du portail"
+
+msgid "offene Anfrage"
+msgstr "demande ouverte"
+
+msgid "warten auf Prüfung."
+msgstr "en attente de vérification."
+
+msgid "Jetzt prüfen"
+msgstr "Vérifier maintenant"
+
+msgid "Vereine"
+msgstr "Clubs"
+
+msgid "Alle Turniere"
+msgstr "Tous les tournois"
+
+msgid "Verein"
+msgstr "Club"
+
+msgid "Noch keine Turniere."
+msgstr "Aucun tournoi pour l'instant."
+
+# club/participant_dashboard.html
+msgid "Läufe"
+msgstr "Épreuves"
+
+msgid "Aktuell sind keine Turniere für Anmeldungen offen."
+msgstr "Aucun tournoi n'est actuellement ouvert aux inscriptions."
+
+msgid "Hunde registrieren und Lizenznummern verwalten."
+msgstr "Enregistrer des chiens et gérer les numéros de licence."
+
+msgid "Dein Verein fehlt?"
+msgstr "Votre club manque ?"
+
+msgid "Beantrage die Aufnahme — der Administrator prüft die SKG-Nummer."
+msgstr "Demandez l'ajout — l'administrateur vérifiera le numéro SKG."
+
+msgid "Verein beantragen"
+msgstr "Demander un club"
+
+# club/event_detail.html
+msgid "Bearbeiten"
+msgstr "Modifier"
+
+msgid "Anmeldungen offen"
+msgstr "Inscriptions ouvertes"
+
+msgid "Anmeldungen geschlossen"
+msgstr "Inscriptions fermées"
+
+msgid "Anmeldungen öffnen"
+msgstr "Ouvrir les inscriptions"
+
+msgid "Turnier absagen?"
+msgstr "Annuler le tournoi ?"
+
+msgid "Absagen"
+msgstr "Annuler"
+
+msgid "Anmeldungen schliessen"
+msgstr "Fermer les inscriptions"
+
+msgid "Anmeldungen wieder öffnen"
+msgstr "Rouvrir les inscriptions"
+
+msgid "Turnier reaktivieren?"
+msgstr "Réactiver le tournoi ?"
+
+msgid "Reaktivieren (→ Entwurf)"
+msgstr "Réactiver (→ Brouillon)"
+
+msgid "Lauf hinzufügen"
+msgstr "Ajouter une épreuve"
+
+msgid "Typ"
+msgstr "Type"
+
+msgid "Kategorie"
+msgstr "Catégorie"
+
+msgid "Klasse"
+msgstr "Classe"
+
+msgid "Richter"
+msgstr "Juge"
+
+msgid "Lauf entfernen?"
+msgstr "Supprimer l'épreuve ?"
+
+msgid "Noch keine Läufe vorbereitet."
+msgstr "Aucune épreuve préparée."
+
+msgid "Hinzufügen"
+msgstr "Ajouter"
+
+msgid "Alle Läufe auf einmal:"
+msgstr "Toutes les épreuves en une fois :"
+
+msgid "Alle Agility"
+msgstr "Tout Agility"
+
+msgid "Alle Jumping"
+msgstr "Tout Jumping"
+
+msgid "Standard (Agi+Jump S/M/I/L × 1/2/3)"
+msgstr "Standard (Agi+Jump S/M/I/L × 1/2/3)"
+
+msgid "Anwesende Richter"
+msgstr "Juges présents"
+
+msgid "Richter entfernen"
+msgstr "Retirer le juge"
+
+msgid "Noch keine Richter hinzugefügt."
+msgstr "Aucun juge ajouté."
+
+msgid "Richter wählen"
+msgstr "Choisir un juge"
+
+msgid "Alle Richter sind bereits hinzugefügt."
+msgstr "Tous les juges ont déjà été ajoutés."
+
+msgid "Läufe zuordnen"
+msgstr "Assigner les épreuves"
+
+msgid "Läufe per Drag & Drop den Richtern zuweisen"
+msgstr "Assigner les épreuves aux juges par glisser-déposer"
+
+msgid "Nicht zugewiesen"
+msgstr "Non assigné"
+
+msgid "Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können."
+msgstr "Ajoutez d'abord des juges présents pour pouvoir assigner les épreuves."
+
+msgid "Anmeldungen"
+msgstr "Inscriptions"
+
+msgid "Hundeführer"
+msgstr "Conducteur"
+
+msgid "Ausstehend"
+msgstr "En attente"
+
+msgid "Eingereicht"
+msgstr "Soumis"
+
+msgid "Bestätigt"
+msgstr "Confirmé"
+
+msgid "Storniert"
+msgstr "Annulé"
+
+msgid "Noch keine Anmeldungen."
+msgstr "Aucune inscription."
+
+# club/event_form.html
+msgid "Turnier bearbeiten"
+msgstr "Modifier le tournoi"
+
+msgid "Neues Turnier"
+msgstr "Nouveau tournoi"
+
+msgid "Neues Turnier erstellen"
+msgstr "Créer un nouveau tournoi"
+
+# club/event_view.html
+msgid "Für dieses Turnier anmelden"
+msgstr "S'inscrire à ce tournoi"
+
+msgid "Füge zuerst einen Hund in deinem Profil hinzu, um dich anzumelden."
+msgstr "Ajoutez d'abord un chien à votre profil pour vous inscrire."
+
+msgid "Hunde verwalten"
+msgstr "Gérer les chiens"
+
+msgid "Meine Anmeldungen"
+msgstr "Mes inscriptions"
+
+msgid "Anmeldung stornieren?"
+msgstr "Annuler l'inscription ?"
+
+msgid "Stornieren"
+msgstr "Annuler"
+
+msgid "Noch keine Anmeldungen für dieses Turnier."
+msgstr "Aucune inscription pour ce tournoi."
+
+# club/users.html
+msgid "Mitglied hinzufügen"
+msgstr "Ajouter un membre"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "E-Mail"
+msgstr "E-mail"
+
+msgid "Rolle"
+msgstr "Rôle"
+
+msgid "Mitglied"
+msgstr "Membre"
+
+msgid "Aktiv"
+msgstr "Actif"
+
+msgid "Inaktiv"
+msgstr "Inactif"
+
+msgid "Passwort"
+msgstr "Mot de passe"
+
+msgid "deaktivieren?"
+msgstr "désactiver ?"
+
+msgid "Deaktivieren"
+msgstr "Désactiver"
+
+msgid "Aktivieren"
+msgstr "Activer"
+
+msgid "Keine Mitglieder vorhanden."
+msgstr "Aucun membre disponible."
+
+# club/add_user.html
+msgid "Zurück"
+msgstr "Retour"
+
+msgid "Abbrechen"
+msgstr "Annuler"
+
+# club/reset_password.html
+msgid "Passwort ändern"
+msgstr "Changer le mot de passe"
+
+msgid "Passwort für"
+msgstr "Mot de passe pour"
+
+# club/profile_dogs.html
+msgid "Registrierte Hunde"
+msgstr "Chiens enregistrés"
+
+msgid "Lizenztyp"
+msgstr "Type de licence"
+
+msgid "Lizenznummer"
+msgstr "Numéro de licence"
+
+msgid "Noch keine Hunde registriert."
+msgstr "Aucun chien enregistré."
+
+msgid "Hund hinzufügen"
+msgstr "Ajouter un chien"
+
+msgid "CH = nur Ziffern (z.B. 12345) · FOREIGN = AAA-12345 (Länderkürzel-Nummer)"
+msgstr "CH = chiffres uniquement (ex. 12345) · FOREIGN = AAA-12345 (code pays-numéro)"
+
+# club/pending_requests.html
+msgid "Offene Anfragen"
+msgstr "Demandes ouvertes"
+
+msgid "offen"
+msgstr "ouvert"
+
+msgid "Testmail senden"
+msgstr "Envoyer un e-mail de test"
+
+msgid "Details"
+msgstr "Détails"
+
+msgid "Einreicher"
+msgstr "Soumis par"
+
+msgid "Bemerkung"
+msgstr "Remarque"
+
+msgid "Genehmigen"
+msgstr "Approuver"
+
+msgid "Grund (optional)"
+msgstr "Motif (facultatif)"
+
+msgid "Ablehnen"
+msgstr "Rejeter"
+
+msgid "Keine offenen Anfragen."
+msgstr "Aucune demande ouverte."
+
+msgid "Zuletzt bearbeitet"
+msgstr "Récemment traité"
+
+msgid "Genehmigt"
+msgstr "Approuvé"
+
+msgid "Abgelehnt"
+msgstr "Rejeté"
+
+# club/request_judge.html
+msgid "Richter beantragen"
+msgstr "Demander un juge"
+
+msgid "Neuen Richter beantragen"
+msgstr "Demander un nouveau juge"
+
+msgid "Fehlt ein Richter in der Liste? Trage die Daten ein — der Administrator prüft die AIS-Nummer und legt den Richter an."
+msgstr "Un juge manque dans la liste ? Entrez les données — l'administrateur vérifiera le numéro AIS et ajoutera le juge."
+
+msgid "Optionale Bemerkung…"
+msgstr "Remarque facultative…"
+
+# club/request_club.html
+msgid "Verein beantragen"
+msgstr "Demander un club"
+
+msgid "Verein hinzufügen lassen"
+msgstr "Demander l'ajout d'un club"
+
+msgid "Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen ein — der Administrator prüft die Angaben und legt den Verein an."
+msgstr "Votre club manque dans la liste ? Entrez le numéro SKG et le nom — l'administrateur vérifiera les données et ajoutera le club."
+
+# Python flash messages
+msgid "E-Mail oder Passwort ungültig."
+msgstr "E-mail ou mot de passe invalide."
+
+msgid "Diese E-Mail-Adresse ist bereits registriert."
+msgstr "Cette adresse e-mail est déjà enregistrée."
+
+msgid "Willkommen, %(name)s! Dein Konto wurde erstellt."
+msgstr "Bienvenue, %(name)s ! Votre compte a été créé."
+
+msgid "Benutzer %(name)s wurde erstellt."
+msgstr "L'utilisateur %(name)s a été créé."
+
+msgid "Du kannst deinen eigenen Account nicht deaktivieren."
+msgstr "Vous ne pouvez pas désactiver votre propre compte."
+
+msgid "Superadmin-Accounts können nicht deaktiviert werden."
+msgstr "Les comptes superadmin ne peuvent pas être désactivés."
+
+msgid "%(name)s wurde deaktiviert."
+msgstr "%(name)s a été désactivé."
+
+msgid "%(name)s wurde aktiviert."
+msgstr "%(name)s a été activé."
+
+msgid "Passwort für %(name)s wurde geändert."
+msgstr "Le mot de passe de %(name)s a été modifié."
+
+msgid "Turnier «%(name)s» wurde erstellt."
+msgstr "Le tournoi «%(name)s» a été créé."
+
+msgid "Turnier gespeichert."
+msgstr "Tournoi enregistré."
+
+msgid "geöffnet"
+msgstr "ouvert"
+
+msgid "geschlossen"
+msgstr "fermé"
+
+msgid "abgesagt"
+msgstr "annulé"
+
+msgid "auf Entwurf zurückgesetzt"
+msgstr "remis en brouillon"
+
+msgid "Turnier wurde %(status)s."
+msgstr "Le tournoi a été %(status)s."
+
+msgid "Ungültiger Statuswechsel."
+msgstr "Changement de statut invalide."
+
+msgid "Dieser Lauf ist bereits vorhanden."
+msgstr "Cette épreuve existe déjà."
+
+msgid "Lauf hinzugefügt."
+msgstr "Épreuve ajoutée."
+
+msgid "Lauf entfernt."
+msgstr "Épreuve supprimée."
+
+msgid "Anfrage wurde gesendet. Der Administrator wird sie prüfen."
+msgstr "La demande a été envoyée. L'administrateur l'examinera."
+
+msgid "MAIL_SERVER ist nicht in der .env konfiguriert."
+msgstr "MAIL_SERVER n'est pas configuré dans .env."
+
+msgid "✓ Testmail erfolgreich an %(email)s gesendet (Server: %(server)s)."
+msgstr "✓ E-mail de test envoyé avec succès à %(email)s (Serveur : %(server)s)."
+
+msgid "✗ Fehler beim Senden: %(error)s"
+msgstr "✗ Erreur lors de l'envoi : %(error)s"
+
+msgid "Ein Hund mit dieser Lizenznummer ist bereits registriert."
+msgstr "Un chien avec ce numéro de licence est déjà enregistré."
+
+msgid "Hund «%(name)s» wurde hinzugefügt."
+msgstr "Le chien «%(name)s» a été ajouté."
+
+msgid "Ungültige Lizenznummer: %(error)s"
+msgstr "Numéro de licence invalide : %(error)s"
+
+msgid "Anmeldungen sind nicht mehr offen."
+msgstr "Les inscriptions ne sont plus ouvertes."
+
+msgid "Bitte füge zuerst einen Hund in deinem Profil hinzu."
+msgstr "Veuillez d'abord ajouter un chien à votre profil."
+
+msgid "Dieser Hund ist für dieses Turnier bereits angemeldet."
+msgstr "Ce chien est déjà inscrit à ce tournoi."
+
+msgid "Anmeldung erfolgreich."
+msgstr "Inscription réussie."
+
+msgid "Anmeldung ist bereits storniert."
+msgstr "L'inscription est déjà annulée."
+
+msgid "Anmeldung wurde storniert."
+msgstr "L'inscription a été annulée."
+
+msgid "Anfrage genehmigt und %(type)s erstellt."
+msgstr "Demande approuvée et %(type)s créé."
+
+msgid "Anfrage abgelehnt."
+msgstr "Demande rejetée."

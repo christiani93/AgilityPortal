@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Registrieren{% endblock %}
+{% block title %}{{ _('Registrieren') }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mt-5">
   <div class="col-md-4">
     <div class="card shadow-sm">
       <div class="card-body p-4">
-        <h4 class="card-title mb-1">Konto erstellen</h4>
-        <p class="text-muted small mb-4">Für die Turnieranmeldung als Teilnehmer</p>
+        <h4 class="card-title mb-1">{{ _('Konto erstellen') }}</h4>
+        <p class="text-muted small mb-4">{{ _('Für die Turnieranmeldung als Teilnehmer') }}</p>
         <form method="post">
           {{ form.hidden_tag() }}
 
@@ -46,8 +46,8 @@
         </form>
         <hr class="my-3">
         <p class="text-center text-muted small mb-0">
-          Bereits ein Konto?
-          <a href="{{ url_for('auth.login') }}">Einloggen</a>
+          {{ _('Bereits ein Konto?') }}
+          <a href="{{ url_for('auth.login') }}">{{ _('Einloggen') }}</a>
         </p>
       </div>
     </div>

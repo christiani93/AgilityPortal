@@ -1,0 +1,587 @@
+# English translations for AgilityPortal
+# Copyright (C) 2026
+msgid ""
+msgstr ""
+"Project-Id-Version: AgilityPortal 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-18 00:00+0000\n"
+"PO-Revision-Date: 2026-04-18 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# base.html
+msgid "Vereinsportal"
+msgstr "Club Portal"
+
+msgid "Logout"
+msgstr "Logout"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Turniere"
+msgstr "Tournaments"
+
+msgid "Turnier erstellen"
+msgstr "Create Tournament"
+
+msgid "Anfragen"
+msgstr "Requests"
+
+msgid "Mein Profil"
+msgstr "My Profile"
+
+msgid "Meine Hunde"
+msgstr "My Dogs"
+
+msgid "Verwaltung"
+msgstr "Administration"
+
+msgid "Alle Benutzer"
+msgstr "All Users"
+
+msgid "Mitglieder"
+msgstr "Members"
+
+# home.html
+msgid "Willkommen"
+msgstr "Welcome"
+
+msgid "Turnierverwaltung und Anmeldung für Agility-Veranstaltungen"
+msgstr "Tournament management and registration for agility events"
+
+msgid "Ich bin Teilnehmer"
+msgstr "I am a Participant"
+
+msgid "Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde zu verwalten."
+msgstr "Register for open tournaments or create an account to manage your dogs."
+
+msgid "Einloggen"
+msgstr "Login"
+
+msgid "Neues Konto erstellen"
+msgstr "Create New Account"
+
+msgid "Ich bin Vereinsmitglied"
+msgstr "I am a Club Member"
+
+msgid "Verwalte Turniere deines Vereins, bereite Läufe vor und weise Richter zu."
+msgstr "Manage your club's tournaments, prepare runs and assign judges."
+
+msgid "Konto wird vom Vereins-Admin erstellt."
+msgstr "Account is created by the club admin."
+
+# auth/login.html
+msgid "Login"
+msgstr "Login"
+
+msgid "Anmeldung"
+msgstr "Login"
+
+msgid "Noch kein Konto?"
+msgstr "No account yet?"
+
+msgid "Jetzt registrieren"
+msgstr "Register now"
+
+# auth/register.html
+msgid "Registrieren"
+msgstr "Register"
+
+msgid "Konto erstellen"
+msgstr "Create Account"
+
+msgid "Für die Turnieranmeldung als Teilnehmer"
+msgstr "For tournament registration as a participant"
+
+msgid "Bereits ein Konto?"
+msgstr "Already have an account?"
+
+# club/dashboard.html
+msgid "Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den Administrator."
+msgstr "Your account is not assigned to any club. Please contact the administrator."
+
+msgid "Offene Turniere"
+msgstr "Open Tournaments"
+
+msgid "Turniere total"
+msgstr "Total Tournaments"
+
+msgid "Aktive Mitglieder"
+msgstr "Active Members"
+
+msgid "Turnier"
+msgstr "Tournament"
+
+msgid "Ort"
+msgstr "Location"
+
+msgid "Datum"
+msgstr "Date"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Offen"
+msgstr "Open"
+
+msgid "Geschlossen"
+msgstr "Closed"
+
+msgid "Abgesagt"
+msgstr "Cancelled"
+
+msgid "Entwurf"
+msgstr "Draft"
+
+msgid "Keine Turniere vorhanden."
+msgstr "No tournaments available."
+
+msgid "Richter fehlt in der Liste?"
+msgstr "Judge missing from the list?"
+
+msgid "Beantrage die Aufnahme — der Administrator prüft die AIS-Nummer."
+msgstr "Request inclusion — the administrator will verify the AIS number."
+
+msgid "Richter beantragen"
+msgstr "Request Judge"
+
+# club/superadmin_dashboard.html
+msgid "Übersicht"
+msgstr "Overview"
+
+msgid "Portal-Übersicht"
+msgstr "Portal Overview"
+
+msgid "offene Anfrage"
+msgstr "open request"
+
+msgid "warten auf Prüfung."
+msgstr "awaiting review."
+
+msgid "Jetzt prüfen"
+msgstr "Review now"
+
+msgid "Vereine"
+msgstr "Clubs"
+
+msgid "Alle Turniere"
+msgstr "All Tournaments"
+
+msgid "Verein"
+msgstr "Club"
+
+msgid "Noch keine Turniere."
+msgstr "No tournaments yet."
+
+# club/participant_dashboard.html
+msgid "Willkommen"
+msgstr "Welcome"
+
+msgid "Läufe"
+msgstr "Runs"
+
+msgid "Aktuell sind keine Turniere für Anmeldungen offen."
+msgstr "No tournaments are currently open for registration."
+
+msgid "Hunde registrieren und Lizenznummern verwalten."
+msgstr "Register dogs and manage license numbers."
+
+msgid "Dein Verein fehlt?"
+msgstr "Your club missing?"
+
+msgid "Beantrage die Aufnahme — der Administrator prüft die SKG-Nummer."
+msgstr "Request inclusion — the administrator will verify the SKG number."
+
+msgid "Verein beantragen"
+msgstr "Request Club"
+
+# club/event_detail.html
+msgid "Bearbeiten"
+msgstr "Edit"
+
+msgid "Anmeldungen offen"
+msgstr "Registrations open"
+
+msgid "Anmeldungen geschlossen"
+msgstr "Registrations closed"
+
+msgid "Anmeldungen öffnen"
+msgstr "Open registrations"
+
+msgid "Turnier absagen?"
+msgstr "Cancel tournament?"
+
+msgid "Absagen"
+msgstr "Cancel"
+
+msgid "Anmeldungen schliessen"
+msgstr "Close registrations"
+
+msgid "Anmeldungen wieder öffnen"
+msgstr "Reopen registrations"
+
+msgid "Turnier reaktivieren?"
+msgstr "Reactivate tournament?"
+
+msgid "Reaktivieren (→ Entwurf)"
+msgstr "Reactivate (→ Draft)"
+
+msgid "Lauf hinzufügen"
+msgstr "Add Run"
+
+msgid "Typ"
+msgstr "Type"
+
+msgid "Kategorie"
+msgstr "Category"
+
+msgid "Klasse"
+msgstr "Class"
+
+msgid "Richter"
+msgstr "Judge"
+
+msgid "Lauf entfernen?"
+msgstr "Remove run?"
+
+msgid "Noch keine Läufe vorbereitet."
+msgstr "No runs prepared yet."
+
+msgid "Hinzufügen"
+msgstr "Add"
+
+msgid "Alle Läufe auf einmal:"
+msgstr "All runs at once:"
+
+msgid "Alle Agility"
+msgstr "All Agility"
+
+msgid "Alle Jumping"
+msgstr "All Jumping"
+
+msgid "Standard (Agi+Jump S/M/I/L × 1/2/3)"
+msgstr "Standard (Agi+Jump S/M/I/L × 1/2/3)"
+
+msgid "Anwesende Richter"
+msgstr "Present Judges"
+
+msgid "Richter entfernen"
+msgstr "Remove judge"
+
+msgid "Noch keine Richter hinzugefügt."
+msgstr "No judges added yet."
+
+msgid "Richter wählen"
+msgstr "Select judge"
+
+msgid "Alle Richter sind bereits hinzugefügt."
+msgstr "All judges have already been added."
+
+msgid "Läufe zuordnen"
+msgstr "Assign Runs"
+
+msgid "Läufe per Drag & Drop den Richtern zuweisen"
+msgstr "Assign runs to judges by drag & drop"
+
+msgid "Nicht zugewiesen"
+msgstr "Unassigned"
+
+msgid "Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können."
+msgstr "Add present judges first to be able to assign runs."
+
+msgid "Anmeldungen"
+msgstr "Registrations"
+
+msgid "Hundeführer"
+msgstr "Handler"
+
+msgid "Ausstehend"
+msgstr "Pending"
+
+msgid "Eingereicht"
+msgstr "Submitted"
+
+msgid "Bestätigt"
+msgstr "Confirmed"
+
+msgid "Storniert"
+msgstr "Cancelled"
+
+msgid "Noch keine Anmeldungen."
+msgstr "No registrations yet."
+
+# club/event_form.html
+msgid "Turnier bearbeiten"
+msgstr "Edit Tournament"
+
+msgid "Neues Turnier"
+msgstr "New Tournament"
+
+msgid "Neues Turnier erstellen"
+msgstr "Create New Tournament"
+
+# club/event_view.html
+msgid "Für dieses Turnier anmelden"
+msgstr "Register for this tournament"
+
+msgid "Füge zuerst einen Hund in deinem Profil hinzu, um dich anzumelden."
+msgstr "Add a dog to your profile first to register."
+
+msgid "Hunde verwalten"
+msgstr "Manage dogs"
+
+msgid "Meine Anmeldungen"
+msgstr "My Registrations"
+
+msgid "Anmeldung stornieren?"
+msgstr "Cancel registration?"
+
+msgid "Stornieren"
+msgstr "Cancel"
+
+msgid "Noch keine Anmeldungen für dieses Turnier."
+msgstr "No registrations for this tournament yet."
+
+# club/users.html
+msgid "Mitglied hinzufügen"
+msgstr "Add Member"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "E-Mail"
+msgstr "Email"
+
+msgid "Rolle"
+msgstr "Role"
+
+msgid "Mitglied"
+msgstr "Member"
+
+msgid "Aktiv"
+msgstr "Active"
+
+msgid "Inaktiv"
+msgstr "Inactive"
+
+msgid "Passwort"
+msgstr "Password"
+
+msgid "deaktivieren?"
+msgstr "deactivate?"
+
+msgid "Deaktivieren"
+msgstr "Deactivate"
+
+msgid "Aktivieren"
+msgstr "Activate"
+
+msgid "Keine Mitglieder vorhanden."
+msgstr "No members available."
+
+# club/add_user.html
+msgid "Zurück"
+msgstr "Back"
+
+msgid "Abbrechen"
+msgstr "Cancel"
+
+# club/reset_password.html
+msgid "Passwort ändern"
+msgstr "Change Password"
+
+msgid "Passwort für"
+msgstr "Password for"
+
+# club/profile_dogs.html
+msgid "Registrierte Hunde"
+msgstr "Registered Dogs"
+
+msgid "Lizenztyp"
+msgstr "License Type"
+
+msgid "Lizenznummer"
+msgstr "License Number"
+
+msgid "Noch keine Hunde registriert."
+msgstr "No dogs registered yet."
+
+msgid "Hund hinzufügen"
+msgstr "Add Dog"
+
+msgid "CH = nur Ziffern (z.B. 12345) · FOREIGN = AAA-12345 (Länderkürzel-Nummer)"
+msgstr "CH = digits only (e.g. 12345) · FOREIGN = AAA-12345 (country code-number)"
+
+# club/pending_requests.html
+msgid "Offene Anfragen"
+msgstr "Open Requests"
+
+msgid "offen"
+msgstr "open"
+
+msgid "Testmail senden"
+msgstr "Send Test Email"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Einreicher"
+msgstr "Submitter"
+
+msgid "Bemerkung"
+msgstr "Note"
+
+msgid "Genehmigen"
+msgstr "Approve"
+
+msgid "Grund (optional)"
+msgstr "Reason (optional)"
+
+msgid "Ablehnen"
+msgstr "Reject"
+
+msgid "Keine offenen Anfragen."
+msgstr "No open requests."
+
+msgid "Zuletzt bearbeitet"
+msgstr "Recently processed"
+
+msgid "Genehmigt"
+msgstr "Approved"
+
+msgid "Abgelehnt"
+msgstr "Rejected"
+
+# club/request_judge.html
+msgid "Richter beantragen"
+msgstr "Request Judge"
+
+msgid "Neuen Richter beantragen"
+msgstr "Request New Judge"
+
+msgid "Fehlt ein Richter in der Liste? Trage die Daten ein — der Administrator prüft die AIS-Nummer und legt den Richter an."
+msgstr "A judge missing from the list? Enter the details — the administrator will verify the AIS number and add the judge."
+
+msgid "Optionale Bemerkung…"
+msgstr "Optional note…"
+
+# club/request_club.html
+msgid "Verein beantragen"
+msgstr "Request Club"
+
+msgid "Verein hinzufügen lassen"
+msgstr "Request Club Addition"
+
+msgid "Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen ein — der Administrator prüft die Angaben und legt den Verein an."
+msgstr "Your club missing from the list? Enter the SKG club number and name — the administrator will verify the details and add the club."
+
+# Python flash messages
+msgid "E-Mail oder Passwort ungültig."
+msgstr "Invalid email or password."
+
+msgid "Diese E-Mail-Adresse ist bereits registriert."
+msgstr "This email address is already registered."
+
+msgid "Willkommen, %(name)s! Dein Konto wurde erstellt."
+msgstr "Welcome, %(name)s! Your account has been created."
+
+msgid "Benutzer %(name)s wurde erstellt."
+msgstr "User %(name)s has been created."
+
+msgid "Du kannst deinen eigenen Account nicht deaktivieren."
+msgstr "You cannot deactivate your own account."
+
+msgid "Superadmin-Accounts können nicht deaktiviert werden."
+msgstr "Superadmin accounts cannot be deactivated."
+
+msgid "%(name)s wurde deaktiviert."
+msgstr "%(name)s has been deactivated."
+
+msgid "%(name)s wurde aktiviert."
+msgstr "%(name)s has been activated."
+
+msgid "Passwort für %(name)s wurde geändert."
+msgstr "Password for %(name)s has been changed."
+
+msgid "Turnier «%(name)s» wurde erstellt."
+msgstr "Tournament «%(name)s» has been created."
+
+msgid "Turnier gespeichert."
+msgstr "Tournament saved."
+
+msgid "geöffnet"
+msgstr "opened"
+
+msgid "geschlossen"
+msgstr "closed"
+
+msgid "abgesagt"
+msgstr "cancelled"
+
+msgid "auf Entwurf zurückgesetzt"
+msgstr "reset to draft"
+
+msgid "Turnier wurde %(status)s."
+msgstr "Tournament has been %(status)s."
+
+msgid "Ungültiger Statuswechsel."
+msgstr "Invalid status change."
+
+msgid "Dieser Lauf ist bereits vorhanden."
+msgstr "This run already exists."
+
+msgid "Lauf hinzugefügt."
+msgstr "Run added."
+
+msgid "Lauf entfernt."
+msgstr "Run removed."
+
+msgid "Anfrage wurde gesendet. Der Administrator wird sie prüfen."
+msgstr "Request has been sent. The administrator will review it."
+
+msgid "MAIL_SERVER ist nicht in der .env konfiguriert."
+msgstr "MAIL_SERVER is not configured in .env."
+
+msgid "✓ Testmail erfolgreich an %(email)s gesendet (Server: %(server)s)."
+msgstr "✓ Test email successfully sent to %(email)s (Server: %(server)s)."
+
+msgid "✗ Fehler beim Senden: %(error)s"
+msgstr "✗ Error sending: %(error)s"
+
+msgid "Ein Hund mit dieser Lizenznummer ist bereits registriert."
+msgstr "A dog with this license number is already registered."
+
+msgid "Hund «%(name)s» wurde hinzugefügt."
+msgstr "Dog «%(name)s» has been added."
+
+msgid "Ungültige Lizenznummer: %(error)s"
+msgstr "Invalid license number: %(error)s"
+
+msgid "Anmeldungen sind nicht mehr offen."
+msgstr "Registrations are no longer open."
+
+msgid "Bitte füge zuerst einen Hund in deinem Profil hinzu."
+msgstr "Please add a dog to your profile first."
+
+msgid "Dieser Hund ist für dieses Turnier bereits angemeldet."
+msgstr "This dog is already registered for this tournament."
+
+msgid "Anmeldung erfolgreich."
+msgstr "Registration successful."
+
+msgid "Anmeldung ist bereits storniert."
+msgstr "Registration is already cancelled."
+
+msgid "Anmeldung wurde storniert."
+msgstr "Registration has been cancelled."
+
+msgid "Anfrage genehmigt und %(type)s erstellt."
+msgstr "Request approved and %(type)s created."
+
+msgid "Anfrage abgelehnt."
+msgstr "Request rejected."

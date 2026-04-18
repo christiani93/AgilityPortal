@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}{{ _('Dashboard') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Dashboard</h2>
+  <h2>{{ _('Dashboard') }}</h2>
   {% if club %}
     <span class="badge bg-secondary fs-6">{{ club.name }}</span>
   {% endif %}
@@ -12,7 +12,7 @@
 
 {% if not club %}
   <div class="alert alert-warning">
-    Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den Administrator.
+    {{ _('Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den Administrator.') }}
   </div>
 {% else %}
 
@@ -21,7 +21,7 @@
     <div class="card text-center">
       <div class="card-body">
         <div class="fs-1 fw-bold text-primary">{{ events | selectattr('status', 'eq', 'open') | list | length }}</div>
-        <div class="text-muted small">Offene Turniere</div>
+        <div class="text-muted small">{{ _('Offene Turniere') }}</div>
       </div>
     </div>
   </div>
@@ -29,7 +29,7 @@
     <div class="card text-center">
       <div class="card-body">
         <div class="fs-1 fw-bold text-secondary">{{ events | length }}</div>
-        <div class="text-muted small">Turniere total</div>
+        <div class="text-muted small">{{ _('Turniere total') }}</div>
       </div>
     </div>
   </div>
@@ -38,7 +38,7 @@
     <div class="card text-center">
       <div class="card-body">
         <div class="fs-1 fw-bold text-success">{{ club.users | selectattr('is_active') | list | length }}</div>
-        <div class="text-muted small">Aktive Mitglieder</div>
+        <div class="text-muted small">{{ _('Aktive Mitglieder') }}</div>
       </div>
     </div>
   </div>
@@ -47,17 +47,17 @@
 
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Turniere</span>
-    <a href="{{ url_for('club.event_new') }}" class="btn btn-sm btn-primary">+ Turnier erstellen</a>
+    <span>{{ _('Turniere') }}</span>
+    <a href="{{ url_for('club.event_new') }}" class="btn btn-sm btn-primary">+ {{ _('Turnier erstellen') }}</a>
   </div>
   <div class="table-responsive">
     <table class="table table-hover mb-0">
       <thead class="table-light">
         <tr>
-          <th>Turnier</th>
-          <th>Ort</th>
-          <th>Datum</th>
-          <th>Status</th>
+          <th>{{ _('Turnier') }}</th>
+          <th>{{ _('Ort') }}</th>
+          <th>{{ _('Datum') }}</th>
+          <th>{{ _('Status') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -75,19 +75,19 @@
           </td>
           <td>
             {% if event.status == 'open' %}
-              <span class="badge bg-success">Offen</span>
+              <span class="badge bg-success">{{ _('Offen') }}</span>
             {% elif event.status == 'closed' %}
-              <span class="badge bg-secondary">Geschlossen</span>
+              <span class="badge bg-secondary">{{ _('Geschlossen') }}</span>
             {% elif event.status == 'cancelled' %}
-              <span class="badge bg-danger">Abgesagt</span>
+              <span class="badge bg-danger">{{ _('Abgesagt') }}</span>
             {% else %}
-              <span class="badge bg-light text-dark">Entwurf</span>
+              <span class="badge bg-light text-dark">{{ _('Entwurf') }}</span>
             {% endif %}
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="4" class="text-center text-muted py-3">Keine Turniere vorhanden.</td>
+          <td colspan="4" class="text-center text-muted py-3">{{ _('Keine Turniere vorhanden.') }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -101,11 +101,11 @@
 <div class="card mt-3" style="max-width:680px;">
   <div class="card-body d-flex justify-content-between align-items-center">
     <div>
-      <div class="fw-semibold">Richter fehlt in der Liste?</div>
-      <small class="text-muted">Beantrage die Aufnahme — der Administrator prüft die AIS-Nummer.</small>
+      <div class="fw-semibold">{{ _('Richter fehlt in der Liste?') }}</div>
+      <small class="text-muted">{{ _('Beantrage die Aufnahme — der Administrator prüft die AIS-Nummer.') }}</small>
     </div>
     <a href="{{ url_for('club.request_judge') }}" class="btn btn-sm btn-outline-secondary text-nowrap">
-      Richter beantragen
+      {{ _('Richter beantragen') }}
     </a>
   </div>
 </div>

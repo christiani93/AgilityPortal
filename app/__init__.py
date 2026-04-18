@@ -1,11 +1,11 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, redirect, url_for, render_template
+from flask import Flask, redirect, url_for, render_template, session, request as flask_request
 from flask_login import current_user
 
 from .blueprints import register_blueprints
-from .extensions import db, migrate, login_manager, mail
+from .extensions import db, migrate, login_manager, mail, babel
 
 # .env laden (absoluter Pfad für Gunicorn-Kompatibilität)
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"), override=False)
@@ -46,11 +46,22 @@ def create_app():
     app.config["MAIL_TIMEOUT"] = 5
     app.config["NOTIFY_EMAIL"] = os.environ.get("ADMIN_EMAIL", os.environ.get("NOTIFY_EMAIL", "info@z-b.tech"))
 
+    # --- Babel / i18n ---
+    app.config["BABEL_DEFAULT_LOCALE"] = "de"
+    app.config["BABEL_SUPPORTED_LOCALES"] = ["de", "fr", "en"]
+
+    def get_locale():
+        lang = session.get("lang")
+        if lang in ["de", "fr", "en"]:
+            return lang
+        return flask_request.accept_languages.best_match(["de", "fr", "en"], default="de")
+
     # --- Extensions ---
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     mail.init_app(app)
+    babel.init_app(app, locale_selector=get_locale)
 
     # User-Loader für Flask-Login
     from .models import User
@@ -67,5 +78,11 @@ def create_app():
         if current_user.is_authenticated:
             return redirect(url_for("club.dashboard"))
         return render_template("home.html")
+
+    @app.get("/lang/<lang_code>")
+    def set_language(lang_code):
+        if lang_code in ["de", "fr", "en"]:
+            session["lang"] = lang_code
+        return redirect(flask_request.referrer or url_for("club.dashboard"))
 
     return app

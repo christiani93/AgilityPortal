@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Login{% endblock %}
+{% block title %}{{ _('Login') }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mt-5">
   <div class="col-md-4">
     <div class="card shadow-sm">
       <div class="card-body p-4">
-        <h4 class="card-title mb-4">Anmeldung</h4>
+        <h4 class="card-title mb-4">{{ _('Anmeldung') }}</h4>
         <form method="post">
           {{ form.hidden_tag() }}
 
@@ -36,8 +36,8 @@
         </form>
         <hr class="my-3">
         <p class="text-center text-muted small mb-0">
-          Noch kein Konto?
-          <a href="{{ url_for('auth.register') }}">Jetzt registrieren</a>
+          {{ _('Noch kein Konto?') }}
+          <a href="{{ url_for('auth.register') }}">{{ _('Jetzt registrieren') }}</a>
         </p>
       </div>
     </div>
