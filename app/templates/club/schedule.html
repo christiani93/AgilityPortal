@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Zeitplan') }} – {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">{{ _('Zeitplan') }}</h2>
+    <small class="text-muted">{{ event.name }}
+      {% if event.starts_at %} · {{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+    </small>
+  </div>
+  <a href="{{ url_for('club.event_detail', event_id=event.id) }}"
+     class="btn btn-sm btn-outline-secondary">← {{ _('Zurück') }}</a>
+</div>
+
+{# ── 1. RING-KONFIGURATION ─────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header">{{ _('Ringkonfiguration') }}</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('club.schedule_save_rings', event_id=event.id) }}"
+          class="row g-3 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="col-auto">
+        <label class="form-label small">{{ _('Anzahl Ringe') }}</label>
+        <select name="ring_count" class="form-select form-select-sm" id="ring-count-select">
+          {% for n in [1,2,3,4] %}
+          <option value="{{ n }}" {% if (event.ring_count or 1) == n %}selected{% endif %}>
+            {{ n }} {{ _('Ring') }}{% if n > 1 %}e{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% for ring in rings %}
+      <div class="col-auto">
+        <label class="form-label small">{{ ring }} {{ _('Startzeit') }}</label>
+        <input type="time" name="start_{{ ring.replace(' ', '_') }}"
+               value="{{ start_times.get(ring, '08:00') }}"
+               class="form-control form-control-sm" style="width:110px;">
+      </div>
+      {% endfor %}
+
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">{{ _('Speichern') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── 2. RINGE MIT BLOCKS ──────────────────────────────────────────────────── #}
+{% for ring in rings %}
+{% set ring_blocks = blocks_by_ring.get(ring, []) | sort(attribute='sort_index') %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">{{ ring }}</span>
+    <span class="badge bg-secondary">{{ ring_blocks | length }} {{ _('Blöcke') }}</span>
+  </div>
+
+  {# Block-Liste #}
+  {% if ring_blocks %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:36px;"></th>
+          <th>{{ _('Lauf') }}</th>
+          <th>{{ _('Richter') }}</th>
+          <th class="text-end text-muted small">{{ _('Starter') }}</th>
+          <th class="text-end text-muted small">{{ _('Gesch. Dauer') }}</th>
+          <th style="width:80px;"></th>
+        </tr>
+      </thead>
+      <tbody id="sortable-{{ loop.index }}" data-ring="{{ ring }}">
+        {% for block in ring_blocks %}
+        <tr data-block-id="{{ block.id }}">
+          <td class="text-center">
+            <span class="drag-handle text-muted" style="cursor:grab;">⠿</span>
+          </td>
+          <td>
+            <span class="badge
+              {% if block.discipline == 'agility' %}bg-primary
+              {% elif block.discipline == 'jumping' %}bg-success
+              {% else %}bg-warning text-dark{% endif %} me-1">
+              {{ block.discipline | capitalize }}
+            </span>
+            {{ block._display_title }}
+          </td>
+          <td class="text-muted small">
+            {{ block.judge.full_name if block.judge else "—" }}
+          </td>
+          <td class="text-end text-muted small">{{ block._participant_count }}</td>
+          <td class="text-end text-muted small">
+            {% if block._participant_count > 0 %}
+              {% set est = namespace(m=0) %}
+              {% set secs = {"agility": 65, "jumping": 60, "open": 65} %}
+              {% set run_s = block._participant_count * secs.get(block.discipline, 65) %}
+              {% set brief_blocks = (block._participant_count // 50) + 1 %}
+              {% set brief_s = brief_blocks * 8 * 60 %}
+              {% set prep_s = 300 if brief_blocks == 1 else 0 %}
+              {% set total_m = (1200 + brief_s + prep_s + run_s) // 60 %}
+              ~{{ total_m }} {{ _('Min.') }}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <form method="post"
+                    action="{{ url_for('club.schedule_block_move', event_id=event.id, block_id=block.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="direction" value="up">
+                <button type="submit" class="btn btn-xs btn-outline-secondary px-1 py-0"
+                        style="font-size:.7rem;">↑</button>
+              </form>
+              <form method="post"
+                    action="{{ url_for('club.schedule_block_move', event_id=event.id, block_id=block.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="direction" value="down">
+                <button type="submit" class="btn btn-xs btn-outline-secondary px-1 py-0"
+                        style="font-size:.7rem;">↓</button>
+              </form>
+              <form method="post"
+                    action="{{ url_for('club.schedule_block_delete', event_id=event.id, block_id=block.id) }}"
+                    onsubmit="return confirm('{{ _('Block entfernen?') }}')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-outline-danger px-1 py-0"
+                        style="font-size:.7rem;">✕</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted text-center py-3 small">
+    {{ _('Noch keine Läufe eingeplant.') }}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{# ── 3. NOCH NICHT EINGEPLANTE LÄUFE ──────────────────────────────────────── #}
+{% if unscheduled_runs %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>{{ _('Nicht eingeplante Läufe') }}</span>
+    <span class="badge bg-warning text-dark">{{ unscheduled_runs | length }}</span>
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for run in unscheduled_runs %}
+      <form method="post" action="{{ url_for('club.schedule_block_add', event_id=event.id) }}"
+            class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="run_type" value="{{ run.run_type }}">
+        <input type="hidden" name="category" value="{{ run.category }}">
+        <input type="hidden" name="class_level" value="{{ run.class_level }}">
+        <input type="hidden" name="ring" value="{{ rings[0] }}">
+        {% if run.judge_id %}
+        <input type="hidden" name="judge_id" value="{{ run.judge_id }}">
+        {% endif %}
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+          <span class="badge
+            {% if run.run_type == 'agility' %}bg-primary
+            {% elif run.run_type == 'jumping' %}bg-success
+            {% else %}bg-warning text-dark{% endif %} me-1">
+            {{ run.run_type | capitalize }}
+          </span>
+          {{ run.CATEGORY_LABELS.get(run.category, run.category) }} · {{ _('Kl.') }} {{ run.class_level }}
+          <span class="text-muted small ms-1">+ {{ rings[0] }}</span>
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+    <div class="form-text text-muted mt-2">
+      {{ _('Klicke auf einen Lauf um ihn zu Ring 1 hinzuzufügen. Ring und Richter können danach geändert werden.') }}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── 4. ALLE HINZUFÜGEN (wenn Läufe vorhanden) ──────────���────────────────── #}
+{% if event.runs %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>{{ _('Block manuell hinzufügen') }}</span>
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#add-block-panel">
+      + {{ _('Hinzufügen') }}
+    </button>
+  </div>
+  <div class="collapse" id="add-block-panel">
+    <div class="card-body border-top">
+      <form method="post" action="{{ url_for('club.schedule_block_add', event_id=event.id) }}"
+            class="row g-2 align-items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="col-auto">
+          <label class="form-label small mb-1">{{ _('Ring') }}</label>
+          <select name="ring" class="form-select form-select-sm">
+            {% for ring in rings %}
+            <option value="{{ ring }}">{{ ring }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto">
+          <label class="form-label small mb-1">{{ _('Disziplin') }}</label>
+          <select name="run_type" class="form-select form-select-sm">
+            <option value="agility">Agility</option>
+            <option value="jumping">Jumping</option>
+            <option value="open">Open</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <label class="form-label small mb-1">{{ _('Kategorie') }}</label>
+          <select name="category" class="form-select form-select-sm">
+            <option value="L">Large (L)</option>
+            <option value="I">Intermediate (I)</option>
+            <option value="M">Medium (M)</option>
+            <option value="S">Small (S)</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <label class="form-label small mb-1">{{ _('Klasse') }}</label>
+          <select name="class_level" class="form-select form-select-sm">
+            <option value="1">Klasse 1</option>
+            <option value="2">Klasse 2</option>
+            <option value="3">Klasse 3</option>
+          </select>
+        </div>
+        {% if event_judges %}
+        <div class="col-auto">
+          <label class="form-label small mb-1">{{ _('Richter') }}</label>
+          <select name="judge_id" class="form-select form-select-sm">
+            <option value="">— {{ _('kein') }} —</option>
+            {% for judge in event_judges %}
+            <option value="{{ judge.id }}">{{ judge.full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="col-auto">
+          <label class="form-label small mb-1">{{ _('Titel') }} <span class="text-muted">({{ _('optional') }})</span></label>
+          <input type="text" name="title" class="form-control form-control-sm" style="width:150px;"
+                 placeholder="{{ _('Auto') }}">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-sm btn-primary">{{ _('Hinzufügen') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── 5. TIMELINE ──────────────────────────────────────────────────────────── #}
+{% set has_blocks = namespace(found=false) %}
+{% for ring in rings %}{% if blocks_by_ring.get(ring) %}{% set has_blocks.found = true %}{% endif %}{% endfor %}
+
+{% if has_blocks.found %}
+<div class="card mb-4">
+  <div class="card-header">📅 {{ _('Zeitplan-Übersicht') }}</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>{{ _('Ring') }}</th>
+            <th>{{ _('Start') }}</th>
+            <th>{{ _('Ende') }}</th>
+            <th>{{ _('Lauf') }}</th>
+            <th>{{ _('Richter') }}</th>
+            <th class="text-end">{{ _('Starter') }}</th>
+            <th class="text-end">{{ _('Umbau') }}</th>
+            <th class="text-end">{{ _('Briefing') }}</th>
+            <th class="text-end">{{ _('Laufzeit') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ring in rings %}
+          {% set ring_timeline = timeline.get(ring, []) %}
+          {% if ring_timeline %}
+          {% for item in ring_timeline %}
+          <tr {% if loop.first %}class="table-active fw-semibold"{% endif %}>
+            {% if loop.first %}<td rowspan="{{ ring_timeline | length }}">{{ ring }}</td>{% endif %}
+            <td class="fw-semibold">{{ item.start_time }}</td>
+            <td class="text-muted">{{ item.end_time }}</td>
+            <td>
+              <span class="badge
+                {% if item.block.discipline == 'agility' %}bg-primary
+                {% elif item.block.discipline == 'jumping' %}bg-success
+                {% else %}bg-warning text-dark{% endif %} me-1" style="font-size:.65rem;">
+                {{ item.block.discipline | capitalize }}
+              </span>
+              {{ item.block._display_title }}
+            </td>
+            <td class="text-muted small">{{ item.block.judge.full_name if item.block.judge else "—" }}</td>
+            <td class="text-end">{{ item.participants }}</td>
+            <td class="text-end text-muted small">{{ item.changeover_min }} {{ _('Min.') }}</td>
+            <td class="text-end text-muted small">{{ item.briefing_min }} {{ _('Min.') }}</td>
+            <td class="text-end text-muted small">{{ item.run_min }} {{ _('Min.') }}</td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Drag & Drop (SortableJS) ─────────────────────────────────────────────── #}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+<script>
+const EVENT_ID  = {{ event.id }};
+const CSRF      = document.querySelector('meta[name="csrf-token"]')?.content
+               || '{{ csrf_token() }}';
+
+document.querySelectorAll('[id^="sortable-"]').forEach(tbody => {
+  const ringName = tbody.dataset.ring;
+  Sortable.create(tbody, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'table-warning',
+    onEnd() {
+      // Neue Reihenfolge sammeln
+      const blockIds = [...tbody.querySelectorAll('tr[data-block-id]')]
+        .map(tr => parseInt(tr.dataset.blockId));
+      fetch(`/club/events/${EVENT_ID}/schedule/order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF,
+        },
+        body: JSON.stringify({ order: [{ ring: ringName, blocks: blockIds }] })
+      });
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -26,6 +26,7 @@
     </small>
   </div>
   <div class="d-flex gap-2">
+    <a href="{{ url_for('club.event_schedule', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">📅 {{ _('Zeitplan') }}</a>
     <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
     <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
   </div>
@@ -389,12 +390,7 @@
               <button type="submit" class="btn btn-sm btn-outline-secondary">✓</button>
             </form>
           </td>
-          <td class="fw-semibold">
-            {{ reg.dog.name }}
-            {% if reg.is_in_season %}
-              <span class="badge bg-warning text-dark ms-1" title="{{ _('Hündin ist läufig') }}">🔴 {{ _('läufig') }}</span>
-            {% endif %}
-          </td>
+          <td class="fw-semibold">{{ reg.dog.name }}</td>
           <td>{{ reg.category_code }}</td>
           <td>{{ _('Klasse') }} {{ reg.class_level }}</td>
           <td class="text-muted small">

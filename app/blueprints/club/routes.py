@@ -9,7 +9,7 @@ from flask_babel import _
 from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
-from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock
 from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, DogClassForm, EventRegistrationForm
 
 
@@ -945,3 +945,230 @@ def request_reject(req_id):
     db.session.commit()
     flash(_("Anfrage abgelehnt."), "info")
     return redirect(url_for("club.pending_requests"))
+
+
+# ---------------------------------------------------------------------------
+# Zeitplan
+# ---------------------------------------------------------------------------
+
+def _participant_counts_for_event(event_id):
+    """Gibt {(category_code, class_level): count} für PENDING/CONFIRMED-Anmeldungen zurück."""
+    from sqlalchemy import func
+    rows = db.session.execute(
+        db.select(Registration.category_code, Registration.class_level, func.count())
+        .filter(
+            Registration.event_id == event_id,
+            Registration.status.in_([RegistrationStatus.PENDING, RegistrationStatus.CONFIRMED])
+        )
+        .group_by(Registration.category_code, Registration.class_level)
+    ).all()
+    return {(r[0], r[1]): r[2] for r in rows}
+
+
+@club_bp.get("/events/<int:event_id>/schedule")
+@login_required
+def event_schedule(event_id):
+    import json as _json
+    from .schedule_utils import compute_timeline, parse_ring_start_times, ring_names, auto_title
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    rings = ring_names(event.ring_count or 1)
+    start_times = parse_ring_start_times(event.ring_start_times)
+    for r in rings:
+        start_times.setdefault(r, "08:00")
+
+    # Alle ScheduleBlocks für dieses Event, sortiert
+    all_blocks = db.session.execute(
+        db.select(ScheduleBlock).filter_by(event_id=event_id)
+        .order_by(ScheduleBlock.ring, ScheduleBlock.sort_index)
+    ).scalars().all()
+
+    # Teilnehmerzahlen pro Kategorie+Klasse
+    counts = _participant_counts_for_event(event_id)
+    for block in all_blocks:
+        block._participant_count = counts.get((block.category_code, block.class_level), 0)
+        if not block.title:
+            block._display_title = auto_title(block.discipline, block.category_code, block.class_level)
+        else:
+            block._display_title = block.title
+
+    # Blocks nach Ring gruppieren
+    blocks_by_ring = {r: [] for r in rings}
+    for block in all_blocks:
+        if block.ring in blocks_by_ring:
+            blocks_by_ring[block.ring].append(block)
+
+    # Timeline berechnen
+    event_date = event.starts_at.strftime("%Y-%m-%d") if event.starts_at else datetime.utcnow().strftime("%Y-%m-%d")
+    timeline = compute_timeline(blocks_by_ring, start_times, event_date)
+
+    # Noch nicht eingeplante EventRuns
+    scheduled_keys = {
+        (b.discipline, b.category_code, b.class_level) for b in all_blocks
+    }
+    unscheduled_runs = [
+        r for r in event.runs
+        if (r.run_type, _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level)
+        not in scheduled_keys
+    ]
+
+    # Richter des Turniers für den Dropdown
+    event_judges = [ej.judge for ej in event.event_judges]
+
+    return render_template(
+        "club/schedule.html",
+        event=event,
+        rings=rings,
+        start_times=start_times,
+        blocks_by_ring=blocks_by_ring,
+        timeline=timeline,
+        unscheduled_runs=unscheduled_runs,
+        event_judges=event_judges,
+    )
+
+
+@club_bp.post("/events/<int:event_id>/schedule/rings")
+@login_required
+def schedule_save_rings(event_id):
+    import json as _json
+    from .schedule_utils import ring_names
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    ring_count = max(1, min(4, request.form.get("ring_count", 1, type=int)))
+    event.ring_count = ring_count
+
+    rings = ring_names(ring_count)
+    times = {}
+    for r in rings:
+        key = f"start_{r.replace(' ', '_')}"
+        val = (request.form.get(key) or "08:00").strip()
+        try:
+            datetime.strptime(val, "%H:%M")
+        except ValueError:
+            val = "08:00"
+        times[r] = val
+    event.ring_start_times = _json.dumps(times)
+    db.session.commit()
+    flash(_("Ringkonfiguration gespeichert."), "success")
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/add")
+@login_required
+def schedule_block_add(event_id):
+    from .schedule_utils import auto_title
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    run_type    = request.form.get("run_type", "agility")
+    category    = request.form.get("category", "L")     # kurzes Kürzel L/I/M/S
+    class_level = request.form.get("class_level", 1, type=int)
+    ring        = request.form.get("ring", "Ring 1")
+    judge_id    = request.form.get("judge_id", type=int) or None
+    title       = (request.form.get("title") or "").strip() or None
+
+    category_code = _CATEGORY_CODE_MAP.get(category, category)
+
+    # Doppelt eintragen verhindern
+    existing = db.session.execute(
+        db.select(ScheduleBlock).filter_by(
+            event_id=event_id, discipline=run_type,
+            category_code=category_code, class_level=class_level
+        )
+    ).scalar_one_or_none()
+    if existing:
+        flash(_("Dieser Lauf ist bereits im Zeitplan."), "warning")
+        return redirect(url_for("club.event_schedule", event_id=event_id))
+
+    max_idx = db.session.execute(
+        db.select(db.func.max(ScheduleBlock.sort_index))
+        .filter_by(event_id=event_id, ring=ring)
+    ).scalar() or 0
+
+    block = ScheduleBlock(
+        event_id=event_id,
+        ring=ring,
+        discipline=run_type,
+        category_code=category_code,
+        class_level=class_level,
+        judge_id=judge_id,
+        title=title,
+        sort_index=max_idx + 10,
+    )
+    db.session.add(block)
+    db.session.commit()
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/blocks/<int:block_id>/delete")
+@login_required
+def schedule_block_delete(event_id, block_id):
+    block = db.session.get(ScheduleBlock, block_id)
+    if not block or block.event_id != event_id:
+        abort(404)
+    _assert_event_access(db.session.get(Event, event_id))
+    db.session.delete(block)
+    db.session.commit()
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/blocks/<int:block_id>/move")
+@login_required
+def schedule_block_move(event_id, block_id):
+    block = db.session.get(ScheduleBlock, block_id)
+    if not block or block.event_id != event_id:
+        abort(404)
+    _assert_event_access(db.session.get(Event, event_id))
+
+    direction = request.form.get("direction", "down")
+    ring_blocks = db.session.execute(
+        db.select(ScheduleBlock)
+        .filter_by(event_id=event_id, ring=block.ring)
+        .order_by(ScheduleBlock.sort_index)
+    ).scalars().all()
+
+    idx = next((i for i, b in enumerate(ring_blocks) if b.id == block_id), None)
+    if idx is None:
+        return redirect(url_for("club.event_schedule", event_id=event_id))
+
+    if direction == "up" and idx > 0:
+        swap = ring_blocks[idx - 1]
+        block.sort_index, swap.sort_index = swap.sort_index, block.sort_index
+    elif direction == "down" and idx < len(ring_blocks) - 1:
+        swap = ring_blocks[idx + 1]
+        block.sort_index, swap.sort_index = swap.sort_index, block.sort_index
+
+    db.session.commit()
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/order")
+@login_required
+def schedule_block_reorder(event_id):
+    """AJAX: Speichert neue Reihenfolge nach Drag & Drop."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    data = request.get_json(silent=True) or {}
+    for ring_data in data.get("order", []):
+        ring_name = ring_data.get("ring", "Ring 1")
+        for idx, bid in enumerate(ring_data.get("blocks", [])):
+            blk = db.session.get(ScheduleBlock, int(bid))
+            if blk and blk.event_id == event_id:
+                blk.ring       = ring_name
+                blk.sort_index = idx * 10
+    db.session.commit()
+    return {"ok": True}

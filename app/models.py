@@ -310,6 +310,8 @@ class Event(db.Model):
     judge2_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     allows_bitches_in_season = db.Column(db.Boolean, default=False, nullable=False)
     bitches_in_season_start_last = db.Column(db.Boolean, default=False, nullable=False)
+    ring_count = db.Column(db.Integer, default=1, nullable=False)
+    ring_start_times = db.Column(db.Text, nullable=True)   # JSON {"Ring 1": "08:00", ...}
     is_breed_restricted = db.Column(db.Boolean, default=False, nullable=False)
     registration_open_at = db.Column(db.DateTime, nullable=True)
     registration_close_at = db.Column(db.DateTime, nullable=True)
@@ -718,10 +720,14 @@ class ScheduleBlock(db.Model):
     discipline = db.Column(db.String(20), nullable=False)
     category_code = db.Column(db.String(20), nullable=False)
     class_level = db.Column(db.Integer, nullable=False)
+    judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
+    title = db.Column(db.String(200), nullable=True)
     notes = db.Column(db.Text)
     sort_index = db.Column(db.Integer, index=True, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    judge = db.relationship("Judge", foreign_keys=[judge_id])
 
     __table_args__ = (
         CheckConstraint("class_level in (1, 2, 3)", name="ck_schedule_blocks_class_level"),
