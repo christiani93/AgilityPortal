@@ -26,7 +26,14 @@
 
       <div class="mb-3">
         {{ form.ais_turniernummer.label(class="form-label") }}
-        {{ form.ais_turniernummer(class="form-control" + (" is-invalid" if form.ais_turniernummer.errors else ""), placeholder="z.B. 12345") }}
+        <div class="d-flex gap-2 align-items-center">
+          {{ form.ais_turniernummer(class="form-control" + (" is-invalid" if form.ais_turniernummer.errors else ""),
+             placeholder="z.B. 12345", id="ais_input") }}
+          <button type="button" class="btn btn-outline-primary btn-sm text-nowrap" onclick="tkamo_load()">
+            📥 {{ _('Von TKAMO laden') }}
+          </button>
+        </div>
+        <span id="tkamo_status" class="form-text text-muted"></span>
         {% for e in form.ais_turniernummer.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
 
@@ -116,4 +123,39 @@
     </form>
   </div>
 </div>
+
+<script>
+async function tkamo_load() {
+  const ais = document.getElementById('ais_input').value.trim();
+  const status = document.getElementById('tkamo_status');
+  if (!ais) { status.textContent = '{{ _("Bitte AIS-Nummer eingeben.") }}'; return; }
+  status.textContent = '{{ _("Lade…") }}';
+  try {
+    const r = await fetch('https://admin.z-b.tech/api/tkamo/' + ais);
+    const d = await r.json();
+    if (d.error) { status.textContent = '❌ ' + d.error; return; }
+
+    if (d.title)    document.querySelector('[name=name]').value = d.title;
+    if (d.location) document.querySelector('[name=location]').value = d.location;
+
+    // Datum + Zeit für datetime-local Felder
+    if (d.date_from) {
+      const f = document.querySelector('[name=starts_at]');
+      if (f) f.value = d.date_from + 'T08:00';
+      const t = document.querySelector('[name=ends_at]');
+      if (t) t.value = d.date_from + 'T18:00';
+    }
+    if (d.registration_open) {
+      const f = document.querySelector('[name=registration_open_at]');
+      if (f) f.value = d.registration_open + 'T00:00';
+    }
+    if (d.registration_close) {
+      const f = document.querySelector('[name=registration_close_at]');
+      if (f) f.value = d.registration_close + 'T23:59';
+    }
+
+    status.textContent = '✅ {{ _("Daten geladen — bitte prüfen und speichern.") }}';
+  } catch(e) { status.textContent = '❌ {{ _("Netzwerkfehler — AdminPortal nicht erreichbar?") }}'; }
+}
+</script>
 {% endblock %}
