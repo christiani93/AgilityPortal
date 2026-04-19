@@ -40,7 +40,8 @@ class ChangePasswordForm(FlaskForm):
 # ---------------------------------------------------------------------------
 
 class EventForm(FlaskForm):
-    ais_turniernummer = IntegerField("Turnier-ID (AIS)", validators=[Optional()])
+    ais_turniernummer       = IntegerField("Turnier-ID (AIS)", validators=[Optional()])
+    ais_turniernummer_extra = StringField("Weitere AIS-Nummern (Mehrtage-Event)", validators=[Optional(), Length(max=255)])
     name = StringField("Turniername", validators=[DataRequired(), Length(max=200)])
     location = StringField("Ort / Adresse", validators=[Optional(), Length(max=200)])
     starts_at = DateField("Von (Datum)", validators=[DataRequired()])

@@ -424,6 +424,7 @@ def event_new():
         )
         event = Event(
             ais_turniernummer=form.ais_turniernummer.data or None,
+            ais_turniernummer_extra=form.ais_turniernummer_extra.data.strip() if form.ais_turniernummer_extra.data else None,
             name=form.name.data.strip(),
             location=form.location.data.strip() if form.location.data else None,
             starts_at=starts,
@@ -572,6 +573,7 @@ def event_edit(event_id):
             form.club_id.data = event.organiser_club_id or 0
     if form.validate_on_submit():
         event.ais_turniernummer = form.ais_turniernummer.data or None
+        event.ais_turniernummer_extra = form.ais_turniernummer_extra.data.strip() if form.ais_turniernummer_extra.data else None
         event.name = form.name.data.strip()
         event.location = form.location.data.strip() if form.location.data else None
         event.starts_at = datetime.combine(form.starts_at.data, datetime.min.time())

@@ -94,11 +94,21 @@ def generate_body_md(event) -> str:
     if event.registration_close_at:
         lines.append(f"📅 Meldeschluss: {_fmt_date_long(event.registration_close_at)}")
 
-    # ── TKAMO-Link
+    # ── TKAMO-Links (primäre + allfällige weitere AIS-Nummern)
+    from app.services.tkamo_importer import tkamo_url_for
+    ais_all = []
     if event.ais_turniernummer:
-        from app.services.tkamo_importer import tkamo_url_for
-        tkamo_url = tkamo_url_for(event.ais_turniernummer)
-        lines.append(f"📋 [TKAMO-Eintrag]({tkamo_url})")
+        ais_all.append(str(event.ais_turniernummer))
+    if event.ais_turniernummer_extra:
+        for part in event.ais_turniernummer_extra.split(","):
+            p = part.strip()
+            if p:
+                ais_all.append(p)
+    if len(ais_all) == 1:
+        lines.append(f"📋 [TKAMO-Eintrag]({tkamo_url_for(ais_all[0])})")
+    elif len(ais_all) > 1:
+        for i, ais in enumerate(ais_all, 1):
+            lines.append(f"📋 [TKAMO-Eintrag Tag {i}]({tkamo_url_for(ais)})")
 
     return "\n".join(lines)
 

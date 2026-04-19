@@ -38,6 +38,14 @@
       </div>
 
       <div class="mb-3">
+        {{ form.ais_turniernummer_extra.label(class="form-label") }}
+        {{ form.ais_turniernummer_extra(class="form-control" + (" is-invalid" if form.ais_turniernummer_extra.errors else ""),
+           placeholder="z.B. 67890, 11111") }}
+        <div class="form-text text-muted">{{ _('Bei Mehrtage-Events: weitere AIS-Nummern (kommagetrennt). Alle Tage teilen eine Reservation und einen Website-Eintrag.') }}</div>
+        {% for e in form.ais_turniernummer_extra.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="mb-3">
         {{ form.name.label(class="form-label") }}
         {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
         {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}

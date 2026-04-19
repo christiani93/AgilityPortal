@@ -300,7 +300,8 @@ class Event(db.Model):
     external_id = db.Column(db.String(64), unique=True)
 
     # TKAMO-Felder
-    ais_turniernummer = db.Column(db.Integer, unique=True, nullable=True)
+    ais_turniernummer       = db.Column(db.Integer, unique=True, nullable=True)
+    ais_turniernummer_extra = db.Column(db.String(255), nullable=True)  # kommagetrennt, für Mehrtage-Events
     type = db.Column(db.String(20), default="regular", nullable=False)
     special_ruleset = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(20), default="draft", nullable=False)

@@ -220,8 +220,19 @@
         <span class="badge bg-success ms-2">✓ {{ event.tkamo_imported_at.strftime('%d.%m.%Y %H:%M') }}</span>
       {% endif %}
     </span>
-    <a href="https://www.tkamo.ch/?lang=de&amp;n0=agenda&amp;n1=&amp;detail={{ event.ais_turniernummer }}"
-       target="_blank" class="btn btn-sm btn-outline-secondary">🌐 TKAMO</a>
+    <div class="d-flex gap-2">
+      <a href="https://www.tkamo.ch/?lang=de&amp;n0=agenda&amp;n1=&amp;detail={{ event.ais_turniernummer }}"
+         target="_blank" class="btn btn-sm btn-outline-secondary">🌐 Tag 1</a>
+      {% if event.ais_turniernummer_extra %}
+        {% for ais_extra in event.ais_turniernummer_extra.split(',') %}
+          {% set ais_n = ais_extra.strip() %}
+          {% if ais_n %}
+          <a href="https://www.tkamo.ch/?lang=de&amp;n0=agenda&amp;n1=&amp;detail={{ ais_n }}"
+             target="_blank" class="btn btn-sm btn-outline-secondary">🌐 Tag {{ loop.index + 1 }}</a>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    </div>
   </div>
   <div class="card-body">
     {% if event.tkamo_imported_at %}
@@ -245,6 +256,12 @@
     </dl>
     {% else %}
     <p class="text-muted small mb-3">{{ _('Noch keine TKAMO-Daten geladen.') }}</p>
+    {% endif %}
+    {% if event.ais_turniernummer_extra %}
+    <p class="text-muted small mb-2">
+      ℹ️ {{ _('Mehrtage-Event — weitere AIS-Nummern:') }} <strong>{{ event.ais_turniernummer_extra }}</strong>
+      <span class="ms-1">({{ _('teilen diese Reservation und diesen Website-Eintrag') }})</span>
+    </p>
     {% endif %}
     <form method="post" action="{{ url_for('club.event_tkamo_import', event_id=event.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -273,31 +290,53 @@
     {% endif %}
   </div>
   <div class="card-body">
-    {# Freitext-Beschreibung #}
-    <form method="post" action="{{ url_for('club.event_description_save', event_id=event.id) }}" class="mb-3">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label class="form-label small text-muted">
-        {{ _('Beschreibungstext (optional, erscheint im Inserat auf z-b.tech)') }}
-      </label>
-      <textarea name="event_description_de" class="form-control" rows="4"
-                placeholder="{{ _('Freitext-Beschreibung für die Webseite...') }}">{{ event.event_description_de or '' }}</textarea>
-      <button type="submit" class="btn btn-sm btn-outline-secondary mt-2">
-        💾 {{ _('Beschreibung speichern') }}
-      </button>
-    </form>
 
-    {# body_md Vorschau #}
+    {# ── Automatisch generiertes Markdown ────────────────────────────────── #}
     {% if event.starts_at %}
-    <details class="mb-3">
-      <summary class="small text-muted" style="cursor:pointer;">{{ _('Markdown-Vorschau anzeigen') }}</summary>
-      <pre class="mt-2 p-2 bg-light rounded small" style="white-space:pre-wrap; font-size:.78rem;" id="bodyMdPreview">{{ body_md_preview }}</pre>
-    </details>
+    <p class="small text-muted mb-1">
+      {{ _('Inserat-Text wird automatisch aus den eingetragenen Daten generiert:') }}
+    </p>
+    <div class="d-flex gap-2 mb-1 small text-muted flex-wrap">
+      <span>🗓 {{ _('Datum') }}{% if not event.starts_at %} ⚠️{% endif %}</span>
+      <span>·</span>
+      <span>🥋 {{ _('Wettbewerbe') }}{% if not event.tkamo_disciplines %} <em>({{ _('fehlt') }})</em>{% endif %}</span>
+      <span>·</span>
+      <span>🏆 {{ _('Kategorien') }}{% if not event.tkamo_categories %} <em>({{ _('fehlt') }})</em>{% endif %}</span>
+      <span>·</span>
+      <span>👩‍⚖️ {{ _('Richter') }}{% if not event.tkamo_judges %} <em>({{ _('fehlt') }})</em>{% endif %}</span>
+      <span>·</span>
+      <span>📋 {{ _('TKAMO-Link') }}{% if not event.ais_turniernummer %} <em>({{ _('fehlt') }})</em>{% endif %}</span>
+    </div>
+    <pre class="p-2 bg-light rounded mb-3"
+         style="white-space:pre-wrap; font-size:.8rem; max-height:260px; overflow-y:auto;">{{ body_md_preview }}</pre>
+    {% else %}
+    <div class="alert alert-warning small mb-3">
+      ⚠️ {{ _('Datum fehlt — bitte zuerst im Event-Formular eintragen.') }}
+    </div>
     {% endif %}
 
-    {# Sync-Button #}
+    {# ── Optionaler Zusatztext ────────────────────────────────────────────── #}
+    <form method="post" action="{{ url_for('club.event_description_save', event_id=event.id) }}" class="mb-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <details {% if event.event_description_de %}open{% endif %}>
+        <summary class="small text-muted mb-1" style="cursor:pointer;">
+          📝 {{ _('Zusatztext (optional — erscheint im Inserat nach den Infos)') }}
+          {% if event.event_description_de %}<span class="badge bg-secondary ms-1">{{ _('vorhanden') }}</span>{% endif %}
+        </summary>
+        <div class="mt-2">
+          <textarea name="event_description_de" class="form-control" rows="3"
+                    placeholder="{{ _('Ergänzende Informationen, z.B. Parkplätze, Verpflegung, Besonderheiten...') }}">{{ event.event_description_de or '' }}</textarea>
+          <button type="submit" class="btn btn-sm btn-outline-secondary mt-2">
+            💾 {{ _('Zusatztext speichern') }}
+          </button>
+        </div>
+      </details>
+    </form>
+
+    {# ── Sync-Button ─────────────────────────────────────────────────────── #}
     <form method="post" action="{{ url_for('club.event_website_sync', event_id=event.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn btn-sm btn-primary">
+      <button type="submit" class="btn btn-sm btn-primary" {% if not event.starts_at %}disabled{% endif %}>
         🚀 {{ _('Jetzt auf z-b.tech synchronisieren') }}
       </button>
       {% if event.website_event_id %}
