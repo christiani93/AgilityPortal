@@ -228,7 +228,6 @@
           <th class="text-center">{{ _('Nr.') }}</th>
           <th class="text-end">{{ _('Zeit') }}</th>
           <th class="text-center">{{ _('F / V') }}</th>
-          <th class="text-center">{{ _('Qualif.') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -251,26 +250,6 @@
             {% if row.faults is not none or row.refusals is not none %}
               {{ row.faults or 0 }} / {{ row.refusals or 0 }}
             {% else %}—{% endif %}
-          </td>
-          <td class="text-center">
-            {% set q = row.status or '' %}
-            {% if q == 'V0' %}
-              <span class="badge bg-success">V0</span>
-            {% elif q == 'V' %}
-              <span class="badge bg-success">V</span>
-            {% elif q == 'SG' %}
-              <span class="badge bg-primary">SG</span>
-            {% elif q == 'G' %}
-              <span class="badge bg-info text-dark">G</span>
-            {% elif q in ('DIS', 'ABR') %}
-              <span class="badge bg-danger">{{ q }}</span>
-            {% elif q == 'DNS' %}
-              <span class="badge bg-secondary">DNS</span>
-            {% elif q == 'NB' %}
-              <span class="badge bg-warning text-dark">NB</span>
-            {% else %}
-              <span class="text-muted small">—</span>
-            {% endif %}
           </td>
         </tr>
         {% endfor %}

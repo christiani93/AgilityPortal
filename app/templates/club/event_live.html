@@ -241,7 +241,6 @@ function renderResults(resultClasses, updated, isFinal, pdfs) {
                 <th class="text-center">Nr.</th>
                 <th class="text-end">Zeit</th>
                 <th class="text-center">F / V</th>
-                <th class="text-center">Qualif.</th>
               </tr>
             </thead>
             <tbody>`;
@@ -260,7 +259,6 @@ function renderResults(resultClasses, updated, isFinal, pdfs) {
                 <td class="text-center text-muted small">${r.start_no || '—'}</td>
                 <td class="text-end font-monospace small">${r.time_s ? r.time_s.toFixed(2) + 's' : '—'}</td>
                 <td class="text-center small">${(r.faults != null) ? r.faults + ' / ' + r.refusals : '—'}</td>
-                <td class="text-center">${qualBadge(r.status)}</td>
               </tr>`;
     });
 

@@ -159,7 +159,6 @@
         <th class="num">Zeit (s)</th>
         <th class="cent">F</th>
         <th class="cent">V</th>
-        <th class="cent">Qualif.</th>
       </tr>
     </thead>
     <tbody>
@@ -175,17 +174,6 @@
         </td>
         <td class="cent">{% if r.faults is not none %}{{ r.faults }}{% else %}—{% endif %}</td>
         <td class="cent">{% if r.refusals is not none %}{{ r.refusals }}{% else %}—{% endif %}</td>
-        <td class="cent">
-          {% set q = r.status or '' %}
-          {% if q == 'V0' %}<span class="q q-v0">V0</span>
-          {% elif q == 'V' %}<span class="q q-v">V</span>
-          {% elif q == 'SG' %}<span class="q q-sg">SG</span>
-          {% elif q == 'G' %}<span class="q q-g">G</span>
-          {% elif q == 'NB' %}<span class="q q-nb">NB</span>
-          {% elif q in ('DIS','ABR') %}<span class="q q-dis">{{ q }}</span>
-          {% elif q == 'DNS' %}<span class="q q-dns">DNS</span>
-          {% else %}—{% endif %}
-        </td>
       </tr>
       {% endfor %}
     </tbody>

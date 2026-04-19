@@ -60,7 +60,7 @@ def result_pdf_upload():
     event_external_id = request.form.get("event_external_id", "").strip()
     run_name          = request.form.get("run_name", "")
     ring              = request.form.get("ring", "")
-    discipline        = request.form.get("discipline", "")
+    discipline        = request.form.get("discipline", "").lower()   # normalisiert wie Result-Tabelle
     category_code     = request.form.get("category_code", "")
     class_level_str   = request.form.get("class_level", "0")
     is_final          = request.form.get("is_final", "false").lower() == "true"
