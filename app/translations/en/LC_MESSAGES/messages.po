@@ -1296,3 +1296,118 @@ msgstr "Not set — please enter in My dogs"
 
 msgid "Nr."
 msgstr "No."
+
+# dashboard.html / participant_dashboard.html / profile_dogs.html / startlist.html / event_info.html / superadmin_dashboard.html / users.html
+msgid "Abgeschlossen"
+msgstr "Completed"
+
+msgid "Abmelden"
+msgstr "Withdraw"
+
+msgid "Besitzer"
+msgstr "Owner"
+
+msgid "Du bist für dieses Turnier noch nicht angemeldet."
+msgstr "You are not yet registered for this tournament."
+
+msgid "Ergebnisse"
+msgstr "Results"
+
+msgid "Erstellen"
+msgstr "Create"
+
+msgid "Erstellt eine Testveranstaltung mit allen Standard-Läufen (Agility + Jumping, alle Kategorien, Kl. 1–3) und befüllt sie direkt mit Testanmeldungen. Nur für Superadmin sichtbar."
+msgstr "Creates a test event with all standard runs (Agility + Jumping, all categories, Cl. 1–3) and populates it with test registrations. Only visible to superadmin."
+
+msgid "F / V"
+msgstr "F / V"
+
+msgid "Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), wirst du automatisch als Hundeführer verknüpft."
+msgstr "If the dog is already registered in the system (same licence number), you will be automatically linked as handler."
+
+msgid "Hund / Hundeführer"
+msgstr "Dog / Handler"
+
+msgid "Hündin als läufig melden"
+msgstr "Report bitch as in season"
+
+msgid "Kat. / Kl."
+msgstr "Cat. / Cl."
+
+msgid "Klasse ändern"
+msgstr "Change class"
+
+msgid "Live"
+msgstr "Live"
+
+msgid "Läufig melden"
+msgstr "Report in season"
+
+msgid "Läufig-Meldung aufheben"
+msgstr "Cancel in-season report"
+
+msgid "Meine Anmeldung"
+msgstr "My registration"
+
+msgid "Nicht läufig"
+msgstr "Not in season"
+
+msgid "Noch keine Ergebnisse verfügbar."
+msgstr "No results available yet."
+
+msgid "Offene Anmeldungen werden automatisch angepasst."
+msgstr "Open registrations will be updated automatically."
+
+msgid "Offizielle Liste"
+msgstr "Official list"
+
+msgid "Pl."
+msgstr "Pl."
+
+msgid "Rangliste PDF"
+msgstr "Ranking PDF"
+
+msgid "Ranglisten"
+msgstr "Rankings"
+
+msgid "Stand"
+msgstr "As of"
+
+msgid "Starter pro Lauf"
+msgstr "Starters per run"
+
+msgid "Startnummern vergeben am"
+msgstr "Start numbers assigned on"
+
+msgid "Startnummern wurden bereits vergeben. Eine Abmeldung oder Läufig-Meldung wird dem Veranstalter angezeigt — die Startnummer bleibt reserviert."
+msgstr "Start numbers have already been assigned. A withdrawal or in-season report will be shown to the organiser — the start number remains reserved."
+
+msgid "Testturnier erstellen"
+msgstr "Create test tournament"
+
+msgid "Testturnier"
+msgstr "Test tournament"
+
+msgid "Vollständige Startliste"
+msgstr "Full start list"
+
+msgid "Vom Turnier abmelden?"
+msgstr "Withdraw from tournament?"
+
+msgid "Vorläufig"
+msgstr "Provisional"
+
+msgid "Zeit"
+msgstr "Time"
+
+msgid "kein Verein"
+msgstr "no club"
+
+msgid "läufig"
+msgstr "in season"
+
+msgid "nicht gesetzt"
+msgstr "not set"
+
+msgid "24 Läufe × Anzahl Starter = total Testanmeldungen."
+msgstr "24 runs × number of starters = total test registrations."

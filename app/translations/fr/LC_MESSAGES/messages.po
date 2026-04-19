@@ -1293,3 +1293,118 @@ msgstr "Non défini — veuillez renseigner dans Mes chiens"
 
 msgid "Nr."
 msgstr "N°"
+
+# dashboard.html / participant_dashboard.html / profile_dogs.html / startlist.html / event_info.html / superadmin_dashboard.html / users.html
+msgid "Abgeschlossen"
+msgstr "Terminé"
+
+msgid "Abmelden"
+msgstr "Se désinscrire"
+
+msgid "Besitzer"
+msgstr "Propriétaire"
+
+msgid "Du bist für dieses Turnier noch nicht angemeldet."
+msgstr "Vous n'êtes pas encore inscrit(e) à ce tournoi."
+
+msgid "Ergebnisse"
+msgstr "Résultats"
+
+msgid "Erstellen"
+msgstr "Créer"
+
+msgid "Erstellt eine Testveranstaltung mit allen Standard-Läufen (Agility + Jumping, alle Kategorien, Kl. 1–3) und befüllt sie direkt mit Testanmeldungen. Nur für Superadmin sichtbar."
+msgstr "Crée un événement test avec toutes les courses standard (Agility + Jumping, toutes catégories, Cl. 1–3) et le remplit d'inscriptions test. Visible uniquement par le superadmin."
+
+msgid "F / V"
+msgstr "F / V"
+
+msgid "Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), wirst du automatisch als Hundeführer verknüpft."
+msgstr "Si le chien est déjà enregistré dans le système (même numéro de licence), vous serez automatiquement lié(e) en tant que conducteur/trice."
+
+msgid "Hund / Hundeführer"
+msgstr "Chien / Conducteur"
+
+msgid "Hündin als läufig melden"
+msgstr "Signaler la chienne en chaleur"
+
+msgid "Kat. / Kl."
+msgstr "Cat. / Cl."
+
+msgid "Klasse ändern"
+msgstr "Changer de classe"
+
+msgid "Live"
+msgstr "Live"
+
+msgid "Läufig melden"
+msgstr "Signaler en chaleur"
+
+msgid "Läufig-Meldung aufheben"
+msgstr "Annuler le signalement en chaleur"
+
+msgid "Meine Anmeldung"
+msgstr "Mon inscription"
+
+msgid "Nicht läufig"
+msgstr "Pas en chaleur"
+
+msgid "Noch keine Ergebnisse verfügbar."
+msgstr "Aucun résultat disponible pour le moment."
+
+msgid "Offene Anmeldungen werden automatisch angepasst."
+msgstr "Les inscriptions ouvertes seront automatiquement mises à jour."
+
+msgid "Offizielle Liste"
+msgstr "Liste officielle"
+
+msgid "Pl."
+msgstr "Pl."
+
+msgid "Rangliste PDF"
+msgstr "PDF du classement"
+
+msgid "Ranglisten"
+msgstr "Classements"
+
+msgid "Stand"
+msgstr "Au"
+
+msgid "Starter pro Lauf"
+msgstr "Partants par course"
+
+msgid "Startnummern vergeben am"
+msgstr "Numéros attribués le"
+
+msgid "Startnummern wurden bereits vergeben. Eine Abmeldung oder Läufig-Meldung wird dem Veranstalter angezeigt — die Startnummer bleibt reserviert."
+msgstr "Les numéros de départ ont déjà été attribués. Un retrait ou un signalement en chaleur sera affiché à l'organisateur — le numéro de départ reste réservé."
+
+msgid "Testturnier erstellen"
+msgstr "Créer un tournoi test"
+
+msgid "Testturnier"
+msgstr "Tournoi test"
+
+msgid "Vollständige Startliste"
+msgstr "Liste de départ complète"
+
+msgid "Vom Turnier abmelden?"
+msgstr "Se désinscrire du tournoi ?"
+
+msgid "Vorläufig"
+msgstr "Provisoire"
+
+msgid "Zeit"
+msgstr "Temps"
+
+msgid "kein Verein"
+msgstr "aucun club"
+
+msgid "läufig"
+msgstr "en chaleur"
+
+msgid "nicht gesetzt"
+msgstr "non défini"
+
+msgid "24 Läufe × Anzahl Starter = total Testanmeldungen."
+msgstr "24 courses × nombre de participants = total des inscriptions test."
