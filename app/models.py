@@ -332,6 +332,10 @@ class Event(db.Model):
     event_description_de = db.Column(db.Text, nullable=True)   # Freitext für body_md
     website_synced_at    = db.Column(db.DateTime, nullable=True)
     website_event_id     = db.Column(db.Integer, nullable=True) # PublicEvent.id auf z-b.tech
+
+    # Reservationsanfrage
+    reservation_id       = db.Column(db.Integer, nullable=True) # Reservation.id im AdminPortal
+    reservation_synced_at = db.Column(db.DateTime, nullable=True)
     results_submitted_at = db.Column(db.DateTime, nullable=True)
 
     # Billing

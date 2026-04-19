@@ -1,10 +1,12 @@
 """
-TKAMO-Import und Website-Sync für einzelne Events.
+TKAMO-Import, Website-Sync und Reservationsanfrage für einzelne Events.
 
 Routen:
-  POST /club/events/<id>/tkamo-import   → TKAMO-Daten laden + anwenden
-  POST /club/events/<id>/website-sync   → body_md generieren + AdminPortal API
-  POST /club/events/<id>/description-save → Freitext-Beschreibung speichern
+  POST /club/events/<id>/tkamo-import        → TKAMO-Daten laden + anwenden
+  POST /club/events/<id>/website-sync        → body_md generieren + AdminPortal API
+  POST /club/events/<id>/description-save    → Freitext-Beschreibung speichern
+  POST /club/events/<id>/reservation-request → Neue Reservationsanfrage erstellen
+  POST /club/events/<id>/reservation-sync    → Bestehende Reservation aktualisieren
 """
 
 from flask import redirect, url_for, flash, request
@@ -90,5 +92,79 @@ def event_website_sync(event_id):
     except Exception as e:
         db.session.rollback()
         flash(f"Fehler beim Synchronisieren: {e}", "danger")
+
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+# ── Reservationsanfrage erstellen ────────────────────────────────────────────
+
+@club_bp.route("/events/<int:event_id>/reservation-request", methods=["POST"])
+@login_required
+def event_reservation_request(event_id):
+    event = db.get_or_404(Event, event_id)
+
+    if not (current_user.is_superadmin or
+            (current_user.club_id and current_user.club_id == event.organiser_club_id)):
+        flash("Keine Berechtigung.", "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    if event.reservation_id:
+        flash("Es besteht bereits eine Reservationsanfrage. Verwende 'Daten aktualisieren'.", "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    contact_name  = request.form.get("contact_name", "").strip()
+    contact_email = request.form.get("contact_email", "").strip()
+    contact_phone = request.form.get("contact_phone", "").strip()
+    club          = request.form.get("club", "").strip()
+    notes         = request.form.get("notes", "").strip()
+    option_special_eval  = bool(request.form.get("option_special_eval"))
+    option_website       = bool(request.form.get("option_website"))
+    option_event_support = bool(request.form.get("option_event_support"))
+
+    if not contact_name or not contact_email:
+        flash("Name und E-Mail des Ansprechpartners sind Pflichtfelder.", "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    try:
+        from app.services.reservation_sync import create_reservation
+        ok, err = create_reservation(
+            event, contact_name, contact_email, contact_phone, club, notes,
+            option_special_eval, option_website, option_event_support,
+        )
+        if ok:
+            db.session.commit()
+            flash("Reservationsanfrage erfolgreich gesendet.", "success")
+        else:
+            flash(f"Anfrage fehlgeschlagen: {err}", "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Fehler: {e}", "danger")
+
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+# ── Reservation mit aktuellen Event-Daten aktualisieren ──────────────────────
+
+@club_bp.route("/events/<int:event_id>/reservation-sync", methods=["POST"])
+@login_required
+def event_reservation_sync(event_id):
+    event = db.get_or_404(Event, event_id)
+
+    if not (current_user.is_superadmin or
+            (current_user.club_id and current_user.club_id == event.organiser_club_id)):
+        flash("Keine Berechtigung.", "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    try:
+        from app.services.reservation_sync import update_reservation
+        ok, err = update_reservation(event)
+        if ok:
+            db.session.commit()
+            flash("Reservationsdaten erfolgreich aktualisiert.", "success")
+        else:
+            flash(f"Aktualisierung fehlgeschlagen: {err}", "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Fehler: {e}", "danger")
 
     return redirect(url_for("club.event_detail", event_id=event_id))

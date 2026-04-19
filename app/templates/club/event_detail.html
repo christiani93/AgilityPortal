@@ -365,6 +365,99 @@
   </div>
 </div>
 
+{# ── Reservationsanfrage ───────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>📋 {{ _('Reservationsanfrage (z-b.tech)') }}
+      {% if event.reservation_id %}
+        <span class="badge bg-success ms-2">✓ {{ _('Anfrage #%(id)d gesendet', id=event.reservation_id) }}</span>
+        {% if event.reservation_synced_at %}
+          <span class="badge bg-light text-dark border ms-1">{{ _('Sync') }}: {{ event.reservation_synced_at.strftime('%d.%m.%Y %H:%M') }}</span>
+        {% endif %}
+      {% else %}
+        <span class="badge bg-light text-dark border ms-2">{{ _('Noch keine Anfrage') }}</span>
+      {% endif %}
+    </span>
+    {% if event.reservation_id %}
+    <a href="https://admin.z-b.tech/reservations/{{ event.reservation_id }}"
+       target="_blank" class="btn btn-sm btn-outline-secondary">🔗 {{ _('Im Admin öffnen') }}</a>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if not event.reservation_id %}
+    {# ── Neue Anfrage ─────────────────────────────────────────────────────── #}
+    <p class="text-muted small mb-3">
+      {{ _('Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an admin.z-b.tech.') }}
+      {{ _('Turnierdaten (Name, Datum, Ort) werden automatisch übernommen.') }}
+    </p>
+    <form method="post" action="{{ url_for('club.event_reservation_request', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-2 mb-2">
+        <div class="col-md-4">
+          <label class="form-label small text-muted">{{ _('Ansprechpartner') }} *</label>
+          <input type="text" name="contact_name" class="form-control form-control-sm" required
+                 value="{{ current_user.full_name if current_user.full_name else '' }}"
+                 placeholder="{{ _('Vorname Nachname') }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">{{ _('E-Mail') }} *</label>
+          <input type="email" name="contact_email" class="form-control form-control-sm" required
+                 value="{{ current_user.email }}"
+                 placeholder="email@beispiel.ch">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">{{ _('Telefon') }}</label>
+          <input type="text" name="contact_phone" class="form-control form-control-sm"
+                 placeholder="+41 79 000 00 00">
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small text-muted">{{ _('Verein') }}</label>
+        <input type="text" name="club" class="form-control form-control-sm"
+               value="{{ event.organiser_club.name if event.organiser_club else '' }}"
+               placeholder="{{ _('Vereinsname') }}">
+      </div>
+      <div class="mb-2">
+        <label class="form-label small text-muted">{{ _('Bemerkungen') }}</label>
+        <textarea name="notes" class="form-control form-control-sm" rows="2"
+                  placeholder="{{ _('Besondere Anforderungen, Hinweise...') }}"></textarea>
+      </div>
+      <div class="mb-3">
+        <strong class="small">{{ _('Zusatzleistungen') }}</strong><br>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="option_special_eval" id="opt_se">
+          <label class="form-check-label small" for="opt_se">{{ _('Sonderauswertung / Meisterschaft') }}</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="option_website" id="opt_ws"
+                 {% if event.website_event_id %}checked{% endif %}>
+          <label class="form-check-label small" for="opt_ws">{{ _('Webseite (z-b.tech)') }}</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="option_event_support" id="opt_es">
+          <label class="form-check-label small" for="opt_es">{{ _('Betreuung Turniertag') }}</label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary">
+        📤 {{ _('Reservationsanfrage senden') }}
+      </button>
+    </form>
+
+    {% else %}
+    {# ── Bestehende Anfrage aktualisieren ─────────────────────────────────── #}
+    <p class="text-muted small mb-3">
+      {{ _('Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die bestehende Anfrage.') }}
+    </p>
+    <form method="post" action="{{ url_for('club.event_reservation_sync', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-primary">
+        🔄 {{ _('Daten aktualisieren') }}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
 {# ── Lizenzcheck ───────────────────────────────────────────────────────────── #}
 <div class="card mb-4 {% if not event.lizenzcheck_done_at %}border-warning{% endif %}">
   <div class="card-header d-flex justify-content-between align-items-center">
