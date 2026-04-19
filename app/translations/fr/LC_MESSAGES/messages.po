@@ -1256,3 +1256,40 @@ msgstr "Coller un nouveau résultat TKAMO :"
 
 msgid "Neues Ergebnis verarbeiten"
 msgstr "Traiter le nouveau résultat"
+
+# event_view.html
+msgid "Nennschluss abgelaufen"
+msgstr "Clôture des inscriptions dépassée"
+
+msgid "Veranstalter"
+msgstr "Organisateur"
+
+msgid "Startende Kategorien & Klassen"
+msgstr "Catégories & classes participantes"
+
+msgid "Ablaufplan"
+msgstr "Programme"
+
+msgid "Mit Zeiten"
+msgstr "Avec horaires"
+
+msgid "Reihenfolge"
+msgstr "Ordre"
+
+msgid "Segment"
+msgstr "Segment"
+
+msgid "Zeiten werden sichtbar sobald die Startnummern vergeben sind."
+msgstr "Les horaires seront visibles dès que les numéros de départ seront attribués."
+
+msgid "Eine Änderung hier aktualisiert automatisch das Hundeprofil."
+msgstr "Une modification ici met automatiquement à jour le profil du chien."
+
+msgid "Läufige Hündinnen werden am Schluss der Kategorie eingeteilt."
+msgstr "Les chiennes en chaleur sont placées en fin de catégorie."
+
+msgid "Nicht gesetzt — bitte in Meine Hunde hinterlegen"
+msgstr "Non défini — veuillez renseigner dans Mes chiens"
+
+msgid "Nr."
+msgstr "N°"

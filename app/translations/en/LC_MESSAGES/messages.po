@@ -1259,3 +1259,40 @@ msgstr "Paste new TKAMO result:"
 
 msgid "Neues Ergebnis verarbeiten"
 msgstr "Process new result"
+
+# event_view.html
+msgid "Nennschluss abgelaufen"
+msgstr "Entry deadline passed"
+
+msgid "Veranstalter"
+msgstr "Organiser"
+
+msgid "Startende Kategorien & Klassen"
+msgstr "Participating categories & classes"
+
+msgid "Ablaufplan"
+msgstr "Schedule"
+
+msgid "Mit Zeiten"
+msgstr "With times"
+
+msgid "Reihenfolge"
+msgstr "Order"
+
+msgid "Segment"
+msgstr "Segment"
+
+msgid "Zeiten werden sichtbar sobald die Startnummern vergeben sind."
+msgstr "Times will be visible once start numbers have been assigned."
+
+msgid "Eine Änderung hier aktualisiert automatisch das Hundeprofil."
+msgstr "A change here automatically updates the dog profile."
+
+msgid "Läufige Hündinnen werden am Schluss der Kategorie eingeteilt."
+msgstr "Bitches in season are placed at the end of the category."
+
+msgid "Nicht gesetzt — bitte in Meine Hunde hinterlegen"
+msgstr "Not set — please enter in My dogs"
+
+msgid "Nr."
+msgstr "No."
