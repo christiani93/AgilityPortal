@@ -585,3 +585,411 @@ msgstr "Request approved and %(type)s created."
 
 msgid "Anfrage abgelehnt."
 msgstr "Request rejected."
+
+# ── Neue Strings ab 2026-04-19 ────────────────────────────────────────────────
+
+# event_detail.html — Header-Buttons
+msgid "Zeitplan"
+msgstr "Schedule"
+
+msgid "Teilnehmeransicht"
+msgstr "Participant View"
+
+msgid "Live-Seite"
+msgstr "Live Page"
+
+msgid "Lizenzcheck muss zuerst durchgeführt werden (TKAMO-Pflicht)"
+msgstr "License check must be completed first (TKAMO requirement)"
+
+msgid "Export ZIP"
+msgstr "Export ZIP"
+
+msgid "Löschen"
+msgstr "Delete"
+
+msgid "Turnier «%(name)s» wirklich löschen? Alle Anmeldungen und Zeitpläne werden unwiderruflich gelöscht."
+msgstr "Really delete tournament «%(name)s»? All registrations and schedules will be permanently deleted."
+
+# event_detail.html — Status-Leiste
+msgid "Nennschluss"
+msgstr "Entry Deadline"
+
+msgid "angemeldet"
+msgstr "registered"
+
+# event_detail.html — Turnierinfos
+msgid "Turnierinfos"
+msgstr "Tournament Info"
+
+msgid "Prüfungsleiter"
+msgstr "Chief Judge"
+
+msgid "Meldebeginn"
+msgstr "Registration Opens"
+
+msgid "Max. Starter"
+msgstr "Max. Starters"
+
+msgid "Startgeld"
+msgstr "Entry Fee"
+
+msgid "Läufige Hündinnen"
+msgstr "Bitches in Season"
+
+msgid "Erlaubt"
+msgstr "Allowed"
+
+msgid "starten am Schluss"
+msgstr "run at the end"
+
+msgid "Nicht erlaubt"
+msgstr "Not Allowed"
+
+msgid "Bemerkungen (öffentlich)"
+msgstr "Notes (public)"
+
+# event_detail.html — Zahlungsinfos
+msgid "Zahlungsinfos für Bestätigungsmail"
+msgstr "Payment Info for Confirmation Email"
+
+msgid "IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail angezeigt."
+msgstr "IBAN, recipient, purpose etc. — shown in the confirmation email."
+
+msgid "Speichern"
+msgstr "Save"
+
+# event_detail.html — TKAMO-Import
+msgid "TKAMO-Import"
+msgstr "TKAMO Import"
+
+msgid "Noch keine TKAMO-Daten geladen."
+msgstr "No TKAMO data loaded yet."
+
+msgid "Wettbewerbe"
+msgstr "Competitions"
+
+msgid "Kategorien"
+msgstr "Categories"
+
+msgid "Kontakt-E-Mail"
+msgstr "Contact Email"
+
+msgid "Mehrtage-Event — weitere AIS-Nummern:"
+msgstr "Multi-day event — additional AIS numbers:"
+
+msgid "teilen diese Reservation und diesen Website-Eintrag"
+msgstr "share this reservation and website entry"
+
+msgid "TKAMO-Daten jetzt laden"
+msgstr "Load TKAMO data now"
+
+# event_detail.html — Website-Sync
+msgid "Website-Sync (z-b.tech)"
+msgstr "Website Sync (z-b.tech)"
+
+msgid "Noch nicht synchronisiert"
+msgstr "Not yet synced"
+
+msgid "z-b.tech Events"
+msgstr "z-b.tech Events"
+
+msgid "Inserat-Text wird automatisch aus den eingetragenen Daten generiert:"
+msgstr "Listing text is auto-generated from the entered data:"
+
+msgid "fehlt"
+msgstr "missing"
+
+msgid "TKAMO-Link"
+msgstr "TKAMO Link"
+
+msgid "Zusatztext (optional — erscheint im Inserat nach den Infos)"
+msgstr "Additional text (optional — appears in the listing after the info)"
+
+msgid "vorhanden"
+msgstr "present"
+
+msgid "Ergänzende Informationen, z.B. Parkplätze, Verpflegung, Besonderheiten..."
+msgstr "Additional information, e.g. parking, catering, special features..."
+
+msgid "Zusatztext speichern"
+msgstr "Save additional text"
+
+msgid "Jetzt auf z-b.tech synchronisieren"
+msgstr "Sync to z-b.tech now"
+
+msgid "Aktualisiert bestehenden Eintrag #%(id)d"
+msgstr "Updates existing entry #%(id)d"
+
+msgid "Datum fehlt — bitte zuerst im Event-Formular eintragen."
+msgstr "Date missing — please enter it in the event form first."
+
+# event_detail.html — Reservationsanfrage
+msgid "Reservationsanfrage (z-b.tech)"
+msgstr "Reservation Request (z-b.tech)"
+
+msgid "Anfrage #%(id)d gesendet"
+msgstr "Request #%(id)d sent"
+
+msgid "Sync"
+msgstr "Sync"
+
+msgid "Noch keine Anfrage"
+msgstr "No request yet"
+
+msgid "Im Admin öffnen"
+msgstr "Open in Admin"
+
+msgid "Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an admin.z-b.tech."
+msgstr "Sends a reservation request for the timekeeping service to admin.z-b.tech."
+
+msgid "Turnierdaten (Name, Datum, Ort) werden automatisch übernommen."
+msgstr "Tournament data (name, date, location) are taken over automatically."
+
+msgid "Ansprechpartner"
+msgstr "Contact person"
+
+msgid "Telefon"
+msgstr "Phone"
+
+msgid "Bemerkungen"
+msgstr "Notes"
+
+msgid "Besondere Anforderungen, Hinweise..."
+msgstr "Special requirements, notes..."
+
+msgid "Zusatzleistungen"
+msgstr "Additional services"
+
+msgid "Sonderauswertung / Meisterschaft"
+msgstr "Special evaluation / championship"
+
+msgid "Webseite (z-b.tech)"
+msgstr "Website (z-b.tech)"
+
+msgid "Betreuung Turniertag"
+msgstr "Event day support"
+
+msgid "Reservationsanfrage senden"
+msgstr "Send reservation request"
+
+msgid "Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die bestehende Anfrage."
+msgstr "Transfers current tournament data (name, date, location, participants) to the existing request."
+
+msgid "Daten aktualisieren"
+msgstr "Update data"
+
+# event_detail.html — Lizenzcheck
+msgid "Lizenzcheck"
+msgstr "License check"
+
+msgid "Durchgeführt"
+msgstr "Completed"
+
+msgid "Ausstehend (TKAMO-Pflicht)"
+msgstr "Pending (TKAMO requirement)"
+
+msgid "CSV exportieren und an TKAMO senden"
+msgstr "Export CSV and send to TKAMO"
+
+msgid "TKAMO-Antwortdatei (.txt) hier hochladen"
+msgstr "Upload TKAMO response file (.txt) here"
+
+msgid "CSV für TKAMO exportieren"
+msgstr "Export CSV for TKAMO"
+
+msgid "TKAMO-Ergebnis hier einfügen:"
+msgstr "Paste TKAMO result here:"
+
+msgid "Text vom TKAMO-Lizenzcheck hier einfügen..."
+msgstr "Paste text from TKAMO license check here..."
+
+msgid "Ergebnis speichern & anzeigen"
+msgstr "Save & show result"
+
+# event_detail.html — Sammelmail
+msgid "E-Mail an Teilnehmer"
+msgstr "Email to Participants"
+
+msgid "E-Mail an alle gewählten Teilnehmer senden?"
+msgstr "Send email to all selected participants?"
+
+msgid "Betreff"
+msgstr "Subject"
+
+msgid "Alle (ausser Storniert)"
+msgstr "All (except cancelled)"
+
+msgid "Nur Ausstehend"
+msgstr "Pending only"
+
+msgid "Nur Bestätigt"
+msgstr "Confirmed only"
+
+msgid "Nachrichtentext..."
+msgstr "Message text..."
+
+msgid "Versand starten"
+msgstr "Start sending"
+
+msgid "ca. %(n)d Empfänger · 1 Mail/Sek."
+msgstr "approx. %(n)d recipients · 1 email/sec."
+
+# event_detail.html — Anmeldungstabelle
+msgid "ausstehend"
+msgstr "pending"
+
+msgid "bestätigt"
+msgstr "confirmed"
+
+msgid "Alle bestätigen"
+msgstr "Confirm all"
+
+msgid "Startnummern vergeben"
+msgstr "Assign start numbers"
+
+msgid "Startliste"
+msgstr "Start list"
+
+msgid "Startnummern neu vergeben? Bestehende werden überschrieben."
+msgstr "Reassign start numbers? Existing ones will be overwritten."
+
+msgid "Startnummern löschen"
+msgstr "Delete start numbers"
+
+msgid "Alle Startnummern wirklich löschen?"
+msgstr "Really delete all start numbers?"
+
+msgid "Hund"
+msgstr "Dog"
+
+msgid "Geprüft"
+msgstr "Checked"
+
+msgid "Abweichung erkannt"
+msgstr "Discrepancy detected"
+
+msgid "In Ordnung"
+msgstr "OK"
+
+# event_form.html — neue Strings
+msgid "Weitere AIS-Nummern (Mehrtage-Event)"
+msgstr "Additional AIS Numbers (multi-day event)"
+
+msgid "Bei Mehrtage-Events: weitere AIS-Nummern (kommagetrennt). Alle Tage teilen eine Reservation und einen Website-Eintrag."
+msgstr "For multi-day events: additional AIS numbers (comma-separated). All days share one reservation and one website entry."
+
+msgid "Von TKAMO laden"
+msgstr "Load from TKAMO"
+
+msgid "Bitte AIS-Nummer eingeben."
+msgstr "Please enter an AIS number."
+
+msgid "Lade…"
+msgstr "Loading…"
+
+msgid "Daten geladen — bitte prüfen und speichern."
+msgstr "Data loaded — please review and save."
+
+msgid "Netzwerkfehler — AdminPortal nicht erreichbar?"
+msgstr "Network error — AdminPortal not reachable?"
+
+msgid "Danach keine neuen Anmeldungen mehr."
+msgstr "No new registrations after this date."
+
+msgid "Läufige Hündinnen werden am Ende ihrer Kategorie eingeteilt."
+msgstr "Bitches in season are placed at the end of their category."
+
+msgid "Testveranstaltungen sind nur für Superadmin sichtbar und erscheinen nicht in der öffentlichen Turnierübersicht."
+msgstr "Test events are only visible to superadmins and don't appear in the public tournament overview."
+
+# admin_settings.html
+msgid "Server-Einstellungen"
+msgstr "Server Settings"
+
+msgid "API-Keys (Umgebungsvariablen)"
+msgstr "API Keys (Environment Variables)"
+
+msgid "Anzeigen / Verbergen"
+msgstr "Show / Hide"
+
+msgid "Kopieren"
+msgstr "Copy"
+
+msgid "Empfangene Live-Updates"
+msgstr "Received Live Updates"
+
+msgid "Empfangen"
+msgstr "Received"
+
+msgid "Gerät"
+msgstr "Device"
+
+msgid "Seq."
+msgstr "Seq."
+
+msgid "Inhalt"
+msgstr "Content"
+
+msgid "Noch keine Live-Updates empfangen."
+msgstr "No live updates received yet."
+
+msgid "Empfangene Ergebnis-Exporte"
+msgstr "Received Result Exports"
+
+msgid "Abschluss"
+msgstr "Final"
+
+msgid "Exportiert"
+msgstr "Exported"
+
+msgid "Noch keine Ergebnis-Exporte empfangen."
+msgstr "No result exports received yet."
+
+# Flash-Messages routes_website_sync.py
+msgid "Keine Berechtigung."
+msgstr "Not authorized."
+
+msgid "Keine AIS-Nummer am Turnier hinterlegt."
+msgstr "No AIS number stored for this tournament."
+
+msgid "TKAMO-Import erfolgreich: %(details)s"
+msgstr "TKAMO import successful: %(details)s"
+
+msgid "TKAMO-Import: Keine neuen Daten gefunden."
+msgstr "TKAMO import: no new data found."
+
+msgid "TKAMO-Import fehlgeschlagen: %(error)s"
+msgstr "TKAMO import failed: %(error)s"
+
+msgid "Beschreibung gespeichert."
+msgstr "Description saved."
+
+msgid "Webseite erfolgreich synchronisiert."
+msgstr "Website synced successfully."
+
+msgid "Synchronisation fehlgeschlagen: %(error)s"
+msgstr "Sync failed: %(error)s"
+
+msgid "Fehler beim Synchronisieren: %(error)s"
+msgstr "Error syncing: %(error)s"
+
+msgid "Es besteht bereits eine Reservationsanfrage. Verwende 'Daten aktualisieren'."
+msgstr "A reservation request already exists. Use 'Update data'."
+
+msgid "Name und E-Mail des Ansprechpartners sind Pflichtfelder."
+msgstr "Name and email of the contact person are required fields."
+
+msgid "Reservationsanfrage erfolgreich gesendet."
+msgstr "Reservation request sent successfully."
+
+msgid "Anfrage fehlgeschlagen: %(error)s"
+msgstr "Request failed: %(error)s"
+
+msgid "Reservationsdaten erfolgreich aktualisiert."
+msgstr "Reservation data updated successfully."
+
+msgid "Aktualisierung fehlgeschlagen: %(error)s"
+msgstr "Update failed: %(error)s"
+
+msgid "Fehler: %(error)s"
+msgstr "Error: %(error)s"

@@ -582,3 +582,411 @@ msgstr "Demande approuvée et %(type)s créé."
 
 msgid "Anfrage abgelehnt."
 msgstr "Demande rejetée."
+
+# ── Neue Strings ab 2026-04-19 ────────────────────────────────────────────────
+
+# event_detail.html — Header-Buttons
+msgid "Zeitplan"
+msgstr "Programme"
+
+msgid "Teilnehmeransicht"
+msgstr "Vue participants"
+
+msgid "Live-Seite"
+msgstr "Page live"
+
+msgid "Lizenzcheck muss zuerst durchgeführt werden (TKAMO-Pflicht)"
+msgstr "Le contrôle des licences doit être effectué en premier (obligation TKAMO)"
+
+msgid "Export ZIP"
+msgstr "Export ZIP"
+
+msgid "Löschen"
+msgstr "Supprimer"
+
+msgid "Turnier «%(name)s» wirklich löschen? Alle Anmeldungen und Zeitpläne werden unwiderruflich gelöscht."
+msgstr "Vraiment supprimer le tournoi «%(name)s» ? Toutes les inscriptions et les programmes seront définitivement supprimés."
+
+# event_detail.html — Status-Leiste
+msgid "Nennschluss"
+msgstr "Clôture des inscriptions"
+
+msgid "angemeldet"
+msgstr "inscrits"
+
+# event_detail.html — Turnierinfos
+msgid "Turnierinfos"
+msgstr "Infos du tournoi"
+
+msgid "Prüfungsleiter"
+msgstr "Directeur des épreuves"
+
+msgid "Meldebeginn"
+msgstr "Ouverture des inscriptions"
+
+msgid "Max. Starter"
+msgstr "Max. participants"
+
+msgid "Startgeld"
+msgstr "Taxe de départ"
+
+msgid "Läufige Hündinnen"
+msgstr "Chiennes en chaleur"
+
+msgid "Erlaubt"
+msgstr "Autorisé"
+
+msgid "starten am Schluss"
+msgstr "courent en dernier"
+
+msgid "Nicht erlaubt"
+msgstr "Non autorisé"
+
+msgid "Bemerkungen (öffentlich)"
+msgstr "Remarques (publiques)"
+
+# event_detail.html — Zahlungsinfos
+msgid "Zahlungsinfos für Bestätigungsmail"
+msgstr "Infos de paiement pour l'e-mail de confirmation"
+
+msgid "IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail angezeigt."
+msgstr "IBAN, bénéficiaire, motif etc. — affiché dans l'e-mail de confirmation."
+
+msgid "Speichern"
+msgstr "Enregistrer"
+
+# event_detail.html — TKAMO-Import
+msgid "TKAMO-Import"
+msgstr "Import TKAMO"
+
+msgid "Noch keine TKAMO-Daten geladen."
+msgstr "Aucune donnée TKAMO chargée."
+
+msgid "Wettbewerbe"
+msgstr "Épreuves"
+
+msgid "Kategorien"
+msgstr "Catégories"
+
+msgid "Kontakt-E-Mail"
+msgstr "E-mail de contact"
+
+msgid "Mehrtage-Event — weitere AIS-Nummern:"
+msgstr "Événement multi-jours — autres numéros AIS :"
+
+msgid "teilen diese Reservation und diesen Website-Eintrag"
+msgstr "partagent cette réservation et cette entrée sur le site"
+
+msgid "TKAMO-Daten jetzt laden"
+msgstr "Charger les données TKAMO maintenant"
+
+# event_detail.html — Website-Sync
+msgid "Website-Sync (z-b.tech)"
+msgstr "Synchronisation site web (z-b.tech)"
+
+msgid "Noch nicht synchronisiert"
+msgstr "Pas encore synchronisé"
+
+msgid "z-b.tech Events"
+msgstr "Événements z-b.tech"
+
+msgid "Inserat-Text wird automatisch aus den eingetragenen Daten generiert:"
+msgstr "Le texte de l'annonce est généré automatiquement à partir des données saisies :"
+
+msgid "fehlt"
+msgstr "manquant"
+
+msgid "TKAMO-Link"
+msgstr "Lien TKAMO"
+
+msgid "Zusatztext (optional — erscheint im Inserat nach den Infos)"
+msgstr "Texte supplémentaire (facultatif — apparaît dans l'annonce après les infos)"
+
+msgid "vorhanden"
+msgstr "présent"
+
+msgid "Ergänzende Informationen, z.B. Parkplätze, Verpflegung, Besonderheiten..."
+msgstr "Informations complémentaires, ex. parking, restauration, particularités..."
+
+msgid "Zusatztext speichern"
+msgstr "Enregistrer le texte supplémentaire"
+
+msgid "Jetzt auf z-b.tech synchronisieren"
+msgstr "Synchroniser sur z-b.tech maintenant"
+
+msgid "Aktualisiert bestehenden Eintrag #%(id)d"
+msgstr "Met à jour l'entrée existante n°%(id)d"
+
+msgid "Datum fehlt — bitte zuerst im Event-Formular eintragen."
+msgstr "Date manquante — veuillez d'abord la saisir dans le formulaire de l'événement."
+
+# event_detail.html — Reservationsanfrage
+msgid "Reservationsanfrage (z-b.tech)"
+msgstr "Demande de réservation (z-b.tech)"
+
+msgid "Anfrage #%(id)d gesendet"
+msgstr "Demande n°%(id)d envoyée"
+
+msgid "Sync"
+msgstr "Sync"
+
+msgid "Noch keine Anfrage"
+msgstr "Aucune demande"
+
+msgid "Im Admin öffnen"
+msgstr "Ouvrir dans l'admin"
+
+msgid "Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an admin.z-b.tech."
+msgstr "Envoie une demande de réservation pour le service de chronométrage à admin.z-b.tech."
+
+msgid "Turnierdaten (Name, Datum, Ort) werden automatisch übernommen."
+msgstr "Les données du tournoi (nom, date, lieu) sont reprises automatiquement."
+
+msgid "Ansprechpartner"
+msgstr "Personne de contact"
+
+msgid "Telefon"
+msgstr "Téléphone"
+
+msgid "Bemerkungen"
+msgstr "Remarques"
+
+msgid "Besondere Anforderungen, Hinweise..."
+msgstr "Exigences particulières, remarques..."
+
+msgid "Zusatzleistungen"
+msgstr "Services supplémentaires"
+
+msgid "Sonderauswertung / Meisterschaft"
+msgstr "Évaluation spéciale / championnat"
+
+msgid "Webseite (z-b.tech)"
+msgstr "Site web (z-b.tech)"
+
+msgid "Betreuung Turniertag"
+msgstr "Assistance le jour du tournoi"
+
+msgid "Reservationsanfrage senden"
+msgstr "Envoyer la demande de réservation"
+
+msgid "Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die bestehende Anfrage."
+msgstr "Transfère les données actuelles du tournoi (nom, date, lieu, participants) à la demande existante."
+
+msgid "Daten aktualisieren"
+msgstr "Mettre à jour les données"
+
+# event_detail.html — Lizenzcheck
+msgid "Lizenzcheck"
+msgstr "Contrôle des licences"
+
+msgid "Durchgeführt"
+msgstr "Effectué"
+
+msgid "Ausstehend (TKAMO-Pflicht)"
+msgstr "En attente (obligation TKAMO)"
+
+msgid "CSV exportieren und an TKAMO senden"
+msgstr "Exporter CSV et envoyer à TKAMO"
+
+msgid "TKAMO-Antwortdatei (.txt) hier hochladen"
+msgstr "Télécharger le fichier de réponse TKAMO (.txt) ici"
+
+msgid "CSV für TKAMO exportieren"
+msgstr "Exporter CSV pour TKAMO"
+
+msgid "TKAMO-Ergebnis hier einfügen:"
+msgstr "Coller le résultat TKAMO ici :"
+
+msgid "Text vom TKAMO-Lizenzcheck hier einfügen..."
+msgstr "Coller le texte du contrôle des licences TKAMO ici..."
+
+msgid "Ergebnis speichern & anzeigen"
+msgstr "Enregistrer et afficher le résultat"
+
+# event_detail.html — Sammelmail
+msgid "E-Mail an Teilnehmer"
+msgstr "E-mail aux participants"
+
+msgid "E-Mail an alle gewählten Teilnehmer senden?"
+msgstr "Envoyer l'e-mail à tous les participants sélectionnés ?"
+
+msgid "Betreff"
+msgstr "Objet"
+
+msgid "Alle (ausser Storniert)"
+msgstr "Tous (sauf annulés)"
+
+msgid "Nur Ausstehend"
+msgstr "En attente uniquement"
+
+msgid "Nur Bestätigt"
+msgstr "Confirmés uniquement"
+
+msgid "Nachrichtentext..."
+msgstr "Texte du message..."
+
+msgid "Versand starten"
+msgstr "Lancer l'envoi"
+
+msgid "ca. %(n)d Empfänger · 1 Mail/Sek."
+msgstr "env. %(n)d destinataires · 1 e-mail/sec."
+
+# event_detail.html — Anmeldungstabelle
+msgid "ausstehend"
+msgstr "en attente"
+
+msgid "bestätigt"
+msgstr "confirmés"
+
+msgid "Alle bestätigen"
+msgstr "Tout confirmer"
+
+msgid "Startnummern vergeben"
+msgstr "Attribuer les numéros de départ"
+
+msgid "Startliste"
+msgstr "Liste de départ"
+
+msgid "Startnummern neu vergeben? Bestehende werden überschrieben."
+msgstr "Réattribuer les numéros de départ ? Les existants seront écrasés."
+
+msgid "Startnummern löschen"
+msgstr "Supprimer les numéros de départ"
+
+msgid "Alle Startnummern wirklich löschen?"
+msgstr "Vraiment supprimer tous les numéros de départ ?"
+
+msgid "Hund"
+msgstr "Chien"
+
+msgid "Geprüft"
+msgstr "Vérifié"
+
+msgid "Abweichung erkannt"
+msgstr "Écart détecté"
+
+msgid "In Ordnung"
+msgstr "Correct"
+
+# event_form.html — neue Strings
+msgid "Weitere AIS-Nummern (Mehrtage-Event)"
+msgstr "Numéros AIS supplémentaires (événement multi-jours)"
+
+msgid "Bei Mehrtage-Events: weitere AIS-Nummern (kommagetrennt). Alle Tage teilen eine Reservation und einen Website-Eintrag."
+msgstr "Pour les événements multi-jours : numéros AIS supplémentaires (séparés par des virgules). Tous les jours partagent une réservation et une entrée sur le site."
+
+msgid "Von TKAMO laden"
+msgstr "Charger depuis TKAMO"
+
+msgid "Bitte AIS-Nummer eingeben."
+msgstr "Veuillez saisir un numéro AIS."
+
+msgid "Lade…"
+msgstr "Chargement…"
+
+msgid "Daten geladen — bitte prüfen und speichern."
+msgstr "Données chargées — veuillez vérifier et enregistrer."
+
+msgid "Netzwerkfehler — AdminPortal nicht erreichbar?"
+msgstr "Erreur réseau — AdminPortal inaccessible ?"
+
+msgid "Danach keine neuen Anmeldungen mehr."
+msgstr "Aucune nouvelle inscription après cette date."
+
+msgid "Läufige Hündinnen werden am Ende ihrer Kategorie eingeteilt."
+msgstr "Les chiennes en chaleur sont placées en fin de catégorie."
+
+msgid "Testveranstaltungen sind nur für Superadmin sichtbar und erscheinen nicht in der öffentlichen Turnierübersicht."
+msgstr "Les événements de test ne sont visibles que pour les superadmins et n'apparaissent pas dans l'aperçu public des tournois."
+
+# admin_settings.html
+msgid "Server-Einstellungen"
+msgstr "Paramètres du serveur"
+
+msgid "API-Keys (Umgebungsvariablen)"
+msgstr "Clés API (variables d'environnement)"
+
+msgid "Anzeigen / Verbergen"
+msgstr "Afficher / Masquer"
+
+msgid "Kopieren"
+msgstr "Copier"
+
+msgid "Empfangene Live-Updates"
+msgstr "Mises à jour live reçues"
+
+msgid "Empfangen"
+msgstr "Reçu"
+
+msgid "Gerät"
+msgstr "Appareil"
+
+msgid "Seq."
+msgstr "Séq."
+
+msgid "Inhalt"
+msgstr "Contenu"
+
+msgid "Noch keine Live-Updates empfangen."
+msgstr "Aucune mise à jour live reçue pour l'instant."
+
+msgid "Empfangene Ergebnis-Exporte"
+msgstr "Exports de résultats reçus"
+
+msgid "Abschluss"
+msgstr "Final"
+
+msgid "Exportiert"
+msgstr "Exporté"
+
+msgid "Noch keine Ergebnis-Exporte empfangen."
+msgstr "Aucun export de résultats reçu pour l'instant."
+
+# Flash-Messages routes_website_sync.py
+msgid "Keine Berechtigung."
+msgstr "Accès non autorisé."
+
+msgid "Keine AIS-Nummer am Turnier hinterlegt."
+msgstr "Aucun numéro AIS renseigné pour ce tournoi."
+
+msgid "TKAMO-Import erfolgreich: %(details)s"
+msgstr "Import TKAMO réussi : %(details)s"
+
+msgid "TKAMO-Import: Keine neuen Daten gefunden."
+msgstr "Import TKAMO : aucune nouvelle donnée trouvée."
+
+msgid "TKAMO-Import fehlgeschlagen: %(error)s"
+msgstr "Import TKAMO échoué : %(error)s"
+
+msgid "Beschreibung gespeichert."
+msgstr "Description enregistrée."
+
+msgid "Webseite erfolgreich synchronisiert."
+msgstr "Site web synchronisé avec succès."
+
+msgid "Synchronisation fehlgeschlagen: %(error)s"
+msgstr "Synchronisation échouée : %(error)s"
+
+msgid "Fehler beim Synchronisieren: %(error)s"
+msgstr "Erreur lors de la synchronisation : %(error)s"
+
+msgid "Es besteht bereits eine Reservationsanfrage. Verwende 'Daten aktualisieren'."
+msgstr "Une demande de réservation existe déjà. Utilisez 'Mettre à jour les données'."
+
+msgid "Name und E-Mail des Ansprechpartners sind Pflichtfelder."
+msgstr "Le nom et l'e-mail de la personne de contact sont des champs obligatoires."
+
+msgid "Reservationsanfrage erfolgreich gesendet."
+msgstr "Demande de réservation envoyée avec succès."
+
+msgid "Anfrage fehlgeschlagen: %(error)s"
+msgstr "Demande échouée : %(error)s"
+
+msgid "Reservationsdaten erfolgreich aktualisiert."
+msgstr "Données de réservation mises à jour avec succès."
+
+msgid "Aktualisierung fehlgeschlagen: %(error)s"
+msgstr "Mise à jour échouée : %(error)s"
+
+msgid "Fehler: %(error)s"
+msgstr "Erreur : %(error)s"

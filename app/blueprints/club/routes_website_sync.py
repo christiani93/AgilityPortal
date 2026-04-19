@@ -11,6 +11,7 @@ Routen:
 
 from flask import redirect, url_for, flash, request
 from flask_login import login_required, current_user
+from flask_babel import gettext as _
 
 from app.blueprints.club.routes import club_bp
 from app.extensions import db
@@ -27,12 +28,12 @@ def event_tkamo_import(event_id):
     # Nur Superadmin oder eigener Verein
     if not (current_user.is_superadmin or
             (current_user.club_id and current_user.club_id == event.organiser_club_id)):
-        flash("Keine Berechtigung.", "danger")
+        flash(_("Keine Berechtigung."), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     ais = event.ais_turniernummer
     if not ais:
-        flash("Keine AIS-Nummer am Turnier hinterlegt.", "warning")
+        flash(_("Keine AIS-Nummer am Turnier hinterlegt."), "warning")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     try:
@@ -41,12 +42,12 @@ def event_tkamo_import(event_id):
         changes = apply_to_event(event, data)
         db.session.commit()
         if changes:
-            flash(f"TKAMO-Import erfolgreich: {', '.join(changes)}", "success")
+            flash(_("TKAMO-Import erfolgreich: %(details)s", details=', '.join(changes)), "success")
         else:
-            flash("TKAMO-Import: Keine neuen Daten gefunden.", "info")
+            flash(_("TKAMO-Import: Keine neuen Daten gefunden."), "info")
     except Exception as e:
         db.session.rollback()
-        flash(f"TKAMO-Import fehlgeschlagen: {e}", "danger")
+        flash(_("TKAMO-Import fehlgeschlagen: %(error)s", error=str(e)), "danger")
 
     return redirect(url_for("club.event_detail", event_id=event_id))
 
@@ -60,12 +61,12 @@ def event_description_save(event_id):
 
     if not (current_user.is_superadmin or
             (current_user.club_id and current_user.club_id == event.organiser_club_id)):
-        flash("Keine Berechtigung.", "danger")
+        flash(_("Keine Berechtigung."), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     event.event_description_de = request.form.get("event_description_de", "").strip() or None
     db.session.commit()
-    flash("Beschreibung gespeichert.", "success")
+    flash(_("Beschreibung gespeichert."), "success")
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
@@ -78,7 +79,7 @@ def event_website_sync(event_id):
 
     if not (current_user.is_superadmin or
             (current_user.club_id and current_user.club_id == event.organiser_club_id)):
-        flash("Keine Berechtigung.", "danger")
+        flash(_("Keine Berechtigung."), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     try:
@@ -86,12 +87,12 @@ def event_website_sync(event_id):
         ok, err = sync_to_website(event)
         if ok:
             db.session.commit()
-            flash("Webseite erfolgreich synchronisiert.", "success")
+            flash(_("Webseite erfolgreich synchronisiert."), "success")
         else:
-            flash(f"Synchronisation fehlgeschlagen: {err}", "danger")
+            flash(_("Synchronisation fehlgeschlagen: %(error)s", error=err), "danger")
     except Exception as e:
         db.session.rollback()
-        flash(f"Fehler beim Synchronisieren: {e}", "danger")
+        flash(_("Fehler beim Synchronisieren: %(error)s", error=str(e)), "danger")
 
     return redirect(url_for("club.event_detail", event_id=event_id))
 
@@ -105,11 +106,11 @@ def event_reservation_request(event_id):
 
     if not (current_user.is_superadmin or
             (current_user.club_id and current_user.club_id == event.organiser_club_id)):
-        flash("Keine Berechtigung.", "danger")
+        flash(_("Keine Berechtigung."), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     if event.reservation_id:
-        flash("Es besteht bereits eine Reservationsanfrage. Verwende 'Daten aktualisieren'.", "warning")
+        flash(_("Es besteht bereits eine Reservationsanfrage. Verwende 'Daten aktualisieren'."), "warning")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     contact_name  = request.form.get("contact_name", "").strip()
@@ -122,7 +123,7 @@ def event_reservation_request(event_id):
     option_event_support = bool(request.form.get("option_event_support"))
 
     if not contact_name or not contact_email:
-        flash("Name und E-Mail des Ansprechpartners sind Pflichtfelder.", "warning")
+        flash(_("Name und E-Mail des Ansprechpartners sind Pflichtfelder."), "warning")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     try:
@@ -133,12 +134,12 @@ def event_reservation_request(event_id):
         )
         if ok:
             db.session.commit()
-            flash("Reservationsanfrage erfolgreich gesendet.", "success")
+            flash(_("Reservationsanfrage erfolgreich gesendet."), "success")
         else:
-            flash(f"Anfrage fehlgeschlagen: {err}", "danger")
+            flash(_("Anfrage fehlgeschlagen: %(error)s", error=err), "danger")
     except Exception as e:
         db.session.rollback()
-        flash(f"Fehler: {e}", "danger")
+        flash(_("Fehler: %(error)s", error=str(e)), "danger")
 
     return redirect(url_for("club.event_detail", event_id=event_id))
 
@@ -152,7 +153,7 @@ def event_reservation_sync(event_id):
 
     if not (current_user.is_superadmin or
             (current_user.club_id and current_user.club_id == event.organiser_club_id)):
-        flash("Keine Berechtigung.", "danger")
+        flash(_("Keine Berechtigung."), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     try:
@@ -160,11 +161,11 @@ def event_reservation_sync(event_id):
         ok, err = update_reservation(event)
         if ok:
             db.session.commit()
-            flash("Reservationsdaten erfolgreich aktualisiert.", "success")
+            flash(_("Reservationsdaten erfolgreich aktualisiert."), "success")
         else:
-            flash(f"Aktualisierung fehlgeschlagen: {err}", "danger")
+            flash(_("Aktualisierung fehlgeschlagen: %(error)s", error=err), "danger")
     except Exception as e:
         db.session.rollback()
-        flash(f"Fehler: {e}", "danger")
+        flash(_("Fehler: %(error)s", error=str(e)), "danger")
 
     return redirect(url_for("club.event_detail", event_id=event_id))
