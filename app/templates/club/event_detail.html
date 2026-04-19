@@ -294,16 +294,16 @@
     {% if event.lizenzcheck_done_at %}
     <hr class="my-3">
     {% endif %}
-    <form method="post" action="{{ url_for('club.event_lizenzcheck', event_id=event.id) }}"
-          enctype="multipart/form-data" class="mt-3">
+    <form method="post" action="{{ url_for('club.event_lizenzcheck', event_id=event.id) }}" class="mt-3">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="d-flex gap-2 align-items-center flex-wrap">
-        <input type="file" name="tkamo_result" accept=".txt,.csv" class="form-control"
-               style="max-width:320px" required>
-        <button type="submit" class="btn btn-sm btn-warning">
-          📥 {{ _('TKAMO-Ergebnis hochladen & anzeigen') }}
-        </button>
+      <div class="mb-2">
+        <label class="form-label small text-muted">{{ _('TKAMO-Ergebnis hier einfügen:') }}</label>
+        <textarea name="tkamo_result" class="form-control font-monospace" rows="6" required
+                  placeholder="{{ _('Text vom TKAMO-Lizenzcheck hier einfügen...') }}"></textarea>
       </div>
+      <button type="submit" class="btn btn-sm btn-warning">
+        📥 {{ _('Ergebnis speichern & anzeigen') }}
+      </button>
     </form>
   </div>
 </div>

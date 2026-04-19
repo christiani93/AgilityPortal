@@ -16,7 +16,7 @@ from flask import abort, render_template, request, Response
 from flask_login import login_required
 
 from app.extensions import db
-from app.models import Event, Registration, RegistrationStatus, User
+from app.models import Event, LicenseKind, Registration, RegistrationStatus, User
 from .routes import club_bp, _assert_event_access
 
 # Mapping DB-Kategorie (1 Buchstabe) → Klartext für TKAMO-CSV
@@ -59,6 +59,10 @@ def event_lizenzcheck_csv(event_id):
         if not dog or not handler:
             continue
 
+        # Ausländische Lizenzen überspringen (TKAMO prüft nur Schweizer Lizenzen)
+        if dog.license_kind == LicenseKind.FOREIGN:
+            continue
+
         # Vereinsnummer des Führers ermitteln (über User → Club)
         user = db.session.execute(
             db.select(User).filter_by(person_id=handler.id)
@@ -83,11 +87,11 @@ def event_lizenzcheck_csv(event_id):
             handler.email or "",
         ])
 
-    csv_bytes = output.getvalue().encode("utf-8-sig")   # BOM für Excel
+    csv_bytes = output.getvalue().encode("utf-8")   # kein BOM — TKAMO verträgt keinen BOM
 
     return Response(
         csv_bytes,
-        content_type="text/csv; charset=utf-8-sig",
+        content_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": f'attachment; filename="lizenzcheck_{event_id}.csv"'
         },
@@ -100,7 +104,7 @@ def event_lizenzcheck_csv(event_id):
 @login_required
 def event_lizenzcheck(event_id):
     """
-    Nimmt die Textdatei der TKAMO entgegen und zeigt sie in einem Textfeld an.
+    Nimmt den TKAMO-Antworttext (aus Textarea) entgegen und zeigt ihn an.
     Markiert den Lizenzcheck als durchgeführt.
     """
     event = db.session.get(Event, event_id)
@@ -108,15 +112,11 @@ def event_lizenzcheck(event_id):
         abort(404)
     _assert_event_access(event)
 
-    uploaded = request.files.get("tkamo_result")
-    if not uploaded or not uploaded.filename:
-        abort(400, "Keine Datei hochgeladen.")
-
-    raw = uploaded.read()
-    try:
-        report_text = raw.decode("utf-8-sig")
-    except UnicodeDecodeError:
-        report_text = raw.decode("latin-1")
+    report_text = request.form.get("tkamo_result", "").strip()
+    if not report_text:
+        from flask import redirect, url_for, flash
+        flash("Bitte TKAMO-Ergebnis einfügen.", "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
 
     # Lizenzcheck als erledigt markieren
     event.lizenzcheck_done_at = datetime.utcnow()
@@ -125,5 +125,5 @@ def event_lizenzcheck(event_id):
     return render_template(
         "club/lizenzcheck_result.html",
         event=event,
-        report_text=report_text.strip(),
+        report_text=report_text,
     )
