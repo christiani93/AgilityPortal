@@ -31,6 +31,11 @@ def create_app():
     app.config["LIVE_API_KEY"] = os.environ.get("LIVE_API_KEY", "dev-live-key")
     app.config["RESULTS_API_KEY"] = os.environ.get("RESULTS_API_KEY", "dev-results-key")
 
+    # --- Website-Sync (AdminPortal / z-b.tech) ---
+    app.config["WEBSITE_API_URL"] = os.environ.get("WEBSITE_API_URL", "")
+    app.config["WEBSITE_API_TOKEN"] = os.environ.get("WEBSITE_API_TOKEN", "")
+    app.config["PORTAL_PUBLIC_URL"] = os.environ.get("PORTAL_PUBLIC_URL", "")
+
     # --- Superadmin (Portal-Verwaltung: Vereine & Club-Admins) ---
     app.config["SUPERADMIN_USERNAME"] = os.environ.get("SUPERADMIN_USERNAME", "")
     app.config["SUPERADMIN_PASSWORD"] = os.environ.get("SUPERADMIN_PASSWORD", "")

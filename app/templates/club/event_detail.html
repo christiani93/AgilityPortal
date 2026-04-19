@@ -211,6 +211,102 @@
   </div>
 </div>
 
+{# ── TKAMO-Import ──────────────────────────────────────────────────────────── #}
+{% if event.ais_turniernummer %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>🔗 {{ _('TKAMO-Import') }}
+      {% if event.tkamo_imported_at %}
+        <span class="badge bg-success ms-2">✓ {{ event.tkamo_imported_at.strftime('%d.%m.%Y %H:%M') }}</span>
+      {% endif %}
+    </span>
+    <a href="https://www.tkamo.ch/?lang=de&amp;n0=agenda&amp;n1=&amp;detail={{ event.ais_turniernummer }}"
+       target="_blank" class="btn btn-sm btn-outline-secondary">🌐 TKAMO</a>
+  </div>
+  <div class="card-body">
+    {% if event.tkamo_imported_at %}
+    <dl class="row mb-3 small" style="row-gap:.25rem;">
+      {% if event.tkamo_disciplines %}
+      <dt class="col-sm-4 text-muted fw-normal">{{ _('Wettbewerbe') }}</dt>
+      <dd class="col-sm-8 mb-0">{{ event.tkamo_disciplines }}</dd>
+      {% endif %}
+      {% if event.tkamo_categories %}
+      <dt class="col-sm-4 text-muted fw-normal">{{ _('Kategorien') }}</dt>
+      <dd class="col-sm-8 mb-0">{{ event.tkamo_categories }}</dd>
+      {% endif %}
+      {% if event.tkamo_judges %}
+      <dt class="col-sm-4 text-muted fw-normal">{{ _('Richter') }}</dt>
+      <dd class="col-sm-8 mb-0">{{ event.tkamo_judges }}</dd>
+      {% endif %}
+      {% if event.tkamo_contact_email %}
+      <dt class="col-sm-4 text-muted fw-normal">{{ _('Kontakt-E-Mail') }}</dt>
+      <dd class="col-sm-8 mb-0"><a href="mailto:{{ event.tkamo_contact_email }}">{{ event.tkamo_contact_email }}</a></dd>
+      {% endif %}
+    </dl>
+    {% else %}
+    <p class="text-muted small mb-3">{{ _('Noch keine TKAMO-Daten geladen.') }}</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('club.event_tkamo_import', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-primary">
+        🔄 {{ _('TKAMO-Daten jetzt laden') }}
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{# ── Website-Sync ──────────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>🌐 {{ _('Website-Sync (z-b.tech)') }}
+      {% if event.website_synced_at %}
+        <span class="badge bg-success ms-2">✓ {{ event.website_synced_at.strftime('%d.%m.%Y %H:%M') }}</span>
+      {% else %}
+        <span class="badge bg-light text-dark border ms-2">{{ _('Noch nicht synchronisiert') }}</span>
+      {% endif %}
+    </span>
+    {% if event.website_event_id %}
+    <a href="https://z-b.tech/events" target="_blank" class="btn btn-sm btn-outline-secondary">
+      🔗 {{ _('z-b.tech Events') }}
+    </a>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {# Freitext-Beschreibung #}
+    <form method="post" action="{{ url_for('club.event_description_save', event_id=event.id) }}" class="mb-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label small text-muted">
+        {{ _('Beschreibungstext (optional, erscheint im Inserat auf z-b.tech)') }}
+      </label>
+      <textarea name="event_description_de" class="form-control" rows="4"
+                placeholder="{{ _('Freitext-Beschreibung für die Webseite...') }}">{{ event.event_description_de or '' }}</textarea>
+      <button type="submit" class="btn btn-sm btn-outline-secondary mt-2">
+        💾 {{ _('Beschreibung speichern') }}
+      </button>
+    </form>
+
+    {# body_md Vorschau #}
+    {% if event.starts_at %}
+    <details class="mb-3">
+      <summary class="small text-muted" style="cursor:pointer;">{{ _('Markdown-Vorschau anzeigen') }}</summary>
+      <pre class="mt-2 p-2 bg-light rounded small" style="white-space:pre-wrap; font-size:.78rem;" id="bodyMdPreview">{{ body_md_preview }}</pre>
+    </details>
+    {% endif %}
+
+    {# Sync-Button #}
+    <form method="post" action="{{ url_for('club.event_website_sync', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-primary">
+        🚀 {{ _('Jetzt auf z-b.tech synchronisieren') }}
+      </button>
+      {% if event.website_event_id %}
+      <span class="text-muted small ms-3">{{ _('Aktualisiert bestehenden Eintrag #%(id)d', id=event.website_event_id) }}</span>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
 {# ── LOGOS ────────────────────────────────────────────────────────────────── #}
 <div class="card mb-4">
   <div class="card-header">{{ _('Logos (Event- & Vereins-Logo)') }}</div>

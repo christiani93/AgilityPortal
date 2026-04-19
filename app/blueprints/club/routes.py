@@ -477,9 +477,15 @@ def event_detail(event_id):
         .filter(Registration.status != RegistrationStatus.CANCELLED)
         .order_by(Registration.category_code, Registration.class_level)
     ).scalars().all() if not current_user.is_handler_role else []
+    # body_md-Vorschau für Website-Sync-Sektion
+    try:
+        from app.services.website_sync import generate_body_md
+        body_md_preview = generate_body_md(event)
+    except Exception:
+        body_md_preview = ""
     return render_template("club/event_detail.html", event=event, run_form=run_form,
                            sorted_runs=sorted_runs, available_judges=available_judges,
-                           registrations=registrations)
+                           registrations=registrations, body_md_preview=body_md_preview)
 
 
 @club_bp.post("/events/<int:event_id>/judges/add")

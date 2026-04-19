@@ -320,6 +320,18 @@ class Event(db.Model):
     notes_public = db.Column(db.Text, nullable=True)
     lizenzcheck_done_at = db.Column(db.DateTime, nullable=True)
     lizenzcheck_report  = db.Column(db.Text, nullable=True)
+
+    # TKAMO-Import
+    tkamo_disciplines    = db.Column(db.Text, nullable=True)   # "Agility,Jumping,Open"
+    tkamo_categories     = db.Column(db.Text, nullable=True)   # "S1,S2,S3,M1,..."
+    tkamo_judges         = db.Column(db.Text, nullable=True)   # "Name1,Name2"
+    tkamo_contact_email  = db.Column(db.String(255), nullable=True)
+    tkamo_imported_at    = db.Column(db.DateTime, nullable=True)
+
+    # Website-Sync
+    event_description_de = db.Column(db.Text, nullable=True)   # Freitext für body_md
+    website_synced_at    = db.Column(db.DateTime, nullable=True)
+    website_event_id     = db.Column(db.Integer, nullable=True) # PublicEvent.id auf z-b.tech
     results_submitted_at = db.Column(db.DateTime, nullable=True)
 
     # Billing
