@@ -1237,3 +1237,25 @@ msgstr "Briefing"
 
 msgid "Laufzeit"
 msgstr "Run time"
+
+# lizenzcheck_result.html
+msgid "Inaktive Lizenzen — nicht startberechtigt!"
+msgstr "Inactive licenses — not eligible to compete!"
+
+msgid "Klassen-Bestätigung — Mails versendet"
+msgstr "Class confirmation — emails sent"
+
+msgid "Hundenamen automatisch korrigiert"
+msgstr "Dog names automatically corrected"
+
+msgid "Keine Abweichungen erkannt."
+msgstr "No discrepancies detected."
+
+msgid "TKAMO-Originaltext"
+msgstr "TKAMO original text"
+
+msgid "Neues TKAMO-Ergebnis einfügen:"
+msgstr "Paste new TKAMO result:"
+
+msgid "Neues Ergebnis verarbeiten"
+msgstr "Process new result"

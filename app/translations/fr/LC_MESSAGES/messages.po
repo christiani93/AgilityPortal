@@ -1234,3 +1234,25 @@ msgstr "Briefing"
 
 msgid "Laufzeit"
 msgstr "Temps de parcours"
+
+# lizenzcheck_result.html
+msgid "Inaktive Lizenzen — nicht startberechtigt!"
+msgstr "Licences inactives — non autorisés à participer !"
+
+msgid "Klassen-Bestätigung — Mails versendet"
+msgstr "Confirmation de classe — e-mails envoyés"
+
+msgid "Hundenamen automatisch korrigiert"
+msgstr "Noms de chiens corrigés automatiquement"
+
+msgid "Keine Abweichungen erkannt."
+msgstr "Aucun écart détecté."
+
+msgid "TKAMO-Originaltext"
+msgstr "Texte original TKAMO"
+
+msgid "Neues TKAMO-Ergebnis einfügen:"
+msgstr "Coller un nouveau résultat TKAMO :"
+
+msgid "Neues Ergebnis verarbeiten"
+msgstr "Traiter le nouveau résultat"
