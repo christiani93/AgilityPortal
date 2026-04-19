@@ -72,7 +72,7 @@
         {% for item in recent_live %}
         {% set upd = item.upd %}
         <tr>
-          <td class="text-nowrap small text-muted">{{ upd.created_at.strftime("%d.%m. %H:%M") }}</td>
+          <td class="text-nowrap small text-muted">{{ upd.created_at | localtime }}</td>
           <td class="small">{{ upd.event_external_id[:8] }}…</td>
           <td class="small">{{ upd.source_device }}</td>
           <td class="small text-center">{{ upd.sequence_no }}</td>
@@ -104,7 +104,7 @@
       <tbody>
         {% for imp in recent_imports %}
         <tr>
-          <td class="text-nowrap small text-muted">{{ imp.created_at.strftime("%d.%m. %H:%M") }}</td>
+          <td class="text-nowrap small text-muted">{{ imp.created_at | localtime }}</td>
           <td class="small">
             {% if imp.event_id %}
               <a href="{{ url_for('club.event_info', event_id=imp.event_id) }}">{{ imp.event_id }}</a>
@@ -120,7 +120,7 @@
             {% endif %}
           </td>
           <td class="small text-muted">
-            {{ imp.exported_at.strftime("%d.%m. %H:%M") if imp.exported_at else '—' }}
+            {{ imp.exported_at | localtime if imp.exported_at else '—' }}
           </td>
         </tr>
         {% endfor %}

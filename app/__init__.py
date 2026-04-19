@@ -68,6 +68,21 @@ def create_app():
         from flask_wtf.csrf import generate_csrf
         return {"get_locale": get_locale, "csrf_token": generate_csrf}
 
+    @app.template_filter("localtime")
+    def localtime_filter(dt, fmt="%d.%m. %H:%M"):
+        """Konvertiert ein UTC-datetime in Schweizer Lokalzeit (Europe/Zurich)."""
+        if dt is None:
+            return "—"
+        try:
+            from zoneinfo import ZoneInfo
+            from datetime import timezone
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            zurich = ZoneInfo("Europe/Zurich")
+            return dt.astimezone(zurich).strftime(fmt)
+        except Exception:
+            return dt.strftime(fmt)
+
     # User-Loader für Flask-Login
     from .models import User
 

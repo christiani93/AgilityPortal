@@ -163,7 +163,7 @@
   {% if has_start_numbers %}
   <div class="card-footer text-muted small">
     {{ _('Startnummern vergeben am') }}
-    {{ event.start_numbers_generated_at.strftime("%d.%m.%Y %H:%M") }} Uhr
+    {{ event.start_numbers_generated_at | localtime("%d.%m.%Y %H:%M") }} Uhr
     · <a href="{{ url_for('club.event_startlist', event_id=event.id) }}" target="_blank">
         📋 {{ _('Vollständige Startliste') }}
       </a>
@@ -188,7 +188,7 @@
   {% endif %}
   {% if latest_import %}
     <small class="text-muted">
-      {{ _('Stand') }}: {{ latest_import.created_at.strftime("%d.%m.%Y %H:%M") }} Uhr
+      {{ _('Stand') }}: {{ latest_import.created_at | localtime("%d.%m.%Y %H:%M") }} Uhr
     </small>
   {% endif %}
 </div>
