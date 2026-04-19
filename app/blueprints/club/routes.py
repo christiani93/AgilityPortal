@@ -1456,12 +1456,13 @@ def event_export_zip(event_id):
     # ── event.json ────────────────────────────────────────────────────────────
     event_payload = {
         "event": {
-            "external_id":  event.external_id,
-            "name":         event.name or "",
-            "date":         event.starts_at.strftime("%Y-%m-%d") if event.starts_at else "",
-            "club_number":  event.organiser_club.vereinsnummer if event.organiser_club else "",
-            "event_number": event.ais_turniernummer or "",
-            "location":     event.location or "",
+            "external_id":        event.external_id,
+            "name":               event.name or "",
+            "date":               event.starts_at.strftime("%Y-%m-%d") if event.starts_at else "",
+            "club_number":        event.organiser_club.vereinsnummer if event.organiser_club else "",
+            "event_number":       event.ais_turniernummer or "",
+            "location":           event.location or "",
+            "lizenzcheck_done_at": event.lizenzcheck_done_at.isoformat() if event.lizenzcheck_done_at else None,
         }
     }
 

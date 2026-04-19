@@ -159,19 +159,30 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
         if not line:
             continue
 
+        # ── "Verein stimmt nicht überein" → ignorieren (keine Aktion) ────────
+        if re.search(r'Verein stimmt', line, re.IGNORECASE):
+            continue
+
+        # ── Warnung (z.B. Oldie) → als Info in class_emails ──────────────────
+        if line.lower().startswith('warnung'):
+            class_emails.append(f"ℹ️ {line}")
+            continue
+
         # ── Inaktive Lizenz ───────────────────────────────────────────────────
-        # Typische TKAMO-Formulierungen: "inaktiv", "nicht aktiv", "gesperrt"
         if re.search(r'inaktiv|nicht aktiv|gesperrt|inactif|inactive', line, re.IGNORECASE):
             m_lic = re.search(r'Lizenz\s+(\S+)', line, re.IGNORECASE)
-            license_no = m_lic.group(1).rstrip('.') if m_lic else "?"
-            inactive_licenses.append(f"⛔ Inaktive Lizenz {license_no} — nicht startberechtigt! ({line})")
+            license_no = m_lic.group(1).rstrip('.,') if m_lic else "?"
+            inactive_licenses.append(f"⛔ Inaktive Lizenz {license_no} — nicht startberechtigt!")
             continue
 
         # ── Falsche Klasse → Mail mit Bestätigungs-Links ─────────────────────
-        m_cls = re.search(
-            r'Lizenz\s+(\S+).*?Klasse im System:\s*([SMIL])(\d)',
-            line, re.IGNORECASE
-        )
+        if 'Klasse im System' in line:
+            m_cls = re.search(
+                r'Lizenz\s+(\S+).*?Klasse im System:\s*([SMIL])(\d)',
+                line, re.IGNORECASE
+            )
+        else:
+            m_cls = None
         if m_cls and 'Klasse im System' in line:
             license_no  = m_cls.group(1).rstrip('.')
             sys_cat_raw = m_cls.group(2).upper()
@@ -255,15 +266,18 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
                 )
             continue
 
-        # ── Hundename → direkt übernehmen ────────────────────────────────────
-        m_name = re.search(r'Im System\s+(.+)$', line, re.IGNORECASE)
-        if m_name and 'Hundename' in line:
+        # ── Hundename → immer TKAMO-System-Namen übernehmen ─────────────────
+        # Lizenz ist NIE in dieser Zeile — immer nur Zeile N
+        if 'Hundename' in line:
+            m_name = re.search(r'Im System\s+(.+)$', line, re.IGNORECASE)
+            if not m_name:
+                continue
             system_name = m_name.group(1).strip()
 
             license_no = None
             m_lic = re.search(r'Lizenz\s+(\S+)', line, re.IGNORECASE)
             if m_lic:
-                license_no = m_lic.group(1).rstrip('.')
+                license_no = m_lic.group(1).rstrip('.,')
             else:
                 m_row = re.search(r'Zeile\s+(\d+)', line, re.IGNORECASE)
                 if m_row:
@@ -273,12 +287,17 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
                 dog = db.session.execute(
                     db.select(Dog).filter_by(license_no=license_no)
                 ).scalar_one_or_none()
-                if dog and dog.name != system_name:
+                if dog:
                     old_name = dog.name
-                    dog.name = system_name
-                    name_changes.append(
-                        f"✏️ Hundename: {license_no} '{old_name}' → '{system_name}'"
-                    )
+                    dog.name = system_name  # immer übernehmen
+                    if old_name != system_name:
+                        name_changes.append(
+                            f"✏️ Hundename: {license_no} '{old_name}' → '{system_name}'"
+                        )
+                    else:
+                        name_changes.append(
+                            f"✏️ Hundename: {license_no} '{system_name}' (Schreibweise bestätigt)"
+                        )
 
     db.session.commit()
     return name_changes, class_emails, inactive_licenses
