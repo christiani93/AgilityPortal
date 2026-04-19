@@ -10,10 +10,14 @@
       {% if event.location %} · {{ event.location }}{% endif %}
     </small>
   </div>
-  <div class="d-flex gap-2 align-items-center">
+  <div class="d-flex gap-2 align-items-center flex-wrap">
     <span class="badge bg-danger fs-6 live-badge">● Live</span>
     <a href="{{ url_for('club.event_startlist', event_id=event.id) }}"
        class="btn btn-sm btn-outline-secondary">📋 Startliste</a>
+    <a href="{{ url_for('club.event_results_print', event_id=event.id) }}"
+       target="_blank" class="btn btn-sm btn-outline-dark" id="printBtn" style="display:none;">
+      🖨️ Rangliste drucken
+    </a>
   </div>
 </div>
 
@@ -26,12 +30,14 @@
 {# Aktuelle Läufe pro Ring #}
 <div id="ringsContainer" class="row g-3 mb-4"></div>
 
+{# Zeitplan #}
+<div id="scheduleContainer" class="mb-4"></div>
+
 {# Ergebnisse #}
 <div id="resultsContainer"></div>
 
 <script>
 const API_URL = "{{ url_for('club.event_live_json', event_id=event.id) }}";
-let lastFetch = null;
 
 function qualBadge(status) {
   const map = {
@@ -73,7 +79,7 @@ function renderRings(rings) {
 
     const nextHtml = nxt ? `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom">
-        <span class="text-muted" style="width:2rem;">#${nxt.start_no}</span>
+        <span class="text-muted fw-semibold" style="white-space:nowrap;min-width:3rem;">#${nxt.start_no}</span>
         <div>
           <span class="fw-semibold">${nxt.dog_name}</span>
           <span class="text-muted ms-1 small">${nxt.handler_name}</span>
@@ -81,9 +87,22 @@ function renderRings(rings) {
         <span class="ms-auto badge bg-secondary">Nächster</span>
       </div>` : '';
 
-    const moreHtml = rem.length > 2 ? `
+    // Dritter Starter (rem[2] = index 2, da rem[0]=current, rem[1]=next)
+    const third = rem.length > 2 ? rem[2] : null;
+    const thirdHtml = third ? `
+      <div class="d-flex align-items-center gap-2 py-1 border-bottom">
+        <span class="text-muted" style="white-space:nowrap;min-width:3rem;">#${third.start_no}</span>
+        <div>
+          <span>${third.dog_name}</span>
+          <span class="text-muted ms-1 small">${third.handler_name}</span>
+        </div>
+      </div>` : '';
+
+    const shownCount = (curr ? 1 : 0) + (nxt ? 1 : 0) + (third ? 1 : 0);
+    const moreCount  = (sl.remaining_count || 0) - shownCount;
+    const moreHtml = moreCount > 0 ? `
       <div class="text-muted small mt-1">
-        + ${sl.remaining_count - 1} weitere Starter ausstehend
+        + ${moreCount} weitere Starter ausstehend
       </div>` : '';
 
     return `
@@ -97,6 +116,7 @@ function renderRings(rings) {
             <div class="fw-semibold text-muted small mb-2">${ring.run_name}</div>
             ${currHtml}
             ${nextHtml}
+            ${thirdHtml}
             ${moreHtml}
           </div>
         </div>
@@ -104,12 +124,81 @@ function renderRings(rings) {
   }).join('');
 }
 
+function renderSchedule(schedule) {
+  const container = document.getElementById('scheduleContainer');
+  if (!schedule || Object.keys(schedule).length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const segmentStyle = {
+    'changeover':       { bg: '#e9ecef', label: 'Umbau',       icon: '🔧' },
+    'briefing':         { bg: '#d1ecf1', label: 'Briefing',    icon: '📣' },
+    'prep_pause':       { bg: '#fff3cd', label: 'Preppause',   icon: '🐾' },
+    'run':              { bg: '#ffffff', label: 'Lauf',         icon: '🏃' },
+    'rank_announcement':{ bg: '#d4edda', label: 'Rangverkündigung', icon: '🏆' },
+  };
+
+  let html = `<h5 class="mb-2">📅 Zeitplan</h5>
+    <div class="row g-3">`;
+
+  for (const [ring, items] of Object.entries(schedule)) {
+    if (!items || items.length === 0) continue;
+    html += `
+      <div class="col-md-6 col-lg-4">
+        <div class="card">
+          <div class="card-header py-2 fw-semibold">${ring}</div>
+          <div class="card-body p-0">
+            <table class="table table-sm mb-0" style="font-size:.82rem;">
+              <tbody>`;
+
+    for (const it of items) {
+      const st = segmentStyle[it.segment] || { bg: '#fff', icon: '•' };
+      const timeStr = it.start_time === it.end_time
+        ? it.start_time
+        : `${it.start_time}–${it.end_time}`;
+      const timeCell = `<td class="text-muted" style="width:6.5rem;white-space:nowrap;">${timeStr}</td>`;
+
+      if (it.segment === 'run') {
+        const disc = it.discipline
+          ? it.discipline.charAt(0).toUpperCase() + it.discipline.slice(1) : '';
+        html += `<tr style="background:${st.bg}">
+          ${timeCell}
+          <td>
+            <span class="fw-semibold">${st.icon} ${it.label}</span>
+            ${it.participants > 0 ? `<span class="badge bg-secondary ms-1">${it.participants}</span>` : ''}
+          </td>
+        </tr>`;
+      } else if (it.segment === 'rank_announcement') {
+        html += `<tr style="background:${st.bg}">
+          ${timeCell}
+          <td class="text-success fw-semibold">${st.icon} ${it.label}</td>
+        </tr>`;
+      } else {
+        html += `<tr style="background:${st.bg}">
+          ${timeCell}
+          <td class="text-muted small">${st.icon} ${it.label}</td>
+        </tr>`;
+      }
+    }
+
+    html += `</tbody></table></div></div></div>`;
+  }
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
 function renderResults(resultClasses, updated, isFinal) {
   const container = document.getElementById('resultsContainer');
   if (!resultClasses || resultClasses.length === 0) {
     container.innerHTML = '';
+    document.getElementById('printBtn').style.display = 'none';
     return;
   }
+
+  // Drucken-Button einblenden
+  document.getElementById('printBtn').style.display = '';
 
   const badge = isFinal
     ? '<span class="badge bg-success ms-2">Abgeschlossen</span>'
@@ -169,6 +258,7 @@ function fetchLive() {
     .then(r => r.json())
     .then(data => {
       renderRings(data.rings);
+      renderSchedule(data.schedule);
       renderResults(data.result_classes, data.result_updated, data.final);
       const now = new Date().toLocaleTimeString('de-CH', {hour:'2-digit', minute:'2-digit'});
       document.getElementById('lastUpdate').textContent = `Zuletzt aktualisiert: ${now} Uhr`;

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rangliste — {{ event.name }}</title>
+  <style>
+    /* ── Basis ───────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      color: #000;
+      background: #fff;
+      margin: 0;
+      padding: 1.5cm 2cm;
+    }
+
+    /* ── Kopfzeile ───────────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #000;
+      padding-bottom: .5em;
+      margin-bottom: 1em;
+    }
+    .page-header h1 { margin: 0; font-size: 16pt; }
+    .page-header .meta { font-size: 9pt; color: #444; text-align: right; }
+
+    /* ── Klassen-Block ───────────────────────────────────────── */
+    .result-class {
+      margin-bottom: 1.4em;
+      page-break-inside: avoid;
+    }
+    .class-header {
+      background: #222;
+      color: #fff;
+      padding: .3em .6em;
+      font-size: 11pt;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── Tabelle ─────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+    }
+    thead th {
+      background: #f0f0f0;
+      border-bottom: 1px solid #999;
+      padding: .25em .4em;
+      text-align: left;
+    }
+    tbody tr { border-bottom: 1px solid #ddd; }
+    tbody tr:nth-child(even) { background: #f9f9f9; }
+    tbody tr.eliminated { color: #888; }
+    tbody tr.rank-1 { background: #fffbe6; font-weight: bold; }
+    td { padding: .22em .4em; }
+    td.num  { text-align: right; width: 4em; }
+    td.cent { text-align: center; width: 4em; }
+    td.rank-col { text-align: center; width: 2.5em; font-weight: bold; }
+
+    /* ── Qualifikations-Badges ───────────────────────────────── */
+    .q { display:inline-block; padding:.05em .35em; border-radius:3px;
+         font-size:9pt; font-weight:bold; }
+    .q-v0   { background:#198754; color:#fff; }
+    .q-v    { background:#198754; color:#fff; }
+    .q-sg   { background:#0d6efd; color:#fff; }
+    .q-g    { background:#0dcaf0; color:#000; }
+    .q-nb   { background:#ffc107; color:#000; }
+    .q-dis  { background:#dc3545; color:#fff; }
+    .q-dns  { background:#6c757d; color:#fff; }
+
+    /* ── Fusszeile ───────────────────────────────────────────── */
+    .page-footer {
+      margin-top: 2em;
+      border-top: 1px solid #ccc;
+      padding-top: .5em;
+      font-size: 8pt;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── Screen-only: Druck-Button ───────────────────────────── */
+    .print-btn {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: .5em 1.2em;
+      background: #0d6efd;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12pt;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .print-btn:hover { background: #0b5ed7; }
+
+    /* ── Print-Overrides ─────────────────────────────────────── */
+    @media print {
+      body { padding: 1cm 1.5cm; }
+      .print-btn { display: none; }
+      .result-class { page-break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 1.5cm 2cm;
+    }
+  </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Drucken / PDF</button>
+
+<div class="page-header">
+  <div>
+    <h1>Offizielle Rangliste</h1>
+    <div style="font-size:10pt; margin-top:.3em;">
+      {{ event.name }}
+      {% if event.starts_at %} · {{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+      {% if event.location %} · {{ event.location }}{% endif %}
+    </div>
+  </div>
+  <div class="meta">
+    {% if latest_import.final %}
+      <strong>✓ Abgeschlossen</strong>
+    {% else %}
+      ⚠ Vorläufige Rangliste (Live)
+    {% endif %}
+    <br>Stand: {{ result_updated }} Uhr
+  </div>
+</div>
+
+{% for cls in result_classes %}
+<div class="result-class">
+  <div class="class-header">
+    <span>
+      {{ cls.ring }} ·
+      {{ cls.discipline | capitalize if cls.discipline else '?' }} ·
+      {{ cls.category_code }} Kl.{{ cls.class_level }}
+    </span>
+    <span style="font-weight:normal; font-size:9pt;">{{ cls.results | length }} Starter</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="rank-col">Pl.</th>
+        <th>Hund</th>
+        <th>Hundeführer</th>
+        <th class="cent">Nr.</th>
+        <th class="num">Zeit (s)</th>
+        <th class="cent">F</th>
+        <th class="cent">V</th>
+        <th class="cent">Qualif.</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in cls.results %}
+      {% set elim = r.eliminated or r.status in ('DIS','ABR','DNS') %}
+      <tr class="{% if elim %}eliminated{% elif r.rank == 1 %}rank-1{% endif %}">
+        <td class="rank-col">{% if r.rank %}{{ r.rank }}.{% else %}—{% endif %}</td>
+        <td>{{ r.dog_name or '—' }}</td>
+        <td>{{ r.handler_name or '' }}</td>
+        <td class="cent">{{ r.start_no or '—' }}</td>
+        <td class="num">
+          {% if r.time_s %}{{ "%.2f"|format(r.time_s) }}{% else %}—{% endif %}
+        </td>
+        <td class="cent">{% if r.faults is not none %}{{ r.faults }}{% else %}—{% endif %}</td>
+        <td class="cent">{% if r.refusals is not none %}{{ r.refusals }}{% else %}—{% endif %}</td>
+        <td class="cent">
+          {% set q = r.status or '' %}
+          {% if q == 'V0' %}<span class="q q-v0">V0</span>
+          {% elif q == 'V' %}<span class="q q-v">V</span>
+          {% elif q == 'SG' %}<span class="q q-sg">SG</span>
+          {% elif q == 'G' %}<span class="q q-g">G</span>
+          {% elif q == 'NB' %}<span class="q q-nb">NB</span>
+          {% elif q in ('DIS','ABR') %}<span class="q q-dis">{{ q }}</span>
+          {% elif q == 'DNS' %}<span class="q q-dns">DNS</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+
+<div class="page-footer">
+  <span>{{ event.name }}{% if event.pruefungsleiter %} · Prüfungsleiter: {{ event.pruefungsleiter }}{% endif %}</span>
+  <span>Stand: {{ result_updated }} Uhr</span>
+</div>
+
+</body>
+</html>

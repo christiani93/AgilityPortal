@@ -2035,10 +2035,120 @@ def event_live_json(event_id):
     else:
         result_updated = None
 
+    # ── Zeitplan ──────────────────────────────────────────────────────────────
+    from .schedule_utils import (compute_detailed_segments, parse_ring_start_times,
+                                  ring_names as _ring_names_live, auto_title as _auto_title_live)
+    sched_blocks = (
+        db.session.execute(
+            db.select(ScheduleBlock).filter_by(event_id=event_id)
+            .order_by(ScheduleBlock.ring, ScheduleBlock.sort_index)
+        ).scalars().all()
+    )
+    sched_counts = _participant_counts_for_event(event_id)
+    for _sb in sched_blocks:
+        _sb._participant_count = sched_counts.get((_sb.category_code, _sb.class_level), 0)
+        _sb._display_title     = _sb.title or _auto_title_live(
+            _sb.discipline, _sb.category_code, _sb.class_level)
+
+    _rings_live  = _ring_names_live(event.ring_count or 1)
+    _start_times = parse_ring_start_times(event.ring_start_times or "")
+    for _r in _rings_live:
+        _start_times.setdefault(_r, "08:00")
+    _sched_by_ring: dict = {_r: [] for _r in _rings_live}
+    for _sb in sched_blocks:
+        if _sb.ring in _sched_by_ring:
+            _sched_by_ring[_sb.ring].append(_sb)
+
+    _event_date = (
+        event.starts_at.strftime("%Y-%m-%d") if event.starts_at
+        else datetime.utcnow().strftime("%Y-%m-%d")
+    )
+    _timeline = compute_detailed_segments(
+        _sched_by_ring, _start_times, _event_date, round_minutes=5)
+
+    # Serialisieren (Block-Objekte → plain dicts)
+    schedule_json: dict = {}
+    for _ring, _items in _timeline.items():
+        schedule_json[_ring] = []
+        for _it in _items:
+            _blk = _it["block"]
+            schedule_json[_ring].append({
+                "segment":      _it["segment"],
+                "label":        _it["label"],
+                "start_time":   _it["start_time"],
+                "end_time":     _it["end_time"],
+                "participants": _it["participants"],
+                "discipline":   getattr(_blk, "discipline", None),
+                "category_code":getattr(_blk, "category_code", None),
+                "class_level":  getattr(_blk, "class_level", None),
+                "block_type":   getattr(_blk, "block_type", "run"),
+            })
+
     return jsonify({
         "event_name":     event.name,
         "rings":          list(ring_state.values()),
         "result_classes": result_classes,
         "result_updated": result_updated,
         "final":          latest_import.final if latest_import else False,
+        "schedule":       schedule_json,
     })
+
+
+# ---------------------------------------------------------------------------
+# Offizielle Rangliste — druckbare Seite (kein Login nötig)
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/events/<int:event_id>/results/print")
+def event_results_print(event_id):
+    """Druckfertige Rangliste (alle Klassen des aktuellsten Imports)."""
+    from zoneinfo import ZoneInfo
+    from datetime import timezone as _tz
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    if event.is_test and not (current_user.is_authenticated and current_user.is_superadmin):
+        abort(404)
+
+    latest_import = (
+        db.session.execute(
+            db.select(ResultImport)
+            .filter_by(event_id=event_id)
+            .order_by(ResultImport.created_at.desc())
+        ).scalars().first()
+    )
+    if not latest_import:
+        abort(404)
+
+    from itertools import groupby
+    rows = (
+        db.session.execute(
+            db.select(Result)
+            .filter_by(result_import_id=latest_import.id)
+            .order_by(Result.ring, Result.discipline,
+                      Result.category_code, Result.class_level, Result.rank)
+        ).scalars().all()
+    )
+
+    def _ck(r):
+        return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
+
+    result_classes = []
+    for key, grp in groupby(rows, key=_ck):
+        ring, disc, cat, cls = key
+        result_classes.append({
+            "ring": ring, "discipline": disc,
+            "category_code": cat, "class_level": cls,
+            "results": list(grp),
+        })
+
+    zurich = ZoneInfo("Europe/Zurich")
+    created_utc = latest_import.created_at.replace(tzinfo=_tz.utc)
+    result_updated = created_utc.astimezone(zurich).strftime("%d.%m.%Y %H:%M")
+
+    return render_template(
+        "club/event_results_print.html",
+        event=event,
+        result_classes=result_classes,
+        latest_import=latest_import,
+        result_updated=result_updated,
+    )
