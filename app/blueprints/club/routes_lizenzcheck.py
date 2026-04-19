@@ -208,14 +208,13 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
             token_import = _make_confirm_token(event_id, dog.id, imp_cat, imp_cls)
             token_system = _make_confirm_token(event_id, dog.id, sys_cat, sys_cls)
 
-            # URLs — mit externem Hostnamen aus Config
-            with current_app.test_request_context():
-                url_import = url_for(
-                    "club.lizenzcheck_confirm", token=token_import, _external=True
-                )
-                url_system = url_for(
-                    "club.lizenzcheck_confirm", token=token_system, _external=True
-                )
+            # URLs — wir sind bereits im Request-Kontext, _external=True genügt
+            url_import = url_for(
+                "club.lizenzcheck_confirm", token=token_import, _external=True
+            )
+            url_system = url_for(
+                "club.lizenzcheck_confirm", token=token_system, _external=True
+            )
 
             if handler_email and current_app.config.get("MAIL_SERVER"):
                 try:
@@ -301,6 +300,7 @@ def event_lizenzcheck(event_id):
     name_changes, class_emails, inactive_licenses = _parse_and_apply_tkamo(event, report_text)
 
     event.lizenzcheck_done_at = datetime.utcnow()
+    event.lizenzcheck_report  = report_text
     db.session.commit()
 
     return render_template(

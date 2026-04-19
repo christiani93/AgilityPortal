@@ -560,6 +560,7 @@
           <th>{{ _('Klasse') }}</th>
           <th>{{ _('Hundeführer') }}</th>
           <th>{{ _('Status') }}</th>
+          <th>{{ _('Geprüft') }}</th>
           <th></th>
         </tr>
       </thead>
@@ -588,6 +589,15 @@
               <span class="badge bg-success">{{ _('Bestätigt') }}</span>
             {% else %}
               <span class="badge bg-secondary">{{ _('Storniert') }}</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if not event.lizenzcheck_done_at %}
+              <span class="text-muted">—</span>
+            {% elif event.lizenzcheck_report and reg.dog and reg.dog.license_no and reg.dog.license_no in event.lizenzcheck_report %}
+              <span title="{{ _('Abweichung erkannt') }}">⚠️</span>
+            {% else %}
+              <span title="{{ _('In Ordnung') }}">✅</span>
             {% endif %}
           </td>
           <td class="text-end">

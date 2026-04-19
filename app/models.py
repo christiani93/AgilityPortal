@@ -319,6 +319,7 @@ class Event(db.Model):
     entry_fee = db.Column(db.Numeric(10, 2), nullable=True)
     notes_public = db.Column(db.Text, nullable=True)
     lizenzcheck_done_at = db.Column(db.DateTime, nullable=True)
+    lizenzcheck_report  = db.Column(db.Text, nullable=True)
     results_submitted_at = db.Column(db.DateTime, nullable=True)
 
     # Billing
