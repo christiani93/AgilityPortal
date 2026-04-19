@@ -1411,3 +1411,6 @@ msgstr "not set"
 
 msgid "24 Läufe × Anzahl Starter = total Testanmeldungen."
 msgstr "24 runs × number of starters = total test registrations."
+
+msgid "Turnier «%(name)s» wurde gelöscht."
+msgstr "Tournament «%(name)s» has been deleted."
