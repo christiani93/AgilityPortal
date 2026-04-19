@@ -1415,12 +1415,19 @@ def event_export_zip(event_id):
     # ── Disziplinen aus den Turnierläufen ─────────────────────────────────────
     disciplines = sorted({r.run_type for r in event.runs}) if event.runs else ["agility"]
 
+    # ── external_id sicherstellen (für Rück-Zuordnung beim Result-Export) ──────
+    if not event.external_id:
+        import uuid as _uuid
+        event.external_id = _uuid.uuid4().hex
+        db.session.commit()
+
     # ── manifest.json ─────────────────────────────────────────────────────────
     manifest = {"schema": "agility.exchange.eventexport.v1"}
 
     # ── event.json ────────────────────────────────────────────────────────────
     event_payload = {
         "event": {
+            "external_id":  event.external_id,
             "name":         event.name or "",
             "date":         event.starts_at.strftime("%Y-%m-%d") if event.starts_at else "",
             "club_number":  event.organiser_club.vereinsnummer if event.organiser_club else "",
