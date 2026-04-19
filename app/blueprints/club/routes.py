@@ -980,13 +980,28 @@ def event_info(event_id):
                 "final": latest_import.final,
             })
 
+    # Hochgeladene PDFs für dieses Event
+    result_pdfs = db.session.execute(
+        db.select(ResultPDF)
+        .filter_by(event_id=event_id)
+        .order_by(ResultPDF.ring, ResultPDF.discipline,
+                  ResultPDF.category_code, ResultPDF.class_level)
+    ).scalars().all()
+    # Lookup-Dict: (ring, discipline, category_code, class_level) → ResultPDF
+    pdf_by_class = {
+        (p.ring or "", p.discipline or "", p.category_code or "", p.class_level or 0): p
+        for p in result_pdfs
+    }
+
     return render_template("club/event_info.html",
                            event=event,
                            my_registrations=my_registrations,
                            deadline_passed=deadline_passed,
                            has_start_numbers=has_start_numbers,
                            result_classes=result_classes,
-                           latest_import=latest_import)
+                           latest_import=latest_import,
+                           pdf_by_class=pdf_by_class,
+                           result_pdfs=result_pdfs)
 
 
 # ---------------------------------------------------------------------------

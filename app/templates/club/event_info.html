@@ -200,6 +200,7 @@
 </div>
 
 {% for cls in result_classes %}
+{% set cls_pdf = pdf_by_class.get((cls.ring, cls.discipline, cls.category_code, cls.class_level)) %}
 <div class="card mb-3">
   <div class="card-header d-flex justify-content-between align-items-center py-2">
     <strong>
@@ -207,7 +208,16 @@
       {{ cls.discipline | capitalize if cls.discipline else '?' }} ·
       {{ cls.category_code }} Kl.{{ cls.class_level }}
     </strong>
-    <span class="badge bg-secondary">{{ cls.results | length }} {{ _('Starter') }}</span>
+    <div class="d-flex align-items-center gap-2">
+      {% if cls_pdf %}
+        <a href="{{ url_for('club.event_results_pdf', event_id=event.id, pdf_id=cls_pdf.id) }}"
+           target="_blank"
+           class="btn btn-sm {{ 'btn-danger' if cls_pdf.is_final else 'btn-outline-secondary' }}">
+          📄 {{ _('Offizielle Liste') if cls_pdf.is_final else _('Rangliste PDF') }}
+        </a>
+      {% endif %}
+      <span class="badge bg-secondary">{{ cls.results | length }} {{ _('Starter') }}</span>
+    </div>
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-hover mb-0">
@@ -271,6 +281,26 @@
 {% endfor %}
 {% elif event.status == 'closed' %}
 <div class="text-muted small mb-4">{{ _('Noch keine Ergebnisse verfügbar.') }}</div>
+{% endif %}
+
+{# ── Ranglisten-PDFs (auch ohne Ergebnis-Sync sichtbar) ───────────────────── #}
+{% if result_pdfs %}
+<h4 class="mb-2 mt-2">📄 {{ _('Ranglisten') }}</h4>
+<div class="list-group mb-4" style="max-width:680px;">
+  {% for pdf in result_pdfs %}
+  <a href="{{ url_for('club.event_results_pdf', event_id=event.id, pdf_id=pdf.id) }}"
+     target="_blank"
+     class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    <span>
+      {% if pdf.is_final %}🏆{% else %}📄{% endif %}
+      {{ pdf.run_name or (pdf.ring ~ ' · ' ~ (pdf.discipline | capitalize if pdf.discipline else '') ~ ' ' ~ pdf.category_code ~ ' Kl.' ~ pdf.class_level) }}
+    </span>
+    <span class="badge {{ 'bg-danger' if pdf.is_final else 'bg-secondary' }}">
+      {{ _('Offizielle Liste') if pdf.is_final else _('Vorläufig') }}
+    </span>
+  </a>
+  {% endfor %}
+</div>
 {% endif %}
 
 {% endblock %}
