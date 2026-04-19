@@ -33,6 +33,9 @@
 {# Zeitplan #}
 <div id="scheduleContainer" class="mb-4"></div>
 
+{# Ranglisten-PDFs #}
+<div id="pdfsContainer" class="mb-4"></div>
+
 {# Ergebnisse #}
 <div id="resultsContainer"></div>
 
@@ -189,6 +192,32 @@ function renderSchedule(schedule) {
   container.innerHTML = html;
 }
 
+function renderPdfs(pdfs) {
+  const container = document.getElementById('pdfsContainer');
+  if (!pdfs || pdfs.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  let html = `<h5 class="mb-2">📄 Ranglisten</h5>
+    <div class="list-group" style="max-width:600px;">`;
+  pdfs.forEach(p => {
+    const disc = p.discipline ? p.discipline.charAt(0).toUpperCase() + p.discipline.slice(1) : '';
+    const label = p.run_name || `${p.ring} · ${disc} ${p.category_code} Kl.${p.class_level}`;
+    const btnClass = p.is_final ? 'list-group-item-danger' : '';
+    const badge = p.is_final
+      ? '<span class="badge bg-danger ms-2">Offizielle Liste</span>'
+      : '<span class="badge bg-secondary ms-2">Vorläufig</span>';
+    html += `
+      <a href="${p.url}" target="_blank"
+         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center ${btnClass}">
+        <span>${p.is_final ? '🏆' : '📄'} ${label}</span>
+        ${badge}
+      </a>`;
+  });
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
 function renderResults(resultClasses, updated, isFinal, pdfs) {
   const container = document.getElementById('resultsContainer');
   if (!resultClasses || resultClasses.length === 0) {
@@ -274,6 +303,7 @@ function fetchLive() {
     .then(data => {
       renderRings(data.rings);
       renderSchedule(data.schedule);
+      renderPdfs(data.pdfs);
       renderResults(data.result_classes, data.result_updated, data.final, data.pdfs);
       const now = new Date().toLocaleTimeString('de-CH', {hour:'2-digit', minute:'2-digit'});
       document.getElementById('lastUpdate').textContent = `Zuletzt aktualisiert: ${now} Uhr`;
