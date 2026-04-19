@@ -35,6 +35,8 @@
     <a href="{{ url_for('club.event_view', event_id=event.id) }}" class="btn btn-sm btn-outline-info">👁 {{ _('Teilnehmeransicht') }}</a>
     <a href="{{ url_for('club.event_live', event_id=event.id) }}"
        class="btn btn-sm btn-danger" target="_blank">🔴 {{ _('Live-Seite') }}</a>
+    <a href="{{ url_for('club.event_var_control', event_id=event.id) }}"
+       class="btn btn-sm btn-outline-warning" target="_blank">📺 VAR</a>
     {% if current_user.is_superadmin %}
     <a href="{{ url_for('club.event_export_zip', event_id=event.id) }}" class="btn btn-sm btn-outline-dark">⬇ {{ _('Export ZIP') }}</a>
     {% endif %}
@@ -184,6 +186,64 @@
       {% endif %}
 
     </dl>
+  </div>
+</div>
+
+{# ── LOGOS ────────────────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header">{{ _('Logos (Event- & Vereins-Logo)') }}</div>
+  <div class="card-body">
+    <div class="row g-4">
+
+      {# Event-Logo #}
+      <div class="col-sm-6">
+        <div class="fw-semibold mb-2">{{ _('Event-Logo') }}</div>
+        {% if event.event_logo_filename %}
+          <img src="{{ url_for('club.event_logo_serve', event_id=event.id, logo_type='event_logo') }}"
+               alt="Event-Logo" class="img-thumbnail mb-2" style="max-height:100px; max-width:200px;">
+          <form method="post" action="{{ url_for('club.event_logo_delete', event_id=event.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="logo_type" value="event_logo">
+            <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
+                    onclick="return confirm('Event-Logo wirklich löschen?')">🗑 {{ _('Löschen') }}</button>
+          </form>
+        {% else %}
+          <p class="text-muted small">{{ _('Kein Event-Logo hinterlegt.') }}</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('club.event_logo_upload', event_id=event.id) }}"
+              enctype="multipart/form-data" class="d-flex gap-2 align-items-center mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="logo_type" value="event_logo">
+          <input type="file" name="logo_file" accept="image/*" class="form-control form-control-sm" style="max-width:250px;">
+          <button type="submit" class="btn btn-sm btn-outline-primary">{{ _('Hochladen') }}</button>
+        </form>
+      </div>
+
+      {# Vereins-Logo #}
+      <div class="col-sm-6">
+        <div class="fw-semibold mb-2">{{ _('Vereins-Logo') }}</div>
+        {% if event.club_logo_filename %}
+          <img src="{{ url_for('club.event_logo_serve', event_id=event.id, logo_type='club_logo') }}"
+               alt="Vereins-Logo" class="img-thumbnail mb-2" style="max-height:100px; max-width:200px;">
+          <form method="post" action="{{ url_for('club.event_logo_delete', event_id=event.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="logo_type" value="club_logo">
+            <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
+                    onclick="return confirm('Vereins-Logo wirklich löschen?')">🗑 {{ _('Löschen') }}</button>
+          </form>
+        {% else %}
+          <p class="text-muted small">{{ _('Kein Vereins-Logo hinterlegt.') }}</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('club.event_logo_upload', event_id=event.id) }}"
+              enctype="multipart/form-data" class="d-flex gap-2 align-items-center mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="logo_type" value="club_logo">
+          <input type="file" name="logo_file" accept="image/*" class="form-control form-control-sm" style="max-width:250px;">
+          <button type="submit" class="btn btn-sm btn-outline-primary">{{ _('Hochladen') }}</button>
+        </form>
+      </div>
+
+    </div>
   </div>
 </div>
 

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>VAR – {{ event.name }}</title>
+  <!-- Basis-Style (Warte-Bildschirm) -->
+  <style id="base-style">
+    html, body { margin: 0; padding: 0; background: #dae5f4; }
+    #waiting {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: arial, sans-serif;
+      color: #444;
+      gap: 12px;
+    }
+    #waiting h2 { font-size: 28px; margin: 0; }
+    #waiting p  { font-size: 16px; color: #777; margin: 0; }
+  </style>
+  <!-- Styles des Inhalts werden hier dynamisch eingefügt -->
+  <style id="content-style"></style>
+</head>
+<body>
+
+  <div id="waiting">
+    <h2>VAR – {{ event.name }}</h2>
+    <p>Warte auf Auswahl über die Steuerseite...</p>
+  </div>
+
+  <!-- Inhalt wird direkt in den DOM injiziert -->
+  <div id="content" style="display:none;"></div>
+
+  <script>
+    const STATE_URL   = "{{ url_for('club.event_var_state_get', event_id=event.id) }}";
+    const CONTENT_URL = "{{ url_for('club.event_var_content', event_id=event.id) }}";
+
+    var currentRing = null;
+
+    async function tick() {
+      try {
+        var resp  = await fetch(STATE_URL + '?t=' + Date.now());
+        var state = await resp.json();
+        var ring  = state.ring || '';
+
+        if (ring) {
+          // Inhalt laden (immer aktualisieren damit Starter sich ändern)
+          var r    = await fetch(CONTENT_URL + '?ring=' + encodeURIComponent(ring) + '&t=' + Date.now());
+          var html = await r.text();
+          var doc  = new DOMParser().parseFromString(html, 'text/html');
+
+          // Styles übernehmen
+          var styles = '';
+          doc.querySelectorAll('style').forEach(function(s) { styles += s.textContent; });
+          document.getElementById('content-style').textContent = styles;
+
+          // Body-Inhalt einfügen (ohne Script-Tags)
+          doc.querySelectorAll('script').forEach(function(s) { s.remove(); });
+          document.getElementById('content').innerHTML = doc.body.innerHTML;
+
+          document.getElementById('waiting').style.display  = 'none';
+          document.getElementById('content').style.display = 'block';
+          currentRing = ring;
+        } else {
+          // Kein Ring aktiv
+          document.getElementById('content').style.display  = 'none';
+          document.getElementById('content').innerHTML      = '';
+          document.getElementById('content-style').textContent = '';
+          document.getElementById('waiting').style.display  = 'flex';
+          currentRing = null;
+        }
+      } catch(e) {
+        console.error('VAR Fehler:', e);
+      }
+    }
+
+    // Sofort laden, dann alle 5 Sekunden aktualisieren
+    tick();
+    setInterval(tick, 5000);
+  </script>
+
+</body>
+</html>

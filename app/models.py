@@ -351,6 +351,10 @@ class Event(db.Model):
     # run_time_config: {"agility": 65, "jumping": 60, "open": 65}
     run_time_config = db.Column(db.Text, nullable=True)
 
+    # Logos (Dateiname relativ zu instance/uploads/logos/<event_id>/)
+    event_logo_filename = db.Column(db.String(255), nullable=True)
+    club_logo_filename  = db.Column(db.String(255), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     organiser_club = db.relationship("Club", foreign_keys=[organiser_club_id])

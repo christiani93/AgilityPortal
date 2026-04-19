@@ -3,15 +3,25 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
-  <div>
-    <h2 class="mb-0">{{ event.name }}</h2>
-    <small class="text-muted">
-      {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
-      {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
-        – {{ event.ends_at.strftime("%d.%m.%Y") }}
-      {% endif %}
-      {% if event.location %} · {{ event.location }}{% endif %}
-    </small>
+  <div class="d-flex align-items-center gap-3">
+    {% if club_logo_url %}
+      <img src="{{ club_logo_url }}" alt="Vereins-Logo"
+           style="max-height:60px; max-width:100px; object-fit:contain;">
+    {% endif %}
+    <div>
+      <h2 class="mb-0">{{ event.name }}</h2>
+      <small class="text-muted">
+        {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+        {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
+          – {{ event.ends_at.strftime("%d.%m.%Y") }}
+        {% endif %}
+        {% if event.location %} · {{ event.location }}{% endif %}
+      </small>
+    </div>
+    {% if event_logo_url %}
+      <img src="{{ event_logo_url }}" alt="Event-Logo"
+           style="max-height:60px; max-width:100px; object-fit:contain;">
+    {% endif %}
   </div>
   <div class="d-flex gap-2">
     {% if event.status == 'closed' %}

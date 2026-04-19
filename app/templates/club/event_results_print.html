@@ -20,13 +20,27 @@
     .page-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       border-bottom: 2px solid #000;
       padding-bottom: .5em;
       margin-bottom: 1em;
+      gap: 1em;
     }
-    .page-header h1 { margin: 0; font-size: 16pt; }
-    .page-header .meta { font-size: 9pt; color: #444; text-align: right; }
+    .page-header-logo {
+      flex: 0 0 auto;
+    }
+    .page-header-logo img {
+      max-height: 60px;
+      max-width: 120px;
+      object-fit: contain;
+    }
+    .page-header-center {
+      flex: 1 1 auto;
+      text-align: center;
+    }
+    .page-header-center h1 { margin: 0; font-size: 16pt; }
+    .page-header-center .event-sub { font-size: 10pt; color: #444; margin-top: .2em; }
+    .page-header .meta { font-size: 9pt; color: #444; text-align: right; flex: 0 0 auto; }
 
     /* ── Klassen-Block ───────────────────────────────────────── */
     .result-class {
@@ -58,24 +72,12 @@
     tbody tr { border-bottom: 1px solid #ddd; }
     tbody tr:nth-child(even) { background: #f9f9f9; }
     tbody tr.eliminated { color: #888; }
-    tbody tr.rank-1 { background: #fffbe6; font-weight: bold; }
     td { padding: .22em .4em; }
     td.num  { text-align: right; width: 4em; }
     td.cent { text-align: center; width: 4em; }
     td.rank-col { text-align: center; width: 2.5em; font-weight: bold; }
 
-    /* ── Qualifikations-Badges ───────────────────────────────── */
-    .q { display:inline-block; padding:.05em .35em; border-radius:3px;
-         font-size:9pt; font-weight:bold; }
-    .q-v0   { background:#198754; color:#fff; }
-    .q-v    { background:#198754; color:#fff; }
-    .q-sg   { background:#0d6efd; color:#fff; }
-    .q-g    { background:#0dcaf0; color:#000; }
-    .q-nb   { background:#ffc107; color:#000; }
-    .q-dis  { background:#dc3545; color:#fff; }
-    .q-dns  { background:#6c757d; color:#fff; }
-
-    /* ── Fusszeile ───────────────────────────────────────────── */
+/* ── Fusszeile ───────────────────────────────────────────── */
     .page-footer {
       margin-top: 2em;
       border-top: 1px solid #ccc;
@@ -121,13 +123,22 @@
 <button class="print-btn" onclick="window.print()">🖨️ Drucken / PDF</button>
 
 <div class="page-header">
-  <div>
-    <h1>Offizielle Rangliste</h1>
-    <div style="font-size:10pt; margin-top:.3em;">
-      {{ event.name }}
-      {% if event.starts_at %} · {{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+  <div class="page-header-logo">
+    {% if club_logo_url %}
+      <img src="{{ club_logo_url }}" alt="Vereins-Logo">
+    {% endif %}
+  </div>
+  <div class="page-header-center">
+    <h1>{{ event.name }}</h1>
+    <div class="event-sub">
+      {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
       {% if event.location %} · {{ event.location }}{% endif %}
     </div>
+  </div>
+  <div class="page-header-logo" style="text-align:right;">
+    {% if event_logo_url %}
+      <img src="{{ event_logo_url }}" alt="Event-Logo">
+    {% endif %}
   </div>
   <div class="meta">
     {% if latest_import.final %}
@@ -164,7 +175,7 @@
     <tbody>
       {% for r in cls.results %}
       {% set elim = r.eliminated or r.status in ('DIS','ABR','DNS') %}
-      <tr class="{% if elim %}eliminated{% elif r.rank == 1 %}rank-1{% endif %}">
+      <tr class="{% if elim %}eliminated{% endif %}">
         <td class="rank-col">{% if r.rank %}{{ r.rank }}.{% else %}—{% endif %}</td>
         <td>{{ r.dog_name or '—' }}</td>
         <td>{{ r.handler_name or '' }}</td>

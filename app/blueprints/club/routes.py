@@ -31,6 +31,9 @@ def _send_notify(subject, body):
 
 club_bp = Blueprint("club", __name__, url_prefix="/club")
 
+LOGO_UPLOAD_FOLDER = "uploads/logos"
+ALLOWED_LOGO_EXTS  = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"}
+
 
 def club_admin_required(f):
     """Decorator: nur club_admin oder superadmin darf diese Route aufrufen."""
@@ -993,6 +996,9 @@ def event_info(event_id):
         for p in result_pdfs
     }
 
+    event_logo_url = url_for("club.event_logo_serve", event_id=event_id, logo_type="event_logo") if event.event_logo_filename else None
+    club_logo_url  = url_for("club.event_logo_serve", event_id=event_id, logo_type="club_logo")  if event.club_logo_filename  else None
+
     return render_template("club/event_info.html",
                            event=event,
                            my_registrations=my_registrations,
@@ -1001,7 +1007,9 @@ def event_info(event_id):
                            result_classes=result_classes,
                            latest_import=latest_import,
                            pdf_by_class=pdf_by_class,
-                           result_pdfs=result_pdfs)
+                           result_pdfs=result_pdfs,
+                           event_logo_url=event_logo_url,
+                           club_logo_url=club_logo_url)
 
 
 # ---------------------------------------------------------------------------
@@ -1544,6 +1552,7 @@ def event_export_zip(event_id):
     schedule_payload = {"blocks": schedule_blocks_out}
 
     # ── ZIP zusammenbauen ─────────────────────────────────────────────────────
+    import os as _os
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         def _add(name, obj):
@@ -1555,6 +1564,21 @@ def event_export_zip(event_id):
         _add("registrations.json", {"registrations": registrations})
         _add("start_numbers.json", start_numbers_payload)
         _add("schedule.json",      schedule_payload)
+
+        # Logos als Binärdateien einpacken (falls vorhanden)
+        from flask import current_app as _ca
+        _logo_base = _os.path.join(_ca.instance_path, LOGO_UPLOAD_FOLDER, str(event_id))
+        for _logo_attr, _zip_name in [
+            ("event_logo_filename", "logos/event_logo"),
+            ("club_logo_filename",  "logos/club_logo"),
+        ]:
+            _fname = getattr(event, _logo_attr, None)
+            if _fname:
+                _path = _os.path.join(_logo_base, _fname)
+                if _os.path.exists(_path):
+                    _ext = _os.path.splitext(_fname)[1]
+                    with open(_path, "rb") as _fh:
+                        zf.writestr(_zip_name + _ext, _fh.read())
 
     safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in (event.name or "event"))
     filename   = f"eventexport_{event_id}_{safe_name}.zip"
@@ -2186,12 +2210,17 @@ def event_results_print(event_id):
     created_utc = latest_import.created_at.replace(tzinfo=_tz.utc)
     result_updated = created_utc.astimezone(zurich).strftime("%d.%m.%Y %H:%M")
 
+    event_logo_url = url_for("club.event_logo_serve", event_id=event_id, logo_type="event_logo") if event.event_logo_filename else None
+    club_logo_url  = url_for("club.event_logo_serve", event_id=event_id, logo_type="club_logo")  if event.club_logo_filename  else None
+
     return render_template(
         "club/event_results_print.html",
         event=event,
         result_classes=result_classes,
         latest_import=latest_import,
         result_updated=result_updated,
+        event_logo_url=event_logo_url,
+        club_logo_url=club_logo_url,
     )
 
 
@@ -2224,3 +2253,112 @@ def event_results_pdf(event_id, pdf_id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Event-Logo hochladen und ausliefern
+# ---------------------------------------------------------------------------
+
+def _logo_dir(event_id: int):
+    from flask import current_app
+    import os
+    folder = os.path.join(current_app.instance_path, LOGO_UPLOAD_FOLDER, str(event_id))
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+@club_bp.post("/events/<int:event_id>/logo/upload")
+@club_admin_required
+def event_logo_upload(event_id):
+    """Lädt Event-Logo oder Vereins-Logo hoch und speichert den Dateinamen am Event."""
+    import os
+    from werkzeug.utils import secure_filename
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    logo_type = request.form.get("logo_type")  # "event_logo" or "club_logo"
+    if logo_type not in ("event_logo", "club_logo"):
+        flash("Ungültiger Logo-Typ.", "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    file = request.files.get("logo_file")
+    if not file or not file.filename:
+        flash("Keine Datei ausgewählt.", "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_LOGO_EXTS:
+        flash(f"Ungültiges Dateiformat. Erlaubt: {', '.join(ALLOWED_LOGO_EXTS)}", "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    filename = secure_filename(f"{logo_type}{ext}")
+    save_path = os.path.join(_logo_dir(event_id), filename)
+    file.save(save_path)
+
+    if logo_type == "event_logo":
+        event.event_logo_filename = filename
+    else:
+        event.club_logo_filename = filename
+    db.session.commit()
+
+    flash("Logo gespeichert.", "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/logo/delete")
+@club_admin_required
+def event_logo_delete(event_id):
+    """Löscht ein Logo (Event-Logo oder Vereins-Logo)."""
+    import os
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    logo_type = request.form.get("logo_type")
+    if logo_type == "event_logo" and event.event_logo_filename:
+        path = os.path.join(_logo_dir(event_id), event.event_logo_filename)
+        if os.path.exists(path):
+            os.remove(path)
+        event.event_logo_filename = None
+        db.session.commit()
+        flash("Event-Logo gelöscht.", "success")
+    elif logo_type == "club_logo" and event.club_logo_filename:
+        path = os.path.join(_logo_dir(event_id), event.club_logo_filename)
+        if os.path.exists(path):
+            os.remove(path)
+        event.club_logo_filename = None
+        db.session.commit()
+        flash("Vereins-Logo gelöscht.", "success")
+    else:
+        flash("Kein Logo zum Löschen gefunden.", "warning")
+
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+@club_bp.get("/events/<int:event_id>/logo/<logo_type>")
+def event_logo_serve(event_id, logo_type):
+    """Liefert das gespeicherte Logo als Bild aus (öffentlich zugänglich)."""
+    import os
+    from flask import send_file
+
+    if logo_type not in ("event_logo", "club_logo"):
+        abort(404)
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+
+    filename = event.event_logo_filename if logo_type == "event_logo" else event.club_logo_filename
+    if not filename:
+        abort(404)
+
+    path = os.path.join(_logo_dir(event_id), filename)
+    if not os.path.exists(path):
+        abort(404)
+
+    return send_file(path)
