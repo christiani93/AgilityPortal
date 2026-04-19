@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 14px; color: #222; background: #f8f8f8; margin: 0; padding: 0; }
+    .wrapper { max-width: 620px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .header { background: #1a5276; color: #fff; padding: 24px 32px; }
+    .header h1 { margin: 0; font-size: 20px; }
+    .header p { margin: 6px 0 0; font-size: 13px; opacity: .85; }
+    .body-text { padding: 28px 32px; white-space: pre-wrap; line-height: 1.6; }
+    .footer { background: #f0f0f0; padding: 14px 32px; font-size: 11px; color: #999; text-align: center; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>{{ event.name }}</h1>
+    <p>{{ event.location }} &nbsp;·&nbsp; {{ event.starts_at.strftime('%d.%m.%Y') if event.starts_at }}</p>
+  </div>
+  <div class="body-text">{{ body }}</div>
+  <div class="footer">
+    {{ event.name }} &nbsp;·&nbsp; AgilityPortal
+  </div>
+</div>
+</body>
+</html>

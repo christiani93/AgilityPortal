@@ -518,6 +518,62 @@
 </div>
 {% endif %}
 
+{# ── Zahlungsinfos ─────────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header">💳 {{ _('Zahlungsinfos für Bestätigungsmail') }}</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('club.event_payment_info_save', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-2">
+        <label class="form-label small text-muted">
+          {{ _('IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail angezeigt.') }}
+        </label>
+        <textarea name="payment_info" class="form-control font-monospace" rows="5"
+                  placeholder="IBAN: CH56 0483 5012 3456 7800 9&#10;Empfänger: Agility-Club Muster&#10;Verwendungszweck: Startgeld [Hund] [Turnier]">{{ event.payment_info or '' }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary">{{ _('Speichern') }}</button>
+    </form>
+  </div>
+</div>
+
+{# ── Sammelmail ────────────────────────────────────────────────────────────── #}
+{% if registrations is defined and registrations %}
+<div class="card mb-4">
+  <div class="card-header">📧 {{ _('E-Mail an Teilnehmer') }}</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('club.event_bulk_email_send', event_id=event.id) }}"
+          onsubmit="return confirm('{{ _('E-Mail an alle gewählten Teilnehmer senden?') }}')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-2 mb-2">
+        <div class="col-md-8">
+          <input type="text" name="subject" class="form-control" required
+                 placeholder="{{ _('Betreff') }}">
+        </div>
+        <div class="col-md-4">
+          <select name="status_filter" class="form-select">
+            <option value="all">{{ _('Alle (ausser Storniert)') }}</option>
+            <option value="pending">{{ _('Nur Ausstehend') }}</option>
+            <option value="confirmed">{{ _('Nur Bestätigt') }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb-2">
+        <textarea name="body" class="form-control" rows="6" required
+                  placeholder="{{ _('Nachrichtentext...') }}"></textarea>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <button type="submit" class="btn btn-sm btn-primary">
+          📤 {{ _('Versand starten') }}
+        </button>
+        <span class="text-muted small">
+          {{ _('ca. %(n)d Empfänger · 1 Mail/Sek.', n=registrations|length) }}
+        </span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <script>
 const EVENT_ID = {{ event.id }};

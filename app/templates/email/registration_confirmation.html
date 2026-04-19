@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 14px; color: #222; background: #f8f8f8; margin: 0; padding: 0; }
+    .wrapper { max-width: 620px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .header { background: #1a5276; color: #fff; padding: 24px 32px; }
+    .header h1 { margin: 0; font-size: 20px; }
+    .header p { margin: 6px 0 0; font-size: 13px; opacity: .85; }
+    .section { padding: 24px 32px; border-bottom: 1px solid #eee; }
+    .section:last-child { border-bottom: none; }
+    .lang-label { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    h2 { font-size: 16px; margin: 0 0 12px; color: #1a5276; }
+    .info-box { background: #eaf4fb; border-left: 4px solid #1a5276; padding: 12px 16px; border-radius: 4px; margin: 12px 0; }
+    .info-box p { margin: 4px 0; }
+    .payment-box { background: #fdfbe8; border-left: 4px solid #d4ac0d; padding: 12px 16px; border-radius: 4px; margin: 12px 0; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+    .footer { background: #f0f0f0; padding: 14px 32px; font-size: 11px; color: #999; text-align: center; }
+    .divider { border: none; border-top: 2px dashed #ddd; margin: 0; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="header">
+    <h1>{{ event.name }}</h1>
+    <p>{{ event.location }} &nbsp;·&nbsp; {{ event.starts_at.strftime('%d.%m.%Y') if event.starts_at }}</p>
+  </div>
+
+  {# ── DEUTSCH ─────────────────────────────────────────────────────────────── #}
+  <div class="section">
+    <div class="lang-label">Deutsch</div>
+    <h2>Anmeldung erhalten</h2>
+    <p>Hallo {{ handler_name }},</p>
+    <p>Deine Anmeldung wurde erfolgreich entgegengenommen und wird geprüft.</p>
+    <div class="info-box">
+      <p><strong>Hund:</strong> {{ dog_name }}</p>
+      <p><strong>Kategorie:</strong> {{ category }} &nbsp;·&nbsp; <strong>Klasse:</strong> {{ class_level }}</p>
+      <p><strong>Turnier:</strong> {{ event.name }}</p>
+      <p><strong>Datum:</strong> {{ event.starts_at.strftime('%d.%m.%Y') if event.starts_at }}</p>
+      {% if event.entry_fee %}<p><strong>Startgeld:</strong> CHF {{ "%.2f"|format(event.entry_fee|float) }}</p>{% endif %}
+    </div>
+    {% if event.payment_info %}
+    <p>Bitte überweise das Startgeld mit folgendem Zahlungsauftrag:</p>
+    <div class="payment-box">{{ event.payment_info }}</div>
+    {% endif %}
+    <p>Du erhältst eine weitere Benachrichtigung sobald deine Anmeldung bestätigt wurde.</p>
+  </div>
+
+  <hr class="divider">
+
+  {# ── FRANÇAIS ─────────────────────────────────────────────────────────────── #}
+  <div class="section">
+    <div class="lang-label">Français</div>
+    <h2>Inscription reçue</h2>
+    <p>Bonjour {{ handler_name }},</p>
+    <p>Votre inscription a bien été reçue et est en cours de vérification.</p>
+    <div class="info-box">
+      <p><strong>Chien :</strong> {{ dog_name }}</p>
+      <p><strong>Catégorie :</strong> {{ category }} &nbsp;·&nbsp; <strong>Classe :</strong> {{ class_level }}</p>
+      <p><strong>Concours :</strong> {{ event.name }}</p>
+      <p><strong>Date :</strong> {{ event.starts_at.strftime('%d.%m.%Y') if event.starts_at }}</p>
+      {% if event.entry_fee %}<p><strong>Taxe de participation :</strong> CHF {{ "%.2f"|format(event.entry_fee|float) }}</p>{% endif %}
+    </div>
+    {% if event.payment_info %}
+    <p>Veuillez effectuer le paiement selon les coordonnées suivantes :</p>
+    <div class="payment-box">{{ event.payment_info }}</div>
+    {% endif %}
+    <p>Vous recevrez une nouvelle notification dès que votre inscription sera confirmée.</p>
+  </div>
+
+  <hr class="divider">
+
+  {# ── ENGLISH ─────────────────────────────────────────────────────────────── #}
+  <div class="section">
+    <div class="lang-label">English</div>
+    <h2>Registration received</h2>
+    <p>Dear {{ handler_name }},</p>
+    <p>Your registration has been received and is being reviewed.</p>
+    <div class="info-box">
+      <p><strong>Dog:</strong> {{ dog_name }}</p>
+      <p><strong>Category:</strong> {{ category }} &nbsp;·&nbsp; <strong>Class:</strong> {{ class_level }}</p>
+      <p><strong>Event:</strong> {{ event.name }}</p>
+      <p><strong>Date:</strong> {{ event.starts_at.strftime('%d.%m.%Y') if event.starts_at }}</p>
+      {% if event.entry_fee %}<p><strong>Entry fee:</strong> CHF {{ "%.2f"|format(event.entry_fee|float) }}</p>{% endif %}
+    </div>
+    {% if event.payment_info %}
+    <p>Please transfer the entry fee using the following payment details:</p>
+    <div class="payment-box">{{ event.payment_info }}</div>
+    {% endif %}
+    <p>You will receive another notification once your registration has been confirmed.</p>
+  </div>
+
+  <div class="footer">
+    {{ event.name }} &nbsp;·&nbsp; AgilityPortal &nbsp;·&nbsp;
+    Diese E-Mail wurde automatisch generiert / Ce message a été généré automatiquement / This is an automated message.
+  </div>
+
+</div>
+</body>
+</html>

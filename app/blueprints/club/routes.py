@@ -1176,6 +1176,12 @@ def event_view(event_id):
             )
             db.session.add(reg)
             db.session.commit()
+            # Bestätigungsmail senden (im Hintergrund, Fehler werden geloggt)
+            try:
+                from app.services.email_service import send_registration_confirmation
+                send_registration_confirmation(reg)
+            except Exception as _mail_exc:
+                current_app.logger.warning("Bestätigungsmail fehlgeschlagen: %s", _mail_exc)
             flash(_("Anmeldung erfolgreich."), "success")
             return redirect(url_for("club.event_view", event_id=event_id))
     sorted_runs = sorted(
@@ -2362,3 +2368,107 @@ def event_logo_serve(event_id, logo_type):
         abort(404)
 
     return send_file(path)
+
+
+# ── Zahlungsinfos speichern ──────────────────────────────────────────────────
+
+@club_bp.post("/events/<int:event_id>/payment-info")
+@login_required
+def event_payment_info_save(event_id):
+    """Speichert die Zahlungsinfos (IBAN, Empfänger, Verwendungszweck) am Event."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    event.payment_info = request.form.get("payment_info", "").strip() or None
+    db.session.commit()
+    flash(_("Zahlungsinfos gespeichert."), "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
+# ── Sammelmail ───────────────────────────────────────────────────────────────
+
+# Laufende Jobs: job_id → BulkEmailJob (in-process, reicht für einen Worker)
+_bulk_jobs: dict = {}
+
+
+@club_bp.post("/events/<int:event_id>/email/send")
+@login_required
+def event_bulk_email_send(event_id):
+    """Startet den Sammelmail-Versand im Hintergrund."""
+    import uuid
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    subject   = request.form.get("subject", "").strip()
+    body_text = request.form.get("body", "").strip()
+    status_filter = request.form.get("status_filter", "all")  # all | pending | confirmed
+
+    if not subject or not body_text:
+        flash(_("Betreff und Text dürfen nicht leer sein."), "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    # Empfänger filtern
+    query = db.select(Registration).filter_by(event_id=event_id)
+    if status_filter == "pending":
+        query = query.filter(Registration.status == RegistrationStatus.PENDING)
+    elif status_filter == "confirmed":
+        query = query.filter(Registration.status == RegistrationStatus.CONFIRMED)
+    else:
+        # Alle ausser Storniert
+        query = query.filter(Registration.status != RegistrationStatus.CANCELLED)
+
+    registrations = db.session.execute(query).scalars().all()
+
+    if not registrations:
+        flash(_("Keine Empfänger gefunden."), "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    from app.services.email_service import send_bulk_email
+    from flask import current_app as _app
+    job_id = uuid.uuid4().hex
+    job = send_bulk_email(event, subject, body_text, registrations, _app._get_current_object())
+    _bulk_jobs[job_id] = job
+
+    flash(
+        _("Versand gestartet: %(n)d Empfänger · Job-ID: %(id)s", n=job.total, id=job_id[:8]),
+        "info",
+    )
+    return redirect(url_for("club.event_bulk_email_status", event_id=event_id, job_id=job_id))
+
+
+@club_bp.get("/events/<int:event_id>/email/status/<job_id>")
+@login_required
+def event_bulk_email_status(event_id, job_id):
+    """Zeigt den Fortschritt eines laufenden Sammelmail-Versands."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    job = _bulk_jobs.get(job_id)
+    if not job:
+        flash(_("Job nicht gefunden (Server wurde möglicherweise neugestartet)."), "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+    return render_template(
+        "club/email_status.html",
+        event=event,
+        job=job.status,
+        job_id=job_id,
+    )
+
+
+@club_bp.get("/events/<int:event_id>/email/status/<job_id>/json")
+@login_required
+def event_bulk_email_status_json(event_id, job_id):
+    """JSON-Polling für den Fortschritt."""
+    from flask import jsonify
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    job = _bulk_jobs.get(job_id)
+    if not job:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(job.status)

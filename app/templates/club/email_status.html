@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ _('E-Mail Versand') }} – {{ event.name }}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:560px">
+  <h4 class="mb-4">📧 {{ _('E-Mail Versand') }} – {{ event.name }}</h4>
+
+  <div class="card">
+    <div class="card-body">
+      <div id="status-box">
+        <div class="d-flex justify-content-between mb-2">
+          <span>{{ _('Gesendet') }}</span>
+          <strong id="sent-count">{{ job.sent }}</strong>
+        </div>
+        <div class="progress mb-3" style="height:20px">
+          <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+               role="progressbar"
+               style="width: {{ ((job.sent / job.total * 100) if job.total else 0)|int }}%">
+          </div>
+        </div>
+        <div class="row text-center text-muted small mb-3">
+          <div class="col">{{ _('Gesamt') }}: <strong id="total-count">{{ job.total }}</strong></div>
+          <div class="col">{{ _('Fehlgeschlagen') }}: <strong id="failed-count" class="text-danger">{{ job.failed }}</strong></div>
+          <div class="col">{{ _('Verbleibend') }}: <strong id="remaining-count">{{ job.total - job.sent - job.failed }}</strong></div>
+        </div>
+        <p class="text-muted small mb-0">
+          ⏱ {{ _('1 Mail pro Sekunde — bei 400 Empfängern ca. 7 Minuten.') }}
+        </p>
+      </div>
+
+      <div id="done-box" class="alert alert-success mt-3" style="display:none">
+        ✅ {{ _('Versand abgeschlossen.') }}
+        <span id="done-summary"></span>
+      </div>
+    </div>
+  </div>
+
+  <a href="{{ url_for('club.event_detail', event_id=event.id) }}" class="btn btn-secondary mt-3">
+    ← {{ _('Zurück zur Veranstaltung') }}
+  </a>
+</div>
+
+<script>
+const pollUrl = "{{ url_for('club.event_bulk_email_status_json', event_id=event.id, job_id=job_id) }}";
+
+function poll() {
+  fetch(pollUrl)
+    .then(r => r.json())
+    .then(data => {
+      const total   = data.total   || 1;
+      const sent    = data.sent    || 0;
+      const failed  = data.failed  || 0;
+      const pct     = Math.round((sent + failed) / total * 100);
+
+      document.getElementById('sent-count').textContent    = sent;
+      document.getElementById('total-count').textContent   = data.total;
+      document.getElementById('failed-count').textContent  = failed;
+      document.getElementById('remaining-count').textContent = Math.max(0, total - sent - failed);
+      document.getElementById('progress-bar').style.width = pct + '%';
+
+      if (data.done) {
+        document.getElementById('progress-bar').classList.remove('progress-bar-animated');
+        document.getElementById('done-box').style.display = 'block';
+        document.getElementById('done-summary').textContent =
+          ` ${sent} {{ _('gesendet') }}, ${failed} {{ _('fehlgeschlagen') }}.`;
+      } else {
+        setTimeout(poll, 2000);
+      }
+    })
+    .catch(() => setTimeout(poll, 5000));
+}
+
+{% if not job.done %}
+setTimeout(poll, 2000);
+{% endif %}
+</script>
+{% endblock %}

@@ -355,6 +355,9 @@ class Event(db.Model):
     event_logo_filename = db.Column(db.String(255), nullable=True)
     club_logo_filename  = db.Column(db.String(255), nullable=True)
 
+    # E-Mail Zahlungsinfos (IBAN, Empfänger, Verwendungszweck etc.)
+    payment_info = db.Column(db.Text, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     organiser_club = db.relationship("Club", foreign_keys=[organiser_club_id])
