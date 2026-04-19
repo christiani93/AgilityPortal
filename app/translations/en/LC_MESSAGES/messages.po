@@ -1125,3 +1125,115 @@ msgstr "sent"
 
 msgid "fehlgeschlagen"
 msgstr "failed"
+
+# schedule.html
+msgid "Ringkonfiguration"
+msgstr "Ring configuration"
+
+msgid "Anzahl Ringe"
+msgstr "Number of rings"
+
+msgid "Ring"
+msgstr "Ring"
+
+msgid "Startzeit"
+msgstr "Start time"
+
+msgid "Einstellungen speichern"
+msgstr "Save settings"
+
+msgid "Laufzeit pro Starter"
+msgstr "Run time per starter"
+
+msgid "Sek."
+msgstr "sec."
+
+msgid "Startnummern (erster Starter pro Block)"
+msgstr "Start numbers (first starter per block)"
+
+msgid "Kl. 1"
+msgstr "Cl. 1"
+
+msgid "Kl. 2"
+msgstr "Cl. 2"
+
+msgid "Kl. 3"
+msgstr "Cl. 3"
+
+msgid "Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102 usw."
+msgstr "Example: 1101 → first Large Cl.1 starter gets no. 1101, second gets 1102 etc."
+
+msgid "Blöcke"
+msgstr "Blocks"
+
+msgid "Gesch. Dauer"
+msgstr "Est. duration"
+
+msgid "Starter"
+msgstr "Starters"
+
+msgid "Rangverkündigung"
+msgstr "Award ceremony"
+
+msgid "Min."
+msgstr "min."
+
+msgid "Block entfernen?"
+msgstr "Remove block?"
+
+msgid "Noch keine Läufe eingeplant."
+msgstr "No runs scheduled yet."
+
+msgid "Nicht eingeplante Läufe"
+msgstr "Unscheduled runs"
+
+msgid "Kl."
+msgstr "Cl."
+
+msgid "Klicke auf einen Lauf um ihn zu Ring 1 hinzuzufügen. Ring und Richter können danach geändert werden."
+msgstr "Click on a run to add it to ring 1. Ring and judge can be changed afterwards."
+
+msgid "Lauf-Block hinzufügen"
+msgstr "Add run block"
+
+msgid "Disziplin"
+msgstr "Discipline"
+
+msgid "kein"
+msgstr "none"
+
+msgid "Titel"
+msgstr "Title"
+
+msgid "optional"
+msgstr "optional"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Rangverkündigung hinzufügen"
+msgstr "Add award ceremony"
+
+msgid "z. B. Rangverkündigung Large"
+msgstr "e.g. Award ceremony Large"
+
+msgid "Rangverkündigungen sind rein informativ und verbrauchen keine Zeit. Sie unterbrechen Gruppen: danach beginnt ein neuer Umbau."
+msgstr "Award ceremonies are purely informational and consume no time. They interrupt groups: a new ring change starts afterwards."
+
+msgid "Zeitplan-Übersicht"
+msgstr "Schedule overview"
+
+msgid "Start"
+msgstr "Start"
+
+msgid "Ende"
+msgstr "End"
+
+msgid "Umbau"
+msgstr "Ring change"
+
+msgid "Briefing"
+msgstr "Briefing"
+
+msgid "Laufzeit"
+msgstr "Run time"

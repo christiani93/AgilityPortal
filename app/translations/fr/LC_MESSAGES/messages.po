@@ -1122,3 +1122,115 @@ msgstr "envoyé"
 
 msgid "fehlgeschlagen"
 msgstr "échoué"
+
+# schedule.html
+msgid "Ringkonfiguration"
+msgstr "Configuration des rings"
+
+msgid "Anzahl Ringe"
+msgstr "Nombre de rings"
+
+msgid "Ring"
+msgstr "Ring"
+
+msgid "Startzeit"
+msgstr "Heure de départ"
+
+msgid "Einstellungen speichern"
+msgstr "Enregistrer les paramètres"
+
+msgid "Laufzeit pro Starter"
+msgstr "Temps de passage par participant"
+
+msgid "Sek."
+msgstr "sec."
+
+msgid "Startnummern (erster Starter pro Block)"
+msgstr "Numéros de départ (premier participant par bloc)"
+
+msgid "Kl. 1"
+msgstr "Cl. 1"
+
+msgid "Kl. 2"
+msgstr "Cl. 2"
+
+msgid "Kl. 3"
+msgstr "Cl. 3"
+
+msgid "Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102 usw."
+msgstr "Exemple : 1101 → le premier participant Large Cl.1 reçoit le n°1101, le suivant 1102, etc."
+
+msgid "Blöcke"
+msgstr "Blocs"
+
+msgid "Gesch. Dauer"
+msgstr "Durée estimée"
+
+msgid "Starter"
+msgstr "Participants"
+
+msgid "Rangverkündigung"
+msgstr "Remise des prix"
+
+msgid "Min."
+msgstr "min."
+
+msgid "Block entfernen?"
+msgstr "Supprimer le bloc ?"
+
+msgid "Noch keine Läufe eingeplant."
+msgstr "Aucune épreuve planifiée."
+
+msgid "Nicht eingeplante Läufe"
+msgstr "Épreuves non planifiées"
+
+msgid "Kl."
+msgstr "Cl."
+
+msgid "Klicke auf einen Lauf um ihn zu Ring 1 hinzuzufügen. Ring und Richter können danach geändert werden."
+msgstr "Cliquez sur une épreuve pour l'ajouter au ring 1. Le ring et le juge peuvent être modifiés ensuite."
+
+msgid "Lauf-Block hinzufügen"
+msgstr "Ajouter un bloc d'épreuve"
+
+msgid "Disziplin"
+msgstr "Discipline"
+
+msgid "kein"
+msgstr "aucun"
+
+msgid "Titel"
+msgstr "Titre"
+
+msgid "optional"
+msgstr "facultatif"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Rangverkündigung hinzufügen"
+msgstr "Ajouter une remise des prix"
+
+msgid "z. B. Rangverkündigung Large"
+msgstr "ex. Remise des prix Large"
+
+msgid "Rangverkündigungen sind rein informativ und verbrauchen keine Zeit. Sie unterbrechen Gruppen: danach beginnt ein neuer Umbau."
+msgstr "Les remises des prix sont purement informatives et ne consomment pas de temps. Elles interrompent les groupes : un nouveau changement de ring commence ensuite."
+
+msgid "Zeitplan-Übersicht"
+msgstr "Aperçu du programme"
+
+msgid "Start"
+msgstr "Début"
+
+msgid "Ende"
+msgstr "Fin"
+
+msgid "Umbau"
+msgstr "Changement de ring"
+
+msgid "Briefing"
+msgstr "Briefing"
+
+msgid "Laufzeit"
+msgstr "Temps de parcours"
