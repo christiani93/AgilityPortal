@@ -321,7 +321,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                     s, e, current = _advance(current, prep_s, round_minutes)
                     items.append({
                         "segment":      "prep_pause",
-                        "label":        "Preppause / Kursspazieren",
+                        "label":        "Vorbereitungspause",
                         "block":        run_group[0],
                         "start_time":   s,
                         "end_time":     e,

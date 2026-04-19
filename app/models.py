@@ -818,3 +818,28 @@ class AsmvTeamMember(db.Model):
 
     def __repr__(self):
         return f"<AsmvTeamMember team={self.team_id} person={self.person_id}>"
+
+
+# ---------------------------------------------------------------------------
+# Ranglisten-PDFs (hochgeladen von AgilitySoftware via API)
+# ---------------------------------------------------------------------------
+
+class ResultPDF(db.Model):
+    """Ein von AgilitySoftware hochgeladenes Ranglisten-PDF für einen Lauf."""
+    __tablename__ = "result_pdfs"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    event_id   = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False, index=True)
+    run_name   = db.Column(db.String(200), nullable=True)
+    ring       = db.Column(db.String(50),  nullable=True)
+    discipline = db.Column(db.String(30),  nullable=True)
+    category_code = db.Column(db.String(20), nullable=True)
+    class_level   = db.Column(db.Integer,    nullable=True)
+    pdf_data   = db.Column(db.LargeBinary,  nullable=False)
+    is_final   = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    event = db.relationship("Event")
+
+    def __repr__(self):
+        return f"<ResultPDF event={self.event_id} run={self.run_name!r}>"

@@ -134,7 +134,7 @@ function renderSchedule(schedule) {
   const segmentStyle = {
     'changeover':       { bg: '#e9ecef', label: 'Umbau',       icon: '🔧' },
     'briefing':         { bg: '#d1ecf1', label: 'Briefing',    icon: '📣' },
-    'prep_pause':       { bg: '#fff3cd', label: 'Preppause',   icon: '🐾' },
+    'prep_pause':       { bg: '#fff3cd', label: 'Vorbereitungspause', icon: '🐾' },
     'run':              { bg: '#ffffff', label: 'Lauf',         icon: '🏃' },
     'rank_announcement':{ bg: '#d4edda', label: 'Rangverkündigung', icon: '🏆' },
   };
@@ -189,7 +189,7 @@ function renderSchedule(schedule) {
   container.innerHTML = html;
 }
 
-function renderResults(resultClasses, updated, isFinal) {
+function renderResults(resultClasses, updated, isFinal, pdfs) {
   const container = document.getElementById('resultsContainer');
   if (!resultClasses || resultClasses.length === 0) {
     container.innerHTML = '';
@@ -200,6 +200,13 @@ function renderResults(resultClasses, updated, isFinal) {
   // Drucken-Button einblenden
   document.getElementById('printBtn').style.display = '';
 
+  // PDF-Lookup-Map: "ring|disc|cat|cls" → {url, is_final}
+  const pdfMap = {};
+  (pdfs || []).forEach(p => {
+    const key = `${p.ring}|${p.discipline}|${p.category_code}|${p.class_level}`;
+    pdfMap[key] = p;
+  });
+
   const badge = isFinal
     ? '<span class="badge bg-success ms-2">Abgeschlossen</span>'
     : '<span class="badge bg-primary ms-2">Live</span>';
@@ -209,11 +216,21 @@ function renderResults(resultClasses, updated, isFinal) {
 
   resultClasses.forEach(cls => {
     const disc = cls.discipline ? cls.discipline.charAt(0).toUpperCase() + cls.discipline.slice(1) : '';
+    const pdfKey = `${cls.ring}|${cls.discipline}|${cls.category_code}|${cls.class_level}`;
+    const pdf = pdfMap[pdfKey];
+    const pdfBtn = pdf
+      ? `<a href="${pdf.url}" target="_blank" class="btn btn-sm ${pdf.is_final ? 'btn-danger' : 'btn-outline-danger'} ms-2" title="${pdf.is_final ? 'Offizielle Rangliste (PDF)' : 'Vorläufige Rangliste (PDF)'}">
+           📄 ${pdf.is_final ? 'Offizielle Liste' : 'PDF'}
+         </a>`
+      : '';
     html += `
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center py-2">
           <strong>${cls.ring} · ${disc} · ${cls.category_code} Kl.${cls.class_level}</strong>
-          <span class="badge bg-secondary">${cls.results.length} Starter</span>
+          <div class="d-flex align-items-center gap-2">
+            ${pdfBtn}
+            <span class="badge bg-secondary">${cls.results.length} Starter</span>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
@@ -259,7 +276,7 @@ function fetchLive() {
     .then(data => {
       renderRings(data.rings);
       renderSchedule(data.schedule);
-      renderResults(data.result_classes, data.result_updated, data.final);
+      renderResults(data.result_classes, data.result_updated, data.final, data.pdfs);
       const now = new Date().toLocaleTimeString('de-CH', {hour:'2-digit', minute:'2-digit'});
       document.getElementById('lastUpdate').textContent = `Zuletzt aktualisiert: ${now} Uhr`;
     })

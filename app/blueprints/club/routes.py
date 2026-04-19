@@ -12,7 +12,7 @@ from flask_babel import _
 from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
-from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF
 from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, DogClassForm, EventRegistrationForm
 
 
@@ -2084,6 +2084,31 @@ def event_live_json(event_id):
                 "block_type":   getattr(_blk, "block_type", "run"),
             })
 
+    # ── Hochgeladene PDFs ─────────────────────────────────────────────────────
+    from flask import url_for as _url_for
+    pdfs_db = (
+        db.session.execute(
+            db.select(ResultPDF)
+            .filter_by(event_id=event_id)
+            .order_by(ResultPDF.ring, ResultPDF.discipline,
+                      ResultPDF.category_code, ResultPDF.class_level)
+        ).scalars().all()
+    )
+    pdfs_json = [
+        {
+            "id":            p.id,
+            "run_name":      p.run_name or "",
+            "ring":          p.ring or "",
+            "discipline":    p.discipline or "",
+            "category_code": p.category_code or "",
+            "class_level":   p.class_level or 0,
+            "is_final":      p.is_final,
+            "url":           _url_for("club.event_results_pdf",
+                                      event_id=event_id, pdf_id=p.id),
+        }
+        for p in pdfs_db
+    ]
+
     return jsonify({
         "event_name":     event.name,
         "rings":          list(ring_state.values()),
@@ -2091,6 +2116,7 @@ def event_live_json(event_id):
         "result_updated": result_updated,
         "final":          latest_import.final if latest_import else False,
         "schedule":       schedule_json,
+        "pdfs":           pdfs_json,
     })
 
 
@@ -2151,4 +2177,35 @@ def event_results_print(event_id):
         result_classes=result_classes,
         latest_import=latest_import,
         result_updated=result_updated,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Ranglisten-PDF ausliefern (von AgilitySoftware hochgeladen)
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/events/<int:event_id>/results/pdf/<int:pdf_id>")
+def event_results_pdf(event_id, pdf_id):
+    """Liefert ein gespeichertes Ranglisten-PDF aus."""
+    pdf = db.session.execute(
+        db.select(ResultPDF).filter_by(id=pdf_id, event_id=event_id)
+    ).scalar_one_or_none()
+    if not pdf:
+        abort(404)
+
+    if pdf.event and pdf.event.is_test:
+        if not (current_user.is_authenticated and current_user.is_superadmin):
+            abort(404)
+
+    parts = filter(None, [
+        pdf.run_name or pdf.ring,
+        pdf.category_code,
+        f"Kl{pdf.class_level}" if pdf.class_level else None,
+    ])
+    filename = ("Rangliste_" + "_".join(parts) + ".pdf").replace(" ", "_").replace("/", "-")
+
+    return Response(
+        pdf.pdf_data,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )
