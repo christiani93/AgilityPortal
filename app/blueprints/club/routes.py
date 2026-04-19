@@ -112,6 +112,24 @@ def dashboard():
 
 
 # ---------------------------------------------------------------------------
+# Superadmin: Server-Einstellungen (API-Keys einsehen)
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/admin/settings")
+@login_required
+def admin_settings():
+    """Superadmin-Seite: zeigt die aktuell gesetzten API-Keys und Server-Konfiguration."""
+    if not current_user.is_superadmin:
+        abort(403)
+    from flask import current_app
+    keys = {
+        "LIVE_API_KEY":    current_app.config.get("LIVE_API_KEY", ""),
+        "RESULTS_API_KEY": current_app.config.get("RESULTS_API_KEY", ""),
+        "ADMIN_KEY":       current_app.config.get("ADMIN_KEY", ""),
+    }
+    return render_template("club/admin_settings.html", keys=keys)
+
+
 # Benutzerverwaltung — club_admin oder superadmin
 # ---------------------------------------------------------------------------
 

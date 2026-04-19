@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Server-Einstellungen') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">⚙️ {{ _('Server-Einstellungen') }}</h2>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
+</div>
+
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-header fw-semibold">🔑 {{ _('API-Keys (Umgebungsvariablen)') }}</div>
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      Diese Keys sind in der <code>.env</code>-Datei auf dem Server gesetzt.
+      Trage sie in der AgilitySoftware unter <em>Einstellungen → Portal-Synchronisation</em> ein.
+    </p>
+    <table class="table table-sm table-bordered mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Schlüssel</th>
+          <th>Wert</th>
+          <th style="width:2.5rem;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, value in keys.items() %}
+        <tr>
+          <td class="font-monospace text-nowrap">{{ name }}</td>
+          <td>
+            <div class="input-group input-group-sm">
+              <input type="password" class="form-control font-monospace"
+                     value="{{ value }}" readonly
+                     id="key_{{ loop.index }}">
+              <button class="btn btn-outline-secondary"
+                      type="button"
+                      onclick="toggleKey('key_{{ loop.index }}', this)"
+                      title="{{ _('Anzeigen / Verbergen') }}">👁</button>
+            </div>
+          </td>
+          <td>
+            <button class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    onclick="copyKey('key_{{ loop.index }}')"
+                    title="{{ _('Kopieren') }}">📋</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer text-muted small">
+    Zum Ändern: <code>.env</code> auf dem Server bearbeiten und den Dienst neu starten (<code>supervisorctl restart agilityportal</code>).
+  </div>
+</div>
+
+<script>
+function toggleKey(id, btn) {
+  const input = document.getElementById(id);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+  }
+}
+function copyKey(id) {
+  const input = document.getElementById(id);
+  const prev = input.type;
+  input.type = 'text';
+  input.select();
+  document.execCommand('copy');
+  input.type = prev;
+  window.getSelection()?.removeAllRanges();
+}
+</script>
+{% endblock %}

@@ -4,7 +4,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2>{{ _('Portal-Übersicht') }}</h2>
-  <span class="badge bg-dark fs-6">Superadmin</span>
+  <div class="d-flex gap-2 align-items-center">
+    <a href="{{ url_for('club.admin_settings') }}" class="btn btn-sm btn-outline-secondary">
+      ⚙️ {{ _('Server-Einstellungen') }}
+    </a>
+    <span class="badge bg-dark fs-6">Superadmin</span>
+  </div>
 </div>
 
 {% if pending_count %}
