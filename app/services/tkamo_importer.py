@@ -37,9 +37,24 @@ def _extract_email(text: str) -> str | None:
     m = re.search(r'E-Mail:\s*([^\s,;]+)', text, re.IGNORECASE)
     if m:
         return m.group(1).strip().rstrip('.')
-    # Fallback: generisches E-Mail-Muster
     m2 = re.search(r'[\w.+-]+@[\w-]+\.[a-z]{2,}', text, re.IGNORECASE)
     return m2.group(0) if m2 else None
+
+
+def _extract_phone(text: str) -> str | None:
+    """Findet erste Schweizer Telefonnummer in einem Text."""
+    m = re.search(r'(?:\+41|0041|0)[0-9\s/().-]{7,15}', text)
+    if m:
+        return re.sub(r'\s+', ' ', m.group()).strip()
+    return None
+
+
+def _extract_name(text: str) -> str:
+    """Gibt nur den Namensteil zurück (erstes Komma-Segment, Telefon/E-Mail entfernt)."""
+    name = text.split(",")[0].strip()
+    name = re.sub(r'[\w.+-]+@[\w-]+\.[a-z]{2,}', '', name)
+    name = re.sub(r'(?:\+41|0041|0)[0-9\s/().-]{7,}', '', name)
+    return name.strip()
 
 
 def fetch_tkamo_event(ais_number: int) -> dict:
@@ -172,22 +187,28 @@ def _map_rows(rows: dict[str, str], url: str) -> dict:
     if "Richter" in rows:
         result["richter"] = rows["Richter"]
 
-    # Meldestelle → Reply-E-Mail
+    # Meldestelle → E-Mail + Telefon
     if "Meldestelle" in rows:
         result["meldestelle"] = rows["Meldestelle"]
         email = _extract_email(rows["Meldestelle"])
         if email:
             result["contact_email"] = email
+        phone = _extract_phone(rows["Meldestelle"])
+        if phone:
+            result["contact_phone"] = phone
 
-    # Prüfungsleiter → Name + ggf. E-Mail
+    # Prüfungsleiter → Name, E-Mail, Telefon
     if "Prüfungsleiter" in rows:
         raw_pl = rows["Prüfungsleiter"]
         result["pruefungsleiter_raw"] = raw_pl
-        result["pruefungsleiter_name"] = raw_pl.split(",")[0].strip()
-        if "contact_email" not in result:
-            email = _extract_email(raw_pl)
-            if email:
-                result["contact_email"] = email
+        result["pruefungsleiter_name"] = _extract_name(raw_pl)
+        # E-Mail aus Prüfungsleiter hat Vorrang (direkter Ansprechpartner)
+        email_pl = _extract_email(raw_pl)
+        if email_pl:
+            result["contact_email"] = email_pl
+        phone_pl = _extract_phone(raw_pl)
+        if phone_pl:
+            result["contact_phone"] = phone_pl
 
     return result
 
