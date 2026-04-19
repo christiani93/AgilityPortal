@@ -2296,17 +2296,17 @@ def event_logo_upload(event_id):
 
     logo_type = request.form.get("logo_type")  # "event_logo" or "club_logo"
     if logo_type not in ("event_logo", "club_logo"):
-        flash("Ungültiger Logo-Typ.", "danger")
+        flash(_("Ungültiger Logo-Typ."), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     file = request.files.get("logo_file")
     if not file or not file.filename:
-        flash("Keine Datei ausgewählt.", "danger")
+        flash(_("Keine Datei ausgewählt."), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in ALLOWED_LOGO_EXTS:
-        flash(f"Ungültiges Dateiformat. Erlaubt: {', '.join(ALLOWED_LOGO_EXTS)}", "danger")
+        flash(_("Ungültiges Dateiformat. Erlaubt: %(formats)s", formats=', '.join(ALLOWED_LOGO_EXTS)), "danger")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     filename = secure_filename(f"{logo_type}{ext}")
@@ -2319,7 +2319,7 @@ def event_logo_upload(event_id):
         event.club_logo_filename = filename
     db.session.commit()
 
-    flash("Logo gespeichert.", "success")
+    flash(_("Logo gespeichert."), "success")
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
@@ -2341,16 +2341,16 @@ def event_logo_delete(event_id):
             os.remove(path)
         event.event_logo_filename = None
         db.session.commit()
-        flash("Event-Logo gelöscht.", "success")
+        flash(_("Event-Logo gelöscht."), "success")
     elif logo_type == "club_logo" and event.club_logo_filename:
         path = os.path.join(_logo_dir(event_id), event.club_logo_filename)
         if os.path.exists(path):
             os.remove(path)
         event.club_logo_filename = None
         db.session.commit()
-        flash("Vereins-Logo gelöscht.", "success")
+        flash(_("Vereins-Logo gelöscht."), "success")
     else:
-        flash("Kein Logo zum Löschen gefunden.", "warning")
+        flash(_("Kein Logo zum Löschen gefunden."), "warning")
 
     return redirect(url_for("club.event_detail", event_id=event_id))
 

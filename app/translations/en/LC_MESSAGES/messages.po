@@ -993,3 +993,94 @@ msgstr "Update failed: %(error)s"
 
 msgid "Fehler: %(error)s"
 msgstr "Error: %(error)s"
+
+# Flash-Messages routes.py — fehlende Einträge
+msgid "Du bist bereits mit diesem Hund verknüpft."
+msgstr "You are already linked to this dog."
+
+msgid "Hund «%(name)s» wurde deinem Profil als Hundeführer hinzugefügt."
+msgstr "Dog «%(name)s» has been added to your profile as handler."
+
+msgid "Bitte hinterlege zuerst die Kategorie für diesen Hund in deinem Profil."
+msgstr "Please set the category for this dog in your profile first."
+
+msgid "Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden aktualisiert."
+msgstr "Class/category saved. %(n)s open registration(s) have been updated."
+
+msgid "Klasse/Kategorie gespeichert."
+msgstr "Class/category saved."
+
+msgid "Nennschluss ist abgelaufen — Abmeldung nicht mehr möglich."
+msgstr "Entry deadline has passed — withdrawal no longer possible."
+
+msgid "Diese Anmeldung kann nicht mehr storniert werden."
+msgstr "This registration can no longer be cancelled."
+
+msgid "Abmeldung für %(dog)s wurde erfolgreich gespeichert."
+msgstr "Withdrawal for %(dog)s has been saved successfully."
+
+msgid "Dieses Turnier erlaubt keine läufigen Hündinnen."
+msgstr "This tournament does not allow bitches in season."
+
+msgid "%(dog)s als läufig gemeldet."
+msgstr "%(dog)s reported as in season."
+
+msgid "Läufig-Meldung für %(dog)s aufgehoben."
+msgstr "In-season report for %(dog)s cancelled."
+
+msgid "Anmeldung bestätigt."
+msgstr "Registration confirmed."
+
+msgid "Anmeldung abgelehnt."
+msgstr "Registration rejected."
+
+msgid "%(n)s Anmeldungen bestätigt."
+msgstr "%(n)s registration(s) confirmed."
+
+msgid "Startnummern wurden vergeben."
+msgstr "Start numbers have been assigned."
+
+msgid "Startnummern wurden zurückgesetzt."
+msgstr "Start numbers have been reset."
+
+msgid "Ringkonfiguration gespeichert."
+msgstr "Ring configuration saved."
+
+msgid "Einstellungen gespeichert."
+msgstr "Settings saved."
+
+msgid "Dieser Lauf ist bereits im Zeitplan."
+msgstr "This run is already in the schedule."
+
+msgid "Zahlungsinfos gespeichert."
+msgstr "Payment info saved."
+
+msgid "Betreff und Text dürfen nicht leer sein."
+msgstr "Subject and text must not be empty."
+
+msgid "Keine Empfänger gefunden."
+msgstr "No recipients found."
+
+msgid "Job nicht gefunden (Server wurde möglicherweise neugestartet)."
+msgstr "Job not found (server may have restarted)."
+
+msgid "Ungültiger Logo-Typ."
+msgstr "Invalid logo type."
+
+msgid "Keine Datei ausgewählt."
+msgstr "No file selected."
+
+msgid "Ungültiges Dateiformat. Erlaubt: %(formats)s"
+msgstr "Invalid file format. Allowed: %(formats)s"
+
+msgid "Logo gespeichert."
+msgstr "Logo saved."
+
+msgid "Event-Logo gelöscht."
+msgstr "Event logo deleted."
+
+msgid "Vereins-Logo gelöscht."
+msgstr "Club logo deleted."
+
+msgid "Kein Logo zum Löschen gefunden."
+msgstr "No logo found to delete."

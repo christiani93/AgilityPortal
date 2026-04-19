@@ -990,3 +990,94 @@ msgstr "Mise à jour échouée : %(error)s"
 
 msgid "Fehler: %(error)s"
 msgstr "Erreur : %(error)s"
+
+# Flash-Messages routes.py — fehlende Einträge
+msgid "Du bist bereits mit diesem Hund verknüpft."
+msgstr "Vous êtes déjà associé à ce chien."
+
+msgid "Hund «%(name)s» wurde deinem Profil als Hundeführer hinzugefügt."
+msgstr "Le chien «%(name)s» a été ajouté à votre profil en tant que conducteur."
+
+msgid "Bitte hinterlege zuerst die Kategorie für diesen Hund in deinem Profil."
+msgstr "Veuillez d'abord indiquer la catégorie de ce chien dans votre profil."
+
+msgid "Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden aktualisiert."
+msgstr "Classe/catégorie enregistrée. %(n)s inscription(s) ouverte(s) ont été mises à jour."
+
+msgid "Klasse/Kategorie gespeichert."
+msgstr "Classe/catégorie enregistrée."
+
+msgid "Nennschluss ist abgelaufen — Abmeldung nicht mehr möglich."
+msgstr "La clôture des inscriptions est passée — désinscription impossible."
+
+msgid "Diese Anmeldung kann nicht mehr storniert werden."
+msgstr "Cette inscription ne peut plus être annulée."
+
+msgid "Abmeldung für %(dog)s wurde erfolgreich gespeichert."
+msgstr "La désinscription de %(dog)s a été enregistrée avec succès."
+
+msgid "Dieses Turnier erlaubt keine läufigen Hündinnen."
+msgstr "Ce tournoi n'autorise pas les chiennes en chaleur."
+
+msgid "%(dog)s als läufig gemeldet."
+msgstr "%(dog)s signalée en chaleur."
+
+msgid "Läufig-Meldung für %(dog)s aufgehoben."
+msgstr "Signalement en chaleur de %(dog)s annulé."
+
+msgid "Anmeldung bestätigt."
+msgstr "Inscription confirmée."
+
+msgid "Anmeldung abgelehnt."
+msgstr "Inscription refusée."
+
+msgid "%(n)s Anmeldungen bestätigt."
+msgstr "%(n)s inscription(s) confirmée(s)."
+
+msgid "Startnummern wurden vergeben."
+msgstr "Numéros de départ attribués."
+
+msgid "Startnummern wurden zurückgesetzt."
+msgstr "Numéros de départ réinitialisés."
+
+msgid "Ringkonfiguration gespeichert."
+msgstr "Configuration des rings enregistrée."
+
+msgid "Einstellungen gespeichert."
+msgstr "Paramètres enregistrés."
+
+msgid "Dieser Lauf ist bereits im Zeitplan."
+msgstr "Cette épreuve est déjà dans le programme."
+
+msgid "Zahlungsinfos gespeichert."
+msgstr "Informations de paiement enregistrées."
+
+msgid "Betreff und Text dürfen nicht leer sein."
+msgstr "L'objet et le texte ne peuvent pas être vides."
+
+msgid "Keine Empfänger gefunden."
+msgstr "Aucun destinataire trouvé."
+
+msgid "Job nicht gefunden (Server wurde möglicherweise neugestartet)."
+msgstr "Tâche introuvable (le serveur a peut-être redémarré)."
+
+msgid "Ungültiger Logo-Typ."
+msgstr "Type de logo invalide."
+
+msgid "Keine Datei ausgewählt."
+msgstr "Aucun fichier sélectionné."
+
+msgid "Ungültiges Dateiformat. Erlaubt: %(formats)s"
+msgstr "Format de fichier invalide. Autorisés : %(formats)s"
+
+msgid "Logo gespeichert."
+msgstr "Logo enregistré."
+
+msgid "Event-Logo gelöscht."
+msgstr "Logo de l'événement supprimé."
+
+msgid "Vereins-Logo gelöscht."
+msgstr "Logo du club supprimé."
+
+msgid "Kein Logo zum Löschen gefunden."
+msgstr "Aucun logo à supprimer."
