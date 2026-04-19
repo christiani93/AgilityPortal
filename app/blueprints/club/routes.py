@@ -118,7 +118,7 @@ def dashboard():
 @club_bp.get("/admin/settings")
 @login_required
 def admin_settings():
-    """Superadmin-Seite: zeigt die aktuell gesetzten API-Keys und Server-Konfiguration."""
+    """Superadmin-Seite: zeigt API-Keys und Sync-Status (empfangene Updates)."""
     if not current_user.is_superadmin:
         abort(403)
     from flask import current_app
@@ -127,7 +127,45 @@ def admin_settings():
         "RESULTS_API_KEY": current_app.config.get("RESULTS_API_KEY", ""),
         "ADMIN_KEY":       current_app.config.get("ADMIN_KEY", ""),
     }
-    return render_template("club/admin_settings.html", keys=keys)
+    # Letzte 10 Live-Updates (neueste zuerst) — mit geparstem Preview
+    import json as _json2
+    recent_live_raw = (
+        db.session.execute(
+            db.select(LiveUpdate).order_by(LiveUpdate.created_at.desc()).limit(10)
+        ).scalars().all()
+    )
+    recent_live = []
+    for upd in recent_live_raw:
+        preview = ""
+        try:
+            p = _json2.loads(upd.payload_json or "{}")
+            r = p.get("result") or {}
+            dog = r.get("dog_name") or ""
+            handler = r.get("handler_name") or ""
+            run = p.get("run_name") or ""
+            platz = r.get("platz")
+            parts = []
+            if run:
+                parts.append(run)
+            if dog:
+                parts.append(dog)
+            if handler:
+                parts.append(f"/ {handler}")
+            if platz:
+                parts.append(f"Pl.{platz}")
+            preview = " · ".join(parts)
+        except Exception:
+            pass
+        recent_live.append({"upd": upd, "preview": preview})
+
+    # Letzte 5 Result-Imports
+    recent_imports = (
+        db.session.execute(
+            db.select(ResultImport).order_by(ResultImport.created_at.desc()).limit(5)
+        ).scalars().all()
+    )
+    return render_template("club/admin_settings.html", keys=keys,
+                           recent_live=recent_live, recent_imports=recent_imports)
 
 
 # Benutzerverwaltung — club_admin oder superadmin

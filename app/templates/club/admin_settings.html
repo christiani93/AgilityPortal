@@ -53,6 +53,85 @@
   </div>
 </div>
 
+{# ── Sync-Status: empfangene Live-Updates ─────────────────────────────────── #}
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-header fw-semibold">📡 {{ _('Empfangene Live-Updates') }}</div>
+  {% if recent_live %}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>{{ _('Empfangen') }}</th>
+          <th>{{ _('Turnier') }}</th>
+          <th>{{ _('Gerät') }}</th>
+          <th>{{ _('Seq.') }}</th>
+          <th>{{ _('Inhalt') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in recent_live %}
+        {% set upd = item.upd %}
+        <tr>
+          <td class="text-nowrap small text-muted">{{ upd.created_at.strftime("%d.%m. %H:%M") }}</td>
+          <td class="small">{{ upd.event_external_id[:8] }}…</td>
+          <td class="small">{{ upd.source_device }}</td>
+          <td class="small text-center">{{ upd.sequence_no }}</td>
+          <td class="small">{{ item.preview or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted small">{{ _('Noch keine Live-Updates empfangen.') }}</div>
+  {% endif %}
+</div>
+
+{# ── Sync-Status: empfangene Result-Imports ───────────────────────────────── #}
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-header fw-semibold">📦 {{ _('Empfangene Ergebnis-Exporte') }}</div>
+  {% if recent_imports %}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>{{ _('Empfangen') }}</th>
+          <th>{{ _('Turnier') }}</th>
+          <th>{{ _('Abschluss') }}</th>
+          <th>{{ _('Exportiert') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for imp in recent_imports %}
+        <tr>
+          <td class="text-nowrap small text-muted">{{ imp.created_at.strftime("%d.%m. %H:%M") }}</td>
+          <td class="small">
+            {% if imp.event_id %}
+              <a href="{{ url_for('club.event_info', event_id=imp.event_id) }}">{{ imp.event_id }}</a>
+            {% else %}
+              <span class="text-muted">unbekannt</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if imp.final %}
+              <span class="badge bg-success">✔ Final</span>
+            {% else %}
+              <span class="badge bg-secondary">Live</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {{ imp.exported_at.strftime("%d.%m. %H:%M") if imp.exported_at else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted small">{{ _('Noch keine Ergebnis-Exporte empfangen.') }}</div>
+  {% endif %}
+</div>
+
 <script>
 function toggleKey(id, btn) {
   const input = document.getElementById(id);
