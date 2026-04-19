@@ -10,23 +10,15 @@
     </a>
   </div>
 
-  {# Zusammenfassung #}
-  <div class="alert {% if report_text.startswith('Kein Fehler') %}alert-success{% else %}alert-warning{% endif %} mb-3">
-    {% if report_text.startswith('Kein Fehler') %}
-      ✅ {{ _('Kein Fehler gefunden. Alle %(n)d Einträge stimmen überein.', n=row_count) }}
-    {% else %}
-      ⚠️ {{ _('%(n)d Einträge geprüft.', n=row_count) }}
-      {% if emails_sent %}
-        &nbsp;·&nbsp; 📧 {{ _('%(n)d Klassen-Frage-Mail(s) versendet.', n=emails_sent) }}
-      {% endif %}
-    {% endif %}
+  <div class="alert alert-success mb-3">
+    ✅ {{ _('TKAMO-Ergebnis importiert und gespeichert.') }}
+    <small class="text-muted ms-2">{{ event.lizenzcheck_done_at.strftime('%d.%m.%Y %H:%M') }}</small>
   </div>
 
-  {# Ergebnistext #}
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <span>{{ _('Bericht') }}</span>
-      <button class="btn btn-sm btn-outline-secondary" onclick="copyReport()">📋 {{ _('Kopieren') }}</button>
+      <span>{{ _('TKAMO-Bericht') }}</span>
+      <button class="btn btn-sm btn-outline-secondary" onclick="copyReport(event)">📋 {{ _('Kopieren') }}</button>
     </div>
     <div class="card-body p-0">
       <textarea id="report-text" class="form-control border-0 font-monospace"
@@ -35,26 +27,27 @@
     </div>
   </div>
 
-  <div class="mt-3 d-flex gap-2 flex-wrap">
-    {# Nochmal hochladen #}
+  <div class="mt-3">
     <form method="post" action="{{ url_for('club.event_lizenzcheck', event_id=event.id) }}"
           enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="file" name="csv_file" accept=".csv,.txt" class="form-control form-control-sm" style="max-width:280px" required>
-      <button type="submit" class="btn btn-sm btn-warning">🔍 {{ _('Neuen Check durchführen') }}</button>
+      <input type="file" name="tkamo_result" accept=".txt,.csv" class="form-control form-control-sm"
+             style="max-width:280px" required>
+      <button type="submit" class="btn btn-sm btn-warning">🔄 {{ _('Neues Ergebnis hochladen') }}</button>
     </form>
   </div>
 
 </div>
 
 <script>
-function copyReport() {
+function copyReport(e) {
   const ta = document.getElementById('report-text');
   ta.select();
   document.execCommand('copy');
-  const btn = event.target.closest('button');
+  const btn = e.target.closest('button');
+  const orig = btn.textContent;
   btn.textContent = '✓ Kopiert';
-  setTimeout(() => btn.textContent = '📋 Kopieren', 2000);
+  setTimeout(() => btn.textContent = orig, 2000);
 }
 </script>
 {% endblock %}
