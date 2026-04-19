@@ -146,9 +146,6 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
     if event.organiser_club and event.organiser_club.email:
         reply_to = event.organiser_club.email
 
-    portal_url = current_app.config.get("PREFERRED_URL_SCHEME", "https") + "://" + \
-                 current_app.config.get("SERVER_NAME", "")
-
     name_changes:    list[str] = []
     class_emails:    list[str] = []
     inactive_licenses: list[str] = []
