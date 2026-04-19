@@ -346,87 +346,7 @@
 </div>
 {% endif %}
 
-{# ── 1. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}
-<div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>{{ _('Läufe') }} ({{ sorted_runs | length }})</span>
-    <button class="btn btn-sm btn-outline-secondary" type="button"
-            data-bs-toggle="collapse" data-bs-target="#add-run-panel">
-      + {{ _('Lauf hinzufügen') }}
-    </button>
-  </div>
-
-  {# Lauf-Tabelle #}
-  {% if event.runs %}
-  <div class="table-responsive">
-    <table class="table table-sm table-hover mb-0">
-      <thead class="table-light">
-        <tr><th>{{ _('Typ') }}</th><th>{{ _('Kategorie') }}</th><th>{{ _('Klasse') }}</th><th>{{ _('Richter') }}</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for run in sorted_runs %}
-        <tr>
-          <td>
-            {% if run.run_type == 'agility' %}<span class="badge bg-primary">Agility</span>
-            {% elif run.run_type == 'jumping' %}<span class="badge bg-success">Jumping</span>
-            {% else %}<span class="badge bg-warning text-dark">Open</span>{% endif %}
-          </td>
-          <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
-          <td>{{ _('Klasse') }} {{ run.class_level }}</td>
-          <td class="text-muted small">{{ run.judge.full_name if run.judge else "—" }}</td>
-          <td class="text-end">
-            <form method="post"
-                  action="{{ url_for('club.event_run_delete', event_id=event.id, run_id=run.id) }}"
-                  onsubmit="return confirm('{{ _('Lauf entfernen?') }}')">
-              {{ run_form.hidden_tag() }}
-              <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="card-body text-muted text-center py-4">{{ _('Noch keine Läufe vorbereitet.') }}</div>
-  {% endif %}
-
-
-  {# Lauf hinzufügen (ausklappbar) #}
-  <div class="collapse" id="add-run-panel">
-    <div class="card-body border-top">
-      <form method="post" action="{{ url_for('club.event_run_add', event_id=event.id) }}"
-            class="row g-2 align-items-end">
-        {{ run_form.hidden_tag() }}
-        <div class="col-auto">
-          {{ run_form.run_type.label(class="form-label mb-1 small") }}
-          {{ run_form.run_type(class="form-select form-select-sm") }}
-        </div>
-        <div class="col-auto">
-          {{ run_form.category.label(class="form-label mb-1 small") }}
-          {{ run_form.category(class="form-select form-select-sm") }}
-        </div>
-        <div class="col-auto">
-          {{ run_form.class_level.label(class="form-label mb-1 small") }}
-          {{ run_form.class_level(class="form-select form-select-sm") }}
-        </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-primary btn-sm">{{ _('Hinzufügen') }}</button>
-        </div>
-      </form>
-
-      <hr class="my-3">
-      <p class="text-muted small mb-2">{{ _('Alle Läufe auf einmal:') }}</p>
-      <div class="d-flex flex-wrap gap-1">
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-agility">{{ _('Alle Agility') }}</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-jumping">{{ _('Alle Jumping') }}</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-standard">{{ _('Standard (Agi+Jump S/M/I/L × 1/2/3)') }}</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# ── 2. ANWESENDE RICHTER ─────────────────────────────────────────────────── #}
+{# ── 1. ANWESENDE RICHTER ─────────────────────────────────────────────────── #}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>{{ _('Anwesende Richter') }}</span>
@@ -475,7 +395,7 @@
   </div>
 </div>
 
-{# ── 3. LÄUFE ZUORDNEN (Drag & Drop) ─────────────────────────────────────── #}
+{# ── 2. LÄUFE ZUORDNEN (Drag & Drop) ─────────────────────────────────────── #}
 {% if event.runs and event.event_judges %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
@@ -513,6 +433,85 @@
 {% elif event.runs and not event.event_judges %}
 <div class="alert alert-info">{{ _('Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können.') }}</div>
 {% endif %}
+
+{# ── 3. LÄUFE VERWALTEN ───────────────────────────────────────────────────── #}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>{{ _('Läufe') }} ({{ sorted_runs | length }})</span>
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#add-run-panel">
+      + {{ _('Lauf hinzufügen') }}
+    </button>
+  </div>
+
+  {# Lauf-Tabelle #}
+  {% if event.runs %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>{{ _('Typ') }}</th><th>{{ _('Kategorie') }}</th><th>{{ _('Klasse') }}</th><th>{{ _('Richter') }}</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for run in sorted_runs %}
+        <tr>
+          <td>
+            {% if run.run_type == 'agility' %}<span class="badge bg-primary">Agility</span>
+            {% elif run.run_type == 'jumping' %}<span class="badge bg-success">Jumping</span>
+            {% else %}<span class="badge bg-warning text-dark">Open</span>{% endif %}
+          </td>
+          <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
+          <td>{{ _('Klasse') }} {{ run.class_level }}</td>
+          <td class="text-muted small">{{ run.judge.full_name if run.judge else "—" }}</td>
+          <td class="text-end">
+            <form method="post"
+                  action="{{ url_for('club.event_run_delete', event_id=event.id, run_id=run.id) }}"
+                  onsubmit="return confirm('{{ _('Lauf entfernen?') }}')">
+              {{ run_form.hidden_tag() }}
+              <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted text-center py-4">{{ _('Noch keine Läufe vorbereitet.') }}</div>
+  {% endif %}
+
+  {# Lauf hinzufügen (ausklappbar) #}
+  <div class="collapse" id="add-run-panel">
+    <div class="card-body border-top">
+      <form method="post" action="{{ url_for('club.event_run_add', event_id=event.id) }}"
+            class="row g-2 align-items-end">
+        {{ run_form.hidden_tag() }}
+        <div class="col-auto">
+          {{ run_form.run_type.label(class="form-label mb-1 small") }}
+          {{ run_form.run_type(class="form-select form-select-sm") }}
+        </div>
+        <div class="col-auto">
+          {{ run_form.category.label(class="form-label mb-1 small") }}
+          {{ run_form.category(class="form-select form-select-sm") }}
+        </div>
+        <div class="col-auto">
+          {{ run_form.class_level.label(class="form-label mb-1 small") }}
+          {{ run_form.class_level(class="form-select form-select-sm") }}
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary btn-sm">{{ _('Hinzufügen') }}</button>
+        </div>
+      </form>
+
+      <hr class="my-3">
+      <p class="text-muted small mb-2">{{ _('Alle Läufe auf einmal:') }}</p>
+      <div class="d-flex flex-wrap gap-1">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-agility">{{ _('Alle Agility') }}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-all-jumping">{{ _('Alle Jumping') }}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-standard">{{ _('Standard (Agi+Jump S/M/I/L × 1/2/3)') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {# ── 4. ANMELDUNGEN ───────────────────────────────────────────────────────── #}
 {% if registrations is defined %}
