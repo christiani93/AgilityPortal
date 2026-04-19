@@ -136,10 +136,14 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
         .order_by(Registration.category_code, Registration.class_level)
     ).scalars().all()
 
+    # Nur CH-Lizenzen zählen — identische Reihenfolge wie CSV-Export
+    # (FOREIGN werden im CSV übersprungen, dürfen hier nicht mitzählen)
     row_to_license: dict[int, str] = {}
-    for i, reg in enumerate(regs, start=2):
+    row_num = 2  # Zeile 1 = Header
+    for reg in regs:
         if reg.dog and reg.dog.license_kind != LicenseKind.FOREIGN:
-            row_to_license[i] = reg.dog.license_no
+            row_to_license[row_num] = reg.dog.license_no
+            row_num += 1
 
     # Reply-To = Vereins-E-Mail des Veranstalters
     reply_to = None
