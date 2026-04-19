@@ -1926,3 +1926,118 @@ def schedule_block_reorder(event_id):
                 blk.sort_index = idx * 10
     db.session.commit()
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Öffentliche Live-Seite (kein Login, auto-refresh)
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/events/<int:event_id>/live")
+def event_live(event_id):
+    """Öffentliche Live-Seite: aktuelle Startliste + Ranglisten."""
+    event = db.session.get(Event, event_id)
+    if not event or event.status not in ("open", "closed", "cancelled"):
+        abort(404)
+    if event.is_test:
+        abort(404)
+    return render_template("club/event_live.html", event=event)
+
+
+@club_bp.get("/api/events/<int:event_id>/live.json")
+def event_live_json(event_id):
+    """JSON-API für die öffentliche Live-Seite (polling)."""
+    from flask import jsonify
+    import json as _j
+
+    event = db.session.get(Event, event_id)
+    if not event or event.status not in ("open", "closed", "cancelled"):
+        abort(404)
+    if event.is_test:
+        abort(404)
+
+    # Letzte LiveUpdates pro Ring (neuestes pro Ring)
+    all_updates = (
+        db.session.execute(
+            db.select(LiveUpdate)
+            .filter_by(event_id=event_id)
+            .order_by(LiveUpdate.created_at.desc())
+            .limit(100)
+        ).scalars().all()
+    )
+
+    # Neuesten Update pro Ring extrahieren
+    ring_state: dict = {}
+    for upd in all_updates:
+        try:
+            p = _j.loads(upd.payload_json or "{}")
+        except Exception:
+            continue
+        ring = p.get("ring") or "Ring 1"
+        if ring not in ring_state:
+            ring_state[ring] = {
+                "ring":            ring,
+                "run_name":        p.get("run_name") or "",
+                "discipline":      p.get("discipline") or "",
+                "category_code":   p.get("category_code") or "",
+                "class_level":     p.get("class_level") or 0,
+                "startlist":       p.get("startlist") or {},
+                "updated_at":      upd.created_at.isoformat() + "Z",
+            }
+
+    # Aktuellste Ergebnisse aus Result-Import
+    from zoneinfo import ZoneInfo
+    from datetime import timezone
+    latest_import = (
+        db.session.execute(
+            db.select(ResultImport)
+            .filter_by(event_id=event_id)
+            .order_by(ResultImport.created_at.desc())
+        ).scalars().first()
+    )
+    result_classes = []
+    if latest_import:
+        rows = (
+            db.session.execute(
+                db.select(Result)
+                .filter_by(result_import_id=latest_import.id)
+                .order_by(Result.ring, Result.discipline,
+                          Result.category_code, Result.class_level, Result.rank)
+            ).scalars().all()
+        )
+        from itertools import groupby
+        def _ck(r):
+            return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
+        for key, grp in groupby(rows, key=_ck):
+            ring, disc, cat, cls = key
+            result_classes.append({
+                "ring": ring, "discipline": disc,
+                "category_code": cat, "class_level": cls,
+                "results": [
+                    {
+                        "rank":         r.rank,
+                        "dog_name":     r.dog_name or "",
+                        "handler_name": r.handler_name or "",
+                        "start_no":     r.start_no,
+                        "time_s":       r.time_s,
+                        "faults":       r.faults,
+                        "refusals":     r.refusals,
+                        "status":       r.status or "",
+                        "eliminated":   r.eliminated,
+                    }
+                    for r in grp
+                ],
+            })
+        # Timestamp in Zurich-Zeit
+        zurich = ZoneInfo("Europe/Zurich")
+        created_utc = latest_import.created_at.replace(tzinfo=timezone.utc)
+        result_updated = created_utc.astimezone(zurich).strftime("%d.%m.%Y %H:%M")
+    else:
+        result_updated = None
+
+    return jsonify({
+        "event_name":     event.name,
+        "rings":          list(ring_state.values()),
+        "result_classes": result_classes,
+        "result_updated": result_updated,
+        "final":          latest_import.final if latest_import else False,
+    })

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Live — {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="mb-0">🔴 {{ event.name }}</h2>
+    <small class="text-muted">
+      {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
+      {% if event.location %} · {{ event.location }}{% endif %}
+    </small>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <span class="badge bg-danger fs-6 live-badge">● Live</span>
+    <a href="{{ url_for('club.event_startlist', event_id=event.id) }}"
+       class="btn btn-sm btn-outline-secondary">📋 Startliste</a>
+  </div>
+</div>
+
+{# Auto-refresh info #}
+<div class="text-muted small mb-3">
+  <span id="lastUpdate">Lade…</span>
+  · Aktualisiert automatisch alle 15 Sekunden
+</div>
+
+{# Aktuelle Läufe pro Ring #}
+<div id="ringsContainer" class="row g-3 mb-4"></div>
+
+{# Ergebnisse #}
+<div id="resultsContainer"></div>
+
+<script>
+const API_URL = "{{ url_for('club.event_live_json', event_id=event.id) }}";
+let lastFetch = null;
+
+function qualBadge(status) {
+  const map = {
+    'V0':  '<span class="badge bg-success">V0</span>',
+    'V':   '<span class="badge bg-success">V</span>',
+    'SG':  '<span class="badge bg-primary">SG</span>',
+    'G':   '<span class="badge bg-info text-dark">G</span>',
+    'NB':  '<span class="badge bg-warning text-dark">NB</span>',
+    'DIS': '<span class="badge bg-danger">DIS</span>',
+    'ABR': '<span class="badge bg-danger">ABR</span>',
+    'DNS': '<span class="badge bg-secondary">DNS</span>',
+  };
+  return map[status] || '<span class="text-muted small">—</span>';
+}
+
+function renderRings(rings) {
+  const container = document.getElementById('ringsContainer');
+  if (!rings || rings.length === 0) {
+    container.innerHTML = '<div class="col-12 text-muted">Noch kein aktiver Lauf.</div>';
+    return;
+  }
+
+  container.innerHTML = rings.map(ring => {
+    const sl   = ring.startlist || {};
+    const curr = sl.current_starter;
+    const nxt  = sl.next_starter;
+    const rem  = sl.remaining || [];
+    const disc = ring.discipline ? ring.discipline.charAt(0).toUpperCase() + ring.discipline.slice(1) : '';
+
+    const currHtml = curr ? `
+      <div class="alert alert-warning py-2 mb-2 d-flex align-items-center gap-2">
+        <span class="fw-bold fs-5">#${curr.start_no}</span>
+        <div>
+          <div class="fw-semibold">${curr.dog_name}</div>
+          <div class="text-muted small">${curr.handler_name}</div>
+        </div>
+        <span class="ms-auto badge bg-warning text-dark">Am Start</span>
+      </div>` : '<div class="text-muted small mb-2">Kein Starter aktiv</div>';
+
+    const nextHtml = nxt ? `
+      <div class="d-flex align-items-center gap-2 py-1 border-bottom">
+        <span class="text-muted" style="width:2rem;">#${nxt.start_no}</span>
+        <div>
+          <span class="fw-semibold">${nxt.dog_name}</span>
+          <span class="text-muted ms-1 small">${nxt.handler_name}</span>
+        </div>
+        <span class="ms-auto badge bg-secondary">Nächster</span>
+      </div>` : '';
+
+    const moreHtml = rem.length > 2 ? `
+      <div class="text-muted small mt-1">
+        + ${sl.remaining_count - 1} weitere Starter ausstehend
+      </div>` : '';
+
+    return `
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <strong>${ring.ring}</strong>
+            <span class="text-muted small">${disc} ${ring.category_code} Kl.${ring.class_level}</span>
+          </div>
+          <div class="card-body p-2">
+            <div class="fw-semibold text-muted small mb-2">${ring.run_name}</div>
+            ${currHtml}
+            ${nextHtml}
+            ${moreHtml}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderResults(resultClasses, updated, isFinal) {
+  const container = document.getElementById('resultsContainer');
+  if (!resultClasses || resultClasses.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const badge = isFinal
+    ? '<span class="badge bg-success ms-2">Abgeschlossen</span>'
+    : '<span class="badge bg-primary ms-2">Live</span>';
+
+  let html = `<h4 class="mb-2">Ergebnisse ${badge}
+    <small class="text-muted fs-6 ms-2">Stand: ${updated || ''}</small></h4>`;
+
+  resultClasses.forEach(cls => {
+    const disc = cls.discipline ? cls.discipline.charAt(0).toUpperCase() + cls.discipline.slice(1) : '';
+    html += `
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <strong>${cls.ring} · ${disc} · ${cls.category_code} Kl.${cls.class_level}</strong>
+          <span class="badge bg-secondary">${cls.results.length} Starter</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="text-center" style="width:3rem;">Pl.</th>
+                <th>Hund / Hundeführer</th>
+                <th class="text-center">Nr.</th>
+                <th class="text-end">Zeit</th>
+                <th class="text-center">F / V</th>
+                <th class="text-center">Qualif.</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+    cls.results.forEach(r => {
+      const rowClass = (r.eliminated || ['DIS','ABR','DNS'].includes(r.status))
+        ? 'table-light text-muted'
+        : (r.rank === 1 ? 'table-warning' : '');
+      html += `
+              <tr class="${rowClass}">
+                <td class="text-center fw-semibold">${r.rank ? r.rank + '.' : '—'}</td>
+                <td>
+                  <div class="fw-semibold">${r.dog_name || '—'}</div>
+                  <div class="text-muted small">${r.handler_name || ''}</div>
+                </td>
+                <td class="text-center text-muted small">${r.start_no || '—'}</td>
+                <td class="text-end font-monospace small">${r.time_s ? r.time_s.toFixed(2) + 's' : '—'}</td>
+                <td class="text-center small">${(r.faults != null) ? r.faults + ' / ' + r.refusals : '—'}</td>
+                <td class="text-center">${qualBadge(r.status)}</td>
+              </tr>`;
+    });
+
+    html += `</tbody></table></div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function fetchLive() {
+  fetch(API_URL)
+    .then(r => r.json())
+    .then(data => {
+      renderRings(data.rings);
+      renderResults(data.result_classes, data.result_updated, data.final);
+      const now = new Date().toLocaleTimeString('de-CH', {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('lastUpdate').textContent = `Zuletzt aktualisiert: ${now} Uhr`;
+    })
+    .catch(() => {
+      document.getElementById('lastUpdate').textContent = 'Verbindungsfehler – versuche erneut…';
+    });
+}
+
+// Sofort laden, dann alle 15 Sekunden
+fetchLive();
+setInterval(fetchLive, 15000);
+</script>
+
+<style>
+.live-badge { animation: pulse 2s infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+</style>
+{% endblock %}
