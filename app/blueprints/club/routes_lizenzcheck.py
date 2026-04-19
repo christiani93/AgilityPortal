@@ -66,6 +66,7 @@ def event_lizenzcheck(event_id):
 
     report_lines: list[str] = []
     emails_sent = 0
+    row_count = 0
 
     # Reply-To = Vereins-E-Mail des Veranstalters
     reply_to = None
@@ -73,6 +74,7 @@ def event_lizenzcheck(event_id):
         reply_to = event.organiser_club.email
 
     for row_idx, row in enumerate(reader, start=2):   # Zeile 2 = erster Datensatz
+        row_count += 1
         license_no   = (row.get("Lizenznummer") or "").strip()
         cat_csv_raw  = (row.get("Kategorie")    or "").strip().lower()
         cls_csv_str  = (row.get("Klasse")       or "").strip()
@@ -176,10 +178,10 @@ def event_lizenzcheck(event_id):
     if emails_sent:
         report_text += f"\n\n{emails_sent} Klassen-Frage-Mail(s) versendet."
 
-    return Response(
-        report_text,
-        content_type="text/plain; charset=utf-8",
-        headers={
-            "Content-Disposition": f'attachment; filename="lizenzcheck_{event_id}.txt"'
-        },
+    return render_template(
+        "club/lizenzcheck_result.html",
+        event=event,
+        report_text=report_text,
+        emails_sent=emails_sent,
+        row_count=row_count,
     )
