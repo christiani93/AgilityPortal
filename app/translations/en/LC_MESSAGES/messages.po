@@ -1084,3 +1084,44 @@ msgstr "Club logo deleted."
 
 msgid "Kein Logo zum Löschen gefunden."
 msgstr "No logo found to delete."
+
+# lizenzcheck_confirm.html
+msgid "Klasse bestätigt"
+msgstr "Class confirmed"
+
+msgid "Klasse gesetzt auf:"
+msgstr "Class set to:"
+
+msgid "Vielen Dank! Die Änderung wurde gespeichert."
+msgstr "Thank you! The change has been saved."
+
+# email_status.html
+msgid "E-Mail Versand"
+msgstr "Email sending"
+
+msgid "Gesendet"
+msgstr "Sent"
+
+msgid "Gesamt"
+msgstr "Total"
+
+msgid "Fehlgeschlagen"
+msgstr "Failed"
+
+msgid "Verbleibend"
+msgstr "Remaining"
+
+msgid "1 Mail pro Sekunde — bei 400 Empfängern ca. 7 Minuten."
+msgstr "1 email per second — for 400 recipients approx. 7 minutes."
+
+msgid "Versand abgeschlossen."
+msgstr "Sending complete."
+
+msgid "Zurück zur Veranstaltung"
+msgstr "Back to event"
+
+msgid "gesendet"
+msgstr "sent"
+
+msgid "fehlgeschlagen"
+msgstr "failed"

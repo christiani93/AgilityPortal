@@ -1081,3 +1081,44 @@ msgstr "Logo du club supprimé."
 
 msgid "Kein Logo zum Löschen gefunden."
 msgstr "Aucun logo à supprimer."
+
+# lizenzcheck_confirm.html
+msgid "Klasse bestätigt"
+msgstr "Classe confirmée"
+
+msgid "Klasse gesetzt auf:"
+msgstr "Classe définie sur :"
+
+msgid "Vielen Dank! Die Änderung wurde gespeichert."
+msgstr "Merci ! La modification a été enregistrée."
+
+# email_status.html
+msgid "E-Mail Versand"
+msgstr "Envoi d'e-mails"
+
+msgid "Gesendet"
+msgstr "Envoyé"
+
+msgid "Gesamt"
+msgstr "Total"
+
+msgid "Fehlgeschlagen"
+msgstr "Échoué"
+
+msgid "Verbleibend"
+msgstr "Restant"
+
+msgid "1 Mail pro Sekunde — bei 400 Empfängern ca. 7 Minuten."
+msgstr "1 e-mail par seconde — pour 400 destinataires, environ 7 minutes."
+
+msgid "Versand abgeschlossen."
+msgstr "Envoi terminé."
+
+msgid "Zurück zur Veranstaltung"
+msgstr "Retour à l'événement"
+
+msgid "gesendet"
+msgstr "envoyé"
+
+msgid "fehlgeschlagen"
+msgstr "échoué"
