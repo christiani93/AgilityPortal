@@ -177,4 +177,94 @@
   {% endif %}
 </div>
 
+{# ── Ergebnisse ────────────────────────────────────────────────────────────── #}
+{% if result_classes %}
+<div class="mb-2 d-flex align-items-center gap-2">
+  <h4 class="mb-0">{{ _('Ergebnisse') }}</h4>
+  {% if latest_import and latest_import.final %}
+    <span class="badge bg-success">{{ _('Abgeschlossen') }}</span>
+  {% else %}
+    <span class="badge bg-primary">{{ _('Live') }}</span>
+  {% endif %}
+  {% if latest_import %}
+    <small class="text-muted">
+      {{ _('Stand') }}: {{ latest_import.created_at.strftime("%d.%m.%Y %H:%M") }} Uhr
+    </small>
+  {% endif %}
+</div>
+
+{% for cls in result_classes %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center py-2">
+    <strong>
+      {{ cls.ring }} ·
+      {{ cls.discipline | capitalize if cls.discipline else '?' }} ·
+      {{ cls.category_code }} Kl.{{ cls.class_level }}
+    </strong>
+    <span class="badge bg-secondary">{{ cls.results | length }} {{ _('Starter') }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="text-center" style="width:3rem;">{{ _('Pl.') }}</th>
+          <th>{{ _('Hund / Hundeführer') }}</th>
+          <th class="text-center">{{ _('Nr.') }}</th>
+          <th class="text-end">{{ _('Zeit') }}</th>
+          <th class="text-center">{{ _('F / V') }}</th>
+          <th class="text-center">{{ _('Qualif.') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in cls.results %}
+        <tr class="{% if row.eliminated or row.status in ('DIS','ABR','DNS') %}table-light text-muted{% elif row.rank == 1 %}table-warning{% endif %}">
+          <td class="text-center fw-semibold">
+            {% if row.rank %}{{ row.rank }}.{% else %}—{% endif %}
+          </td>
+          <td>
+            <div class="fw-semibold">{{ row.dog_name or '—' }}</div>
+            <div class="text-muted small">{{ row.handler_name or '' }}</div>
+          </td>
+          <td class="text-center text-muted small">{{ row.start_no or '—' }}</td>
+          <td class="text-end font-monospace small">
+            {% if row.time_s %}
+              {{ "%.2f"|format(row.time_s) }}s
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-center small">
+            {% if row.faults is not none or row.refusals is not none %}
+              {{ row.faults or 0 }} / {{ row.refusals or 0 }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-center">
+            {% set q = row.status or '' %}
+            {% if q == 'V0' %}
+              <span class="badge bg-success">V0</span>
+            {% elif q == 'V' %}
+              <span class="badge bg-success">V</span>
+            {% elif q == 'SG' %}
+              <span class="badge bg-primary">SG</span>
+            {% elif q == 'G' %}
+              <span class="badge bg-info text-dark">G</span>
+            {% elif q in ('DIS', 'ABR') %}
+              <span class="badge bg-danger">{{ q }}</span>
+            {% elif q == 'DNS' %}
+              <span class="badge bg-secondary">DNS</span>
+            {% elif q == 'NB' %}
+              <span class="badge bg-warning text-dark">NB</span>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+{% elif event.status == 'closed' %}
+<div class="text-muted small mb-4">{{ _('Noch keine Ergebnisse verfügbar.') }}</div>
+{% endif %}
+
 {% endblock %}

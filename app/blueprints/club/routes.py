@@ -12,7 +12,7 @@ from flask_babel import _
 from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
-from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport
 from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, DogClassForm, EventRegistrationForm
 
 
@@ -871,7 +871,7 @@ def dog_update_class(dog_id):
 @club_bp.get("/events/<int:event_id>/info")
 @login_required
 def event_info(event_id):
-    """Teilnehmer-Eventseite: Turnierdaten + eigene Anmeldung + Startnummer."""
+    """Teilnehmer-Eventseite: Turnierdaten + eigene Anmeldung + Startnummer + Live-Ergebnisse."""
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
         abort(404)
@@ -891,11 +891,46 @@ def event_info(event_id):
     )
     has_start_numbers = event.start_numbers_generated_at is not None
 
+    # Live-Ergebnisse aus gespeichertem Result-Import (aktuellster Import pro Event)
+    result_classes = []
+    latest_import = (
+        db.session.execute(
+            db.select(ResultImport)
+            .filter_by(event_id=event_id)
+            .order_by(ResultImport.created_at.desc())
+        ).scalars().first()
+    )
+    if latest_import:
+        results_rows = (
+            db.session.execute(
+                db.select(Result)
+                .filter_by(result_import_id=latest_import.id)
+                .order_by(Result.ring, Result.discipline, Result.category_code, Result.class_level, Result.rank)
+            ).scalars().all()
+        )
+        # Gruppieren nach Ring / Disziplin / Kategorie / Klasse
+        from itertools import groupby
+        def _class_key(r):
+            return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
+        for key, group in groupby(results_rows, key=_class_key):
+            ring, disc, cat, cls = key
+            rows = list(group)
+            result_classes.append({
+                "ring": ring,
+                "discipline": disc,
+                "category_code": cat,
+                "class_level": cls,
+                "results": rows,
+                "final": latest_import.final,
+            })
+
     return render_template("club/event_info.html",
                            event=event,
                            my_registrations=my_registrations,
                            deadline_passed=deadline_passed,
-                           has_start_numbers=has_start_numbers)
+                           has_start_numbers=has_start_numbers,
+                           result_classes=result_classes,
+                           latest_import=latest_import)
 
 
 # ---------------------------------------------------------------------------
