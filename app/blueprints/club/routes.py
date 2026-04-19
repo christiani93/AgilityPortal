@@ -1938,7 +1938,8 @@ def event_live(event_id):
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
         abort(404)
-    if event.is_test:
+    # Testevents nur für eingeloggte Superadmins sichtbar
+    if event.is_test and not (current_user.is_authenticated and current_user.is_superadmin):
         abort(404)
     return render_template("club/event_live.html", event=event)
 
@@ -1952,7 +1953,7 @@ def event_live_json(event_id):
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
         abort(404)
-    if event.is_test:
+    if event.is_test and not (current_user.is_authenticated and current_user.is_superadmin):
         abort(404)
 
     # Letzte LiveUpdates pro Ring (neuestes pro Ring)
