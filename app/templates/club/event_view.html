@@ -178,8 +178,8 @@
         <tr class="
           {% if item.segment == 'changeover' %}table-light text-muted
           {% elif item.segment == 'briefing' %}table-warning
+          {% elif item.segment == 'prep_pause' %}table-secondary text-muted
           {% elif item.segment == 'rank_announcement' %}table-info fw-semibold
-          {% elif item.segment == 'prep' %}table-light text-muted
           {% endif %}">
           {% if loop.first %}
           <td rowspan="{{ ring_segs | length }}" class="fw-semibold align-middle">{{ ring }}</td>
@@ -204,10 +204,10 @@
                 {{ item.block.discipline | capitalize if item.block.discipline else '' }}
               </span>
               {{ item.label }}
+            {% elif item.segment == 'prep_pause' %}
+              <span class="text-muted">🚶 {{ item.label }}</span>
             {% elif item.segment == 'rank_announcement' %}
               🏆 {{ item.label }}
-            {% elif item.segment == 'prep' %}
-              <span class="text-muted">⏸ {{ _('Prep-Pause') }}</span>
             {% else %}
               {{ item.label }}
             {% endif %}

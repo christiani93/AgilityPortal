@@ -16,6 +16,7 @@ SECONDS_PER_STARTER = {
 CHANGEOVER_SECONDS      = 1200   # 20 Min Umbau pro Disziplin-/Klassenwechsel
 BRIEFING_MINUTES_PER_50 = 8      # 8 Min Briefing pro 50 Starter
 BRIEFING_BLOCK_SIZE     = 50
+PREP_PAUSE_SECONDS      = 300    # 5 Min Preppause wenn nur 1 Briefing-Block (≤ 50 Starter)
 
 CATEGORY_ORDER = ["Large", "Intermediate", "Medium", "Small"]
 CATEGORY_SORT  = {cat: i for i, cat in enumerate(CATEGORY_ORDER)}
@@ -54,6 +55,14 @@ def _briefing_seconds(participant_count: int) -> int:
     return blocks * BRIEFING_MINUTES_PER_50 * 60
 
 
+def _prep_pause_seconds(participant_count: int) -> int:
+    """5 Min Preppause wenn nur ein Briefing-Block (≤ 50 Starter).
+    Bei grösseren Gruppen entfällt die Preppause — das Briefing selbst
+    ist lang genug als Kursspazier-Fenster."""
+    blocks = (participant_count // BRIEFING_BLOCK_SIZE) + 1
+    return PREP_PAUSE_SECONDS if blocks == 1 else 0
+
+
 def _secs_per_starter(discipline: str, run_time_config: dict | None) -> int:
     """Sekunden pro Starter für eine Disziplin (Event-Konfiguration oder Default)."""
     cfg = run_time_config or SECONDS_PER_STARTER
@@ -67,17 +76,20 @@ def estimate_block(discipline: str, participant_count: int,
     secs        = _secs_per_starter(discipline, run_time_config)
     run_seconds = participant_count * secs
     brief_secs  = _briefing_seconds(participant_count)
-    total       = CHANGEOVER_SECONDS + brief_secs + run_seconds
+    prep_secs   = _prep_pause_seconds(participant_count)
+    total       = CHANGEOVER_SECONDS + brief_secs + prep_secs + run_seconds
     return {
-        "participants":   participant_count,
-        "changeover_sec": CHANGEOVER_SECONDS,
-        "briefing_sec":   brief_secs,
-        "run_sec":        run_seconds,
-        "changeover_min": CHANGEOVER_SECONDS // 60,
-        "briefing_min":   brief_secs // 60,
-        "run_min":        run_seconds // 60,
-        "total_min":      total // 60,
-        "total_seconds":  total,
+        "participants":    participant_count,
+        "changeover_sec":  CHANGEOVER_SECONDS,
+        "briefing_sec":    brief_secs,
+        "prep_pause_sec":  prep_secs,
+        "run_sec":         run_seconds,
+        "changeover_min":  CHANGEOVER_SECONDS // 60,
+        "briefing_min":    brief_secs // 60,
+        "prep_pause_min":  prep_secs // 60,
+        "run_min":         run_seconds // 60,
+        "total_min":       total // 60,
+        "total_seconds":   total,
     }
 
 
@@ -141,7 +153,8 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                      run_time_config: dict | None = None) -> dict:
     """
     Timeline für den Zeitplan-Editor (ein Item pro Block).
-    Gruppenmodell: Umbau + Briefing (gesamt) + Läufe in Folge.
+    Gruppenmodell: Umbau + Briefing [+ Preppause] + Läufe in Folge.
+    Preppause: nur wenn Gruppe ≤ 50 Starter (ein Briefing-Block).
     Rangverkündigungen sind informative Marker ohne Zeitverbrauch.
     """
     timeline = {}
@@ -160,19 +173,21 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                 t  = _round_to_minutes(current, round_minutes) if round_minutes else current
                 ts = t.strftime("%H:%M")
                 items.append({
-                    "block":          content,
-                    "start_time":     ts,
-                    "end_time":       ts,
-                    "participants":   0,
-                    "total_min":      0,
-                    "changeover_min": 0,
-                    "briefing_min":   0,
-                    "run_min":        0,
+                    "block":           content,
+                    "start_time":      ts,
+                    "end_time":        ts,
+                    "participants":    0,
+                    "total_min":       0,
+                    "changeover_min":  0,
+                    "briefing_min":    0,
+                    "prep_pause_min":  0,
+                    "run_min":         0,
                 })
             else:
                 run_group    = content
                 total_count  = sum(getattr(b, "_participant_count", 0) for b in run_group)
                 brief_s      = _briefing_seconds(total_count)
+                prep_s       = _prep_pause_seconds(total_count)
 
                 # Umbau (einmalig für die Gruppe)
                 co_start = _round_to_minutes(current, round_minutes) if round_minutes else current
@@ -182,6 +197,10 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
 
                 # Gemeinsames Briefing
                 _bs, briefing_end_str, current = _advance(current, brief_s, round_minutes)
+
+                # Preppause (nur wenn 1 Briefing-Block)
+                if prep_s:
+                    _ps, _pe, current = _advance(current, prep_s, round_minutes)
 
                 # Läufe in Folge
                 run_times = {}
@@ -201,15 +220,16 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                     _, r_end = run_times[b.id]
 
                     items.append({
-                        "block":          b,
-                        "start_time":     co_start.strftime("%H:%M") if first else briefing_end_str,
-                        "end_time":       r_end,
-                        "participants":   count,
-                        "changeover_min": CHANGEOVER_SECONDS // 60 if first else 0,
-                        "briefing_min":   brief_s // 60 if first else 0,
-                        "run_min":        run_s // 60,
-                        "total_min":      (
-                            (CHANGEOVER_SECONDS + brief_s if first else 0) + run_s
+                        "block":           b,
+                        "start_time":      co_start.strftime("%H:%M") if first else briefing_end_str,
+                        "end_time":        r_end,
+                        "participants":    count,
+                        "changeover_min":  CHANGEOVER_SECONDS // 60 if first else 0,
+                        "briefing_min":    brief_s // 60 if first else 0,
+                        "prep_pause_min":  prep_s  // 60 if first else 0,
+                        "run_min":         run_s // 60,
+                        "total_min":       (
+                            (CHANGEOVER_SECONDS + brief_s + prep_s if first else 0) + run_s
                         ) // 60,
                     })
                     first = False
@@ -227,6 +247,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
     Gruppenmodell (Disziplin + Klasse):
       Umbau
       Briefing [Disziplin] Kl.[X]   (ein gemeinsames Briefing für alle Kategorien)
+      Preppause                      (nur wenn Gruppe ≤ 50 Starter)
       Lauf Large Kl.[X]
       Lauf Intermediate Kl.[X]
       Lauf Medium Kl.[X]
@@ -235,7 +256,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
     Bei Disziplin- oder Klassenwechsel: neuer Umbau + neues Briefing.
     Rangverkündigung: informativer Marker, kein Umbau, kein Zeitverbrauch.
 
-    Briefing end_time = Start des nächsten Briefings (Kurspazier-Fenster).
+    Briefing end_time = Start des ersten Laufs dieser Gruppe (Kursspazier-Fenster).
     """
     segments_by_ring = {}
 
@@ -258,11 +279,11 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                 label = (getattr(content, "_display_title", None)
                          or content.title or "Rangverkündigung")
                 items.append({
-                    "segment":    "rank_announcement",
-                    "label":      label,
-                    "block":      content,
-                    "start_time": ts,
-                    "end_time":   ts,
+                    "segment":      "rank_announcement",
+                    "label":        label,
+                    "block":        content,
+                    "start_time":   ts,
+                    "end_time":     ts,
                     "participants": 0,
                 })
 
@@ -270,15 +291,16 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                 run_group   = content
                 total_count = sum(getattr(b, "_participant_count", 0) for b in run_group)
                 brief_s     = _briefing_seconds(total_count)
+                prep_s      = _prep_pause_seconds(total_count)
 
                 # ── Umbau ─────────────────────────────────────────────────
                 s, e, current = _advance(current, CHANGEOVER_SECONDS, round_minutes)
                 items.append({
-                    "segment":    "changeover",
-                    "label":      "Umbau",
-                    "block":      run_group[0],
-                    "start_time": s,
-                    "end_time":   e,
+                    "segment":      "changeover",
+                    "label":        "Umbau",
+                    "block":        run_group[0],
+                    "start_time":   s,
+                    "end_time":     e,
                     "participants": 0,
                 })
 
@@ -286,13 +308,25 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                 s, e, current = _advance(current, brief_s, round_minutes)
                 briefing_item_indices.append(len(items))
                 items.append({
-                    "segment":    "briefing",
-                    "label":      _briefing_label(run_group),
-                    "block":      run_group[0],
-                    "start_time": s,
-                    "end_time":   e,   # wird unten auf nächstes Briefing ausgedehnt
+                    "segment":      "briefing",
+                    "label":        _briefing_label(run_group),
+                    "block":        run_group[0],
+                    "start_time":   s,
+                    "end_time":     e,   # wird unten auf Lauf-Start ausgedehnt
                     "participants": total_count,
                 })
+
+                # ── Preppause (nur bei kleinen Gruppen) ───────────────────
+                if prep_s:
+                    s, e, current = _advance(current, prep_s, round_minutes)
+                    items.append({
+                        "segment":      "prep_pause",
+                        "label":        "Preppause / Kursspazieren",
+                        "block":        run_group[0],
+                        "start_time":   s,
+                        "end_time":     e,
+                        "participants": 0,
+                    })
 
                 # ── Läufe in Folge (alle Kategorien der Gruppe) ───────────
                 for b in run_group:
@@ -302,16 +336,16 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                     run_s  = max(count * secs_s, 60)
                     s, e, current = _advance(current, run_s, round_minutes)
                     items.append({
-                        "segment":    "run",
-                        "label":      title,
-                        "block":      b,
-                        "start_time": s,
-                        "end_time":   e,
+                        "segment":      "run",
+                        "label":        title,
+                        "block":        b,
+                        "start_time":   s,
+                        "end_time":     e,
                         "participants": count,
                     })
 
-        # ── Briefing-Fenster: end_time = Start nächstes Briefing ──────────
-        # Teilnehmer sehen den gesamten Zeitraum, den sie zum Kursspazieren haben.
+        # ── Briefing-Fenster: end_time = Start des ersten Laufs der Gruppe ──
+        # (gilt auch wenn eine Preppause dazwischen liegt)
         for j, idx in enumerate(briefing_item_indices):
             if j + 1 < len(briefing_item_indices):
                 # Bis zum Start des nächsten Briefings
