@@ -131,25 +131,21 @@ td.totalFaults {
 
 {% if ring_data %}
   {# ── Startlisten-Ansicht (LiveUpdate vorhanden) ─────────────────────────── #}
-  {% set sl      = ring_data.get('startlist', {}) %}
-  {% set current = sl.get('current_starter') %}
+  {% set sl       = ring_data.get('startlist', {}) %}
   {% set remaining = sl.get('remaining', []) %}
-  {# remaining[0] = current, remaining[1] = next, remaining[2+] = weitere #}
-  {% set upcoming = remaining[1:] if remaining|length > 1 else [] %}
-
   {% set disc  = ring_data.get('discipline', '') %}
   {% set cat   = ring_data.get('category_code', '') %}
   {% set cls   = ring_data.get('class_level', '') %}
   {% set rname = ring_data.get('run_name', '') %}
   <h1>{{ rname if rname else (disc|capitalize ~ ' ' ~ cat ~ ' ' ~ cls) }} · {{ ring }}</h1>
 
-  {# Startliste (nächste Starter) #}
+  {# Alle noch ausstehenden Starter (inkl. aktueller) — Fremdsoftware markiert selbst #}
   <table class="table-container">
     <tbody><tr><td>
       <div class="startList-scroll-container">
         <table>
           <tbody>
-            {% for s in upcoming %}
+            {% for s in remaining %}
             <tr>
               <td class="startNum">{{ s.start_no }}</td>
               <td class="handlerName">{{ s.handler_name }}</td>
@@ -158,7 +154,7 @@ td.totalFaults {
             {% else %}
             <tr>
               <td colspan="3" style="padding:9px;color:#888;text-align:center;">
-                Keine weiteren Starter
+                Lauf abgeschlossen
               </td>
             </tr>
             {% endfor %}
@@ -168,100 +164,48 @@ td.totalFaults {
     </td></tr></tbody>
   </table>
 
-  {# Letzte Ergebnisse (Querbalken) — leer wenn keine #}
+  {# Letzte Ergebnisse — leer, Fremdsoftware verwaltet diese selbst #}
   <table class="table-container">
     <tbody><tr><td>
       <div class="lastResults-scroll-container">
-        <table><tbody>
-          {% if result_rows %}
-            {% for r in result_rows[:3] %}
-            {% if not r.eliminated and r.rank %}
-            <tr>
-              <td class="rank">{{ r.rank }}.</td>
-              <td class="handlerName">{{ r.handler_name }}</td>
-              <td class="dogNameShort">{{ r.dog_name }}</td>
-              <td class="runTime">{{ '%.2f'|format(r.time_s) if r.time_s else '—' }}</td>
-              <td class="totalFaults">{{ '%.2f'|format(r.faults or 0) }}</td>
-            </tr>
-            {% endif %}
-            {% endfor %}
-          {% endif %}
-        </tbody></table>
+        <table></table>
       </div>
     </td></tr></tbody>
   </table>
 
-  {# Aktueller Starter #}
+  {# Aktueller Starter — leer, Fremdsoftware befüllt diesen selbst #}
   <table class="currentParticipant">
-    <tbody>
-      {% if current %}
-      <tr>
-        <td class="currentParticipant_startNum">{{ current.start_no }}</td>
-        <td class="handlerName">{{ current.handler_name }}</td>
-        <td class="dogNameShort">{{ current.dog_name }}</td>
-        <td class="currentParticipant_rightBlock">Am Start</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="4" style="text-align:center;color:#666;">
-          Kein Starter aktiv
-        </td>
-      </tr>
-      {% endif %}
-    </tbody>
   </table>
 
-{% elif result_rows %}
-  {# ── Ranglisten-Ansicht (kein LiveUpdate, aber Ergebnisse vorhanden) ────── #}
-  <h1>Rangliste {{ result_run_name }} · {{ ring }}</h1>
+{% else %}
+  {# ── Keine Laufdaten ─────────────────────────────────────────────────────── #}
+  <h1>{{ ring }}</h1>
 
   <table class="table-container">
     <tbody><tr><td>
-      <div class="results-scroll-container">
+      <div class="startList-scroll-container">
         <table>
           <tbody>
-            {% for r in result_rows %}
             <tr>
-              <td class="rank">{% if r.rank %}{{ r.rank }}.{% else %}—{% endif %}</td>
-              <td class="startNum">{{ r.start_no or '—' }}</td>
-              <td class="handlerName">{{ r.handler_name }}</td>
-              <td class="dogNameShort">{{ r.dog_name }}</td>
-              <td class="runTime">{{ '%.2f'|format(r.time_s) if r.time_s else '—' }}</td>
-              <td class="faults">{{ r.faults if r.faults is not none else '—' }}</td>
-              <td class="totalFaults">
-                {% if r.eliminated %}{{ r.status or 'DIS' }}
-                {% elif r.time_s %}{{ '%.2f'|format((r.faults or 0) * 5.0) }}
-                {% else %}—{% endif %}
+              <td style="padding:9px;color:#888;text-align:center;">
+                Warte auf Laufdaten...
               </td>
             </tr>
-            {% endfor %}
           </tbody>
         </table>
       </div>
     </td></tr></tbody>
   </table>
 
-  <table class="currentParticipant">
-    <tbody>
-      <tr>
-        <td colspan="4" style="text-align:center;color:#666;font-size:18px;">
-          Rangliste {{ result_run_name }}
-        </td>
-      </tr>
-    </tbody>
+  <table class="table-container">
+    <tbody><tr><td>
+      <div class="lastResults-scroll-container">
+        <table></table>
+      </div>
+    </td></tr></tbody>
   </table>
 
-{% else %}
-  {# ── Keine Daten ─────────────────────────────────────────────────────────── #}
-  <h1>{{ ring }}</h1>
   <table class="currentParticipant">
-    <tbody>
-      <tr>
-        <td style="text-align:center;color:#666;">
-          Warte auf Laufdaten...
-        </td>
-      </tr>
-    </tbody>
   </table>
 {% endif %}
 
