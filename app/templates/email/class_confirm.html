@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 14px; color: #222; background: #f8f8f8; margin: 0; padding: 0; }
+    .wrapper { max-width: 640px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .header { background: #c0392b; color: #fff; padding: 24px 32px; }
+    .header h1 { margin: 0; font-size: 20px; }
+    .header p  { margin: 6px 0 0; font-size: 13px; opacity: .85; }
+    .section { padding: 20px 32px; border-bottom: 1px solid #eee; }
+    .section:last-child { border-bottom: none; }
+    .lang-label { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    h2 { font-size: 16px; margin: 0 0 10px; color: #c0392b; }
+    .info-box { background: #fdecea; border-left: 4px solid #c0392b; padding: 12px 16px; border-radius: 4px; margin: 12px 0; }
+    .info-box p { margin: 4px 0; }
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+    .btn { display: inline-block; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; }
+    .btn-import { background: #2980b9; color: #fff; }
+    .btn-system { background: #27ae60; color: #fff; }
+    hr { border: none; border-top: 2px dashed #ddd; margin: 0; }
+    .footer { background: #f0f0f0; padding: 14px 32px; font-size: 11px; color: #999; text-align: center; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="header">
+    <h1>{{ event.name }}</h1>
+    <p>{{ event.location }} &nbsp;·&nbsp; {{ event.starts_at.strftime('%d.%m.%Y') if event.starts_at }}</p>
+  </div>
+
+  {# ── DEUTSCH ── #}
+  <div class="section">
+    <div class="lang-label">Deutsch</div>
+    <h2>Klassen-Diskrepanz – bitte bestätigen</h2>
+    <p>Hallo {{ handler_name }},</p>
+    <p>Beim Lizenzcheck für <strong>{{ event.name }}</strong> wurde eine Abweichung bei der Klasse festgestellt:</p>
+    <div class="info-box">
+      <p><strong>Hund:</strong> {{ dog_name }} (Lizenz {{ license_no }})</p>
+      <p><strong>Klasse in deiner Anmeldung:</strong> {{ cat_import_label }} Klasse {{ cls_import }}</p>
+      <p><strong>Klasse gemäss TKAMO-System:</strong> {{ cat_system_label }} Klasse {{ cls_system }}</p>
+    </div>
+    <p>Bitte klicke auf die korrekte Klasse:</p>
+    <div class="btn-row">
+      <a href="{{ url_confirm_import }}" class="btn btn-import">
+        ✓ Meine Anmeldung stimmt ({{ cat_import_label }} Kl.{{ cls_import }})
+      </a>
+      <a href="{{ url_confirm_system }}" class="btn btn-system">
+        ✓ TKAMO hat recht ({{ cat_system_label }} Kl.{{ cls_system }})
+      </a>
+    </div>
+  </div>
+
+  <hr>
+
+  {# ── FRANÇAIS ── #}
+  <div class="section">
+    <div class="lang-label">Français</div>
+    <h2>Divergence de classe – merci de confirmer</h2>
+    <p>Bonjour {{ handler_name }},</p>
+    <p>Lors du contrôle des licences pour <strong>{{ event.name }}</strong>, une divergence de classe a été constatée :</p>
+    <div class="info-box">
+      <p><strong>Chien :</strong> {{ dog_name }} (licence {{ license_no }})</p>
+      <p><strong>Classe dans votre inscription :</strong> {{ cat_import_label }} classe {{ cls_import }}</p>
+      <p><strong>Classe selon le système TKAMO :</strong> {{ cat_system_label }} classe {{ cls_system }}</p>
+    </div>
+    <p>Veuillez cliquer sur la classe correcte :</p>
+    <div class="btn-row">
+      <a href="{{ url_confirm_import }}" class="btn btn-import">
+        ✓ Mon inscription est correcte ({{ cat_import_label }} cl.{{ cls_import }})
+      </a>
+      <a href="{{ url_confirm_system }}" class="btn btn-system">
+        ✓ Le système TKAMO a raison ({{ cat_system_label }} cl.{{ cls_system }})
+      </a>
+    </div>
+  </div>
+
+  <hr>
+
+  {# ── ENGLISH ── #}
+  <div class="section">
+    <div class="lang-label">English</div>
+    <h2>Class discrepancy – please confirm</h2>
+    <p>Dear {{ handler_name }},</p>
+    <p>During the licence check for <strong>{{ event.name }}</strong>, a class discrepancy was found:</p>
+    <div class="info-box">
+      <p><strong>Dog:</strong> {{ dog_name }} (licence {{ license_no }})</p>
+      <p><strong>Class in your registration:</strong> {{ cat_import_label }} class {{ cls_import }}</p>
+      <p><strong>Class according to TKAMO system:</strong> {{ cat_system_label }} class {{ cls_system }}</p>
+    </div>
+    <p>Please click on the correct class:</p>
+    <div class="btn-row">
+      <a href="{{ url_confirm_import }}" class="btn btn-import">
+        ✓ My registration is correct ({{ cat_import_label }} cl.{{ cls_import }})
+      </a>
+      <a href="{{ url_confirm_system }}" class="btn btn-system">
+        ✓ TKAMO is correct ({{ cat_system_label }} cl.{{ cls_system }})
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    {{ event.name }} &nbsp;·&nbsp; AgilityPortal &nbsp;·&nbsp;
+    Automatisch generiert / Généré automatiquement / Automatically generated
+  </div>
+
+</div>
+</body>
+</html>

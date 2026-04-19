@@ -10,40 +10,68 @@
     </a>
   </div>
 
-  <div class="alert alert-success mb-3">
-    ✅ {{ _('TKAMO-Ergebnis importiert und gespeichert.') }}
-    <small class="text-muted ms-2">{{ event.lizenzcheck_done_at.strftime('%d.%m.%Y %H:%M') }}</small>
-  </div>
-
-  {% if changes %}
-  <div class="card mb-3 border-success">
-    <div class="card-header bg-success text-white">
-      ✏️ {{ _('Automatisch vorgenommene Korrekturen') }} ({{ changes|length }})
+  {# ── Inaktive Lizenzen (rot, ganz oben) ── #}
+  {% if inactive_licenses %}
+  <div class="card mb-3 border-danger">
+    <div class="card-header bg-danger text-white fw-bold">
+      ⛔ {{ _('Inaktive Lizenzen — nicht startberechtigt!') }} ({{ inactive_licenses|length }})
     </div>
     <ul class="list-group list-group-flush">
-      {% for c in changes %}
-      <li class="list-group-item small font-monospace">{{ c }}</li>
+      {% for item in inactive_licenses %}
+      <li class="list-group-item list-group-item-danger small font-monospace">{{ item }}</li>
       {% endfor %}
     </ul>
   </div>
-  {% else %}
-  <div class="alert alert-info mb-3">
-    ℹ️ {{ _('Keine automatischen Korrekturen vorgenommen (keine erkannten Muster oder bereits korrekt).') }}
+  {% endif %}
+
+  {# ── Klassen-Mails ── #}
+  {% if class_emails %}
+  <div class="card mb-3 border-warning">
+    <div class="card-header bg-warning text-dark">
+      📧 {{ _('Klassen-Bestätigung — Mails versendet') }} ({{ class_emails|length }})
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for item in class_emails %}
+      <li class="list-group-item small font-monospace">{{ item }}</li>
+      {% endfor %}
+    </ul>
   </div>
   {% endif %}
 
-  <div class="card">
+  {# ── Hundenamen-Korrekturen ── #}
+  {% if name_changes %}
+  <div class="card mb-3 border-success">
+    <div class="card-header bg-success text-white">
+      ✏️ {{ _('Hundenamen automatisch korrigiert') }} ({{ name_changes|length }})
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for item in name_changes %}
+      <li class="list-group-item small font-monospace">{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if not inactive_licenses and not class_emails and not name_changes %}
+  <div class="alert alert-success mb-3">
+    ✅ {{ _('Keine Abweichungen erkannt.') }}
+  </div>
+  {% endif %}
+
+  {# ── TKAMO-Originaltext ── #}
+  <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <span>{{ _('TKAMO-Bericht') }}</span>
+      <span>{{ _('TKAMO-Originaltext') }}</span>
       <button class="btn btn-sm btn-outline-secondary" onclick="copyReport(event)">📋 {{ _('Kopieren') }}</button>
     </div>
     <div class="card-body p-0">
       <textarea id="report-text" class="form-control border-0 font-monospace"
-                rows="25" readonly
-                style="resize:vertical; font-size:13px; border-radius:0 0 .375rem .375rem;">{{ report_text }}</textarea>
+                rows="18" readonly
+                style="resize:vertical; font-size:12px; border-radius:0 0 .375rem .375rem;">{{ report_text }}</textarea>
     </div>
   </div>
 
+  {# Nochmals einfügen #}
   <div class="mt-3">
     <form method="post" action="{{ url_for('club.event_lizenzcheck', event_id=event.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -52,7 +80,7 @@
         <textarea name="tkamo_result" class="form-control font-monospace" rows="5" required
                   placeholder="{{ _('Text vom TKAMO-Lizenzcheck hier einfügen...') }}"></textarea>
       </div>
-      <button type="submit" class="btn btn-sm btn-warning">🔄 {{ _('Neues Ergebnis anzeigen') }}</button>
+      <button type="submit" class="btn btn-sm btn-warning">🔄 {{ _('Neues Ergebnis verarbeiten') }}</button>
     </form>
   </div>
 
