@@ -38,7 +38,11 @@
     <a href="{{ url_for('club.event_var_control', event_id=event.id) }}"
        class="btn btn-sm btn-outline-warning" target="_blank">📺 VAR</a>
     {% if current_user.is_superadmin %}
-    <a href="{{ url_for('club.event_export_zip', event_id=event.id) }}" class="btn btn-sm btn-outline-dark">⬇ {{ _('Export ZIP') }}</a>
+    <a href="{{ url_for('club.event_export_zip', event_id=event.id) }}"
+       class="btn btn-sm {% if not event.lizenzcheck_done_at %}btn-outline-secondary disabled{% else %}btn-outline-dark{% endif %}"
+       title="{% if not event.lizenzcheck_done_at %}{{ _('Lizenzcheck muss zuerst durchgeführt werden (TKAMO-Pflicht)') }}{% endif %}">
+      ⬇ {{ _('Export ZIP') }}
+    </a>
     {% endif %}
     <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
     <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
@@ -432,6 +436,34 @@
 {% elif event.runs and not event.event_judges %}
 <div class="alert alert-info">{{ _('Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können.') }}</div>
 {% endif %}
+
+{# ── Lizenzcheck ───────────────────────────────────────────────────────────── #}
+<div class="card mb-4 {% if not event.lizenzcheck_done_at %}border-warning{% endif %}">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>🔍 {{ _('Lizenzcheck') }}
+      {% if event.lizenzcheck_done_at %}
+        <span class="badge bg-success ms-2">✓ {{ _('Durchgeführt') }} {{ event.lizenzcheck_done_at.strftime('%d.%m.%Y %H:%M') }}</span>
+      {% else %}
+        <span class="badge bg-warning text-dark ms-2">{{ _('Ausstehend (TKAMO-Pflicht)') }}</span>
+      {% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      {{ _('CSV-Datei (Semikolon-getrennt) mit den Spalten: Lizenznummer;Kategorie;Klasse;Hundename;Vereinsnummer;Vorname;Nachname;E-Mail') }}
+    </p>
+    <form method="post" action="{{ url_for('club.event_lizenzcheck', event_id=event.id) }}"
+          enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <input type="file" name="csv_file" accept=".csv,.txt" class="form-control" style="max-width:320px" required>
+        <button type="submit" class="btn btn-sm btn-warning">
+          🔍 {{ _('Prüfen & Bericht herunterladen') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
 {# ── Sammelmail ────────────────────────────────────────────────────────────── #}
 {% if registrations is defined and registrations %}
