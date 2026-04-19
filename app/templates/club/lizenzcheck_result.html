@@ -15,6 +15,23 @@
     <small class="text-muted ms-2">{{ event.lizenzcheck_done_at.strftime('%d.%m.%Y %H:%M') }}</small>
   </div>
 
+  {% if changes %}
+  <div class="card mb-3 border-success">
+    <div class="card-header bg-success text-white">
+      ✏️ {{ _('Automatisch vorgenommene Korrekturen') }} ({{ changes|length }})
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for c in changes %}
+      <li class="list-group-item small font-monospace">{{ c }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% else %}
+  <div class="alert alert-info mb-3">
+    ℹ️ {{ _('Keine automatischen Korrekturen vorgenommen (keine erkannten Muster oder bereits korrekt).') }}
+  </div>
+  {% endif %}
+
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
       <span>{{ _('TKAMO-Bericht') }}</span>

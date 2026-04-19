@@ -10,13 +10,14 @@ Routes sind auf club_bp registriert (via __init__.py).
 
 import csv
 import io
+import re
 from datetime import datetime
 
 from flask import abort, render_template, request, Response
 from flask_login import login_required
 
 from app.extensions import db
-from app.models import Event, LicenseKind, Registration, RegistrationStatus, User
+from app.models import Dog, Event, LicenseKind, Registration, RegistrationStatus, User
 from .routes import club_bp, _assert_event_access
 
 # Mapping DB-Kategorie (1 Buchstabe) → Klartext für TKAMO-CSV
@@ -98,14 +99,127 @@ def event_lizenzcheck_csv(event_id):
     )
 
 
-# ── 2. TKAMO-Antwort hochladen ───────────────────────────────────────────────
+# ── Kategorie-Kürzel ────────────────────────────────────────────────────────
+_CAT_FROM_CODE = {"L": "L", "I": "I", "M": "M", "S": "S",
+                  "Large": "L", "Intermediate": "I", "Medium": "M", "Small": "S"}
+
+
+def _parse_and_apply_tkamo(event_id: int, text: str) -> list[str]:
+    """
+    Parst den TKAMO-Antworttext und wendet Korrekturen direkt in der DB an.
+
+    Erkannte Zeilen:
+      - "Falsche Klasse ... Lizenz XXXXX Name. Klasse im Import: XY. Klasse im System: ZW"
+        → Dog.category + Dog.class_level + Registration.category_code/class_level aktualisieren
+      - "Hundename ... Lizenz XXXXX ... / Im System NAME"   (mit Lizenz im Text)
+      - "Hundename ... Zeile N ... / Im System NAME"        (ohne Lizenz → Zeilennummer)
+        → Dog.name aktualisieren
+
+    Gibt eine Liste von Log-Zeilen zurück (was geändert wurde).
+    """
+    # Zeilennummer → Lizenznummer-Map aufbauen (gleiche Sortierung wie CSV-Export)
+    regs = db.session.execute(
+        db.select(Registration)
+        .filter_by(event_id=event_id)
+        .filter(Registration.status.in_([
+            RegistrationStatus.PENDING,
+            RegistrationStatus.CONFIRMED,
+            RegistrationStatus.SUBMITTED,
+        ]))
+        .order_by(Registration.category_code, Registration.class_level)
+    ).scalars().all()
+
+    row_to_license: dict[int, str] = {}
+    for i, reg in enumerate(regs, start=2):
+        if reg.dog and reg.dog.license_kind != LicenseKind.FOREIGN:
+            row_to_license[i] = reg.dog.license_no
+
+    changes: list[str] = []
+
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+
+        # ── Falsche Klasse ────────────────────────────────────────────────────
+        # Format: "... Lizenz XXXXX Name. Klasse im Import: XY. Klasse im System: ZW"
+        m = re.search(
+            r'Lizenz\s+(\S+).*?Klasse im System:\s*([SMIL])(\d)',
+            line, re.IGNORECASE
+        )
+        if m and 'Klasse im System' in line:
+            license_no  = m.group(1).rstrip('.')
+            new_cat_raw = m.group(2).upper()
+            new_cls     = int(m.group(3))
+            new_cat     = _CAT_FROM_CODE.get(new_cat_raw, new_cat_raw)
+
+            dog = db.session.execute(
+                db.select(Dog).filter_by(license_no=license_no)
+            ).scalar_one_or_none()
+
+            if dog:
+                old = f"{dog.category}{dog.class_level}"
+                dog.category    = new_cat
+                dog.class_level = new_cls
+
+                # Alle Anmeldungen dieses Hundes für dieses Event aktualisieren
+                event_regs = db.session.execute(
+                    db.select(Registration).filter_by(event_id=event_id, dog_id=dog.id)
+                ).scalars().all()
+                for reg in event_regs:
+                    reg.class_level    = new_cls
+                    reg.category_code  = {
+                        "L": "Large", "I": "Intermediate",
+                        "M": "Medium", "S": "Small"
+                    }.get(new_cat, new_cat)
+
+                changes.append(
+                    f"Klasse aktualisiert: {dog.name} (Lizenz {license_no}) "
+                    f"{old} → {new_cat}{new_cls}"
+                )
+            continue
+
+        # ── Hundename ─────────────────────────────────────────────────────────
+        # Format: "... Im System NAME"
+        m_name = re.search(r'Im System\s+(.+)$', line, re.IGNORECASE)
+        if m_name and 'Hundename' in line:
+            system_name = m_name.group(1).strip()
+
+            # Lizenz direkt im Text?
+            license_no = None
+            m_lic = re.search(r'Lizenz\s+(\S+)', line, re.IGNORECASE)
+            if m_lic:
+                license_no = m_lic.group(1).rstrip('.')
+            else:
+                # Zeilennummer als Fallback
+                m_row = re.search(r'Zeile\s+(\d+)', line, re.IGNORECASE)
+                if m_row:
+                    license_no = row_to_license.get(int(m_row.group(1)))
+
+            if license_no:
+                dog = db.session.execute(
+                    db.select(Dog).filter_by(license_no=license_no)
+                ).scalar_one_or_none()
+                if dog and dog.name != system_name:
+                    old_name = dog.name
+                    dog.name = system_name
+                    changes.append(
+                        f"Hundename aktualisiert: Lizenz {license_no} "
+                        f"'{old_name}' → '{system_name}'"
+                    )
+
+    db.session.commit()
+    return changes
+
+
+# ── 2. TKAMO-Antwort einfügen ────────────────────────────────────────────────
 
 @club_bp.post("/events/<int:event_id>/lizenzcheck")
 @login_required
 def event_lizenzcheck(event_id):
     """
-    Nimmt den TKAMO-Antworttext (aus Textarea) entgegen und zeigt ihn an.
-    Markiert den Lizenzcheck als durchgeführt.
+    Nimmt den TKAMO-Antworttext (Textarea) entgegen, wendet Korrekturen
+    automatisch an und zeigt Bericht + Änderungsprotokoll an.
     """
     event = db.session.get(Event, event_id)
     if not event:
@@ -118,6 +232,9 @@ def event_lizenzcheck(event_id):
         flash("Bitte TKAMO-Ergebnis einfügen.", "warning")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
+    # Korrekturen anwenden
+    changes = _parse_and_apply_tkamo(event_id, report_text)
+
     # Lizenzcheck als erledigt markieren
     event.lizenzcheck_done_at = datetime.utcnow()
     db.session.commit()
@@ -126,4 +243,5 @@ def event_lizenzcheck(event_id):
         "club/lizenzcheck_result.html",
         event=event,
         report_text=report_text,
+        changes=changes,
     )
