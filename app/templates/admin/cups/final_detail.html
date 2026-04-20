@@ -170,7 +170,26 @@
               </tbody>
             </table>
           </div>
-          <button type="submit" class="btn btn-sm btn-primary">💾 Ergebnis speichern</button>
+          <div class="d-flex align-items-center gap-3 mt-2">
+            <button type="submit" class="btn btn-sm btn-primary">💾 Ergebnis speichern</button>
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label mb-0 small text-muted">Rückzug:</label>
+              <select name="forfeit" class="form-select form-select-sm" style="width:auto;"
+                      onchange="this.form.querySelectorAll('input[type=number],input[type=checkbox]').forEach(i=>i.disabled=this.value!='')">
+                <option value="" {% if not matchup.forfeit_participant_id %}selected{% endif %}>– keiner –</option>
+                {% if matchup.participant_a %}
+                <option value="a" {% if matchup.forfeit_participant_id == matchup.participant_a_id %}selected{% endif %}>
+                  {{ matchup.participant_a.dog_name }} (Los {{ matchup.participant_a.draw_number }})
+                </option>
+                {% endif %}
+                {% if matchup.participant_b %}
+                <option value="b" {% if matchup.forfeit_participant_id == matchup.participant_b_id %}selected{% endif %}>
+                  {{ matchup.participant_b.dog_name }} (Los {{ matchup.participant_b.draw_number }})
+                </option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
         </form>
       </div>
     </div>

@@ -64,6 +64,7 @@
           <div class="card-header py-1 px-2 {% if matchup.winner_id %}bg-success text-white{% else %}bg-light{% endif %}">
             <small>Duell {{ matchup.matchup_no }}
               {% if matchup.winner_id %}✓{% endif %}
+              {% if matchup.is_forfeit %}<span class="badge bg-warning text-dark ms-1">Rückzug</span>{% endif %}
             </small>
           </div>
           <div class="card-body p-0">
@@ -96,6 +97,9 @@
                       <span class="badge bg-secondary">{{ matchup.participant_a.draw_number }}</span>
                     {% endif %}
                   </td>
+                  {% if matchup.forfeit_participant_id == matchup.participant_a_id %}
+                  <td colspan="7" class="text-center text-muted fst-italic">Rückzug</td>
+                  {% else %}
                   <td class="text-center">{{ "%.2f"|format(matchup.a_time1) if matchup.a_time1 else '–' }}</td>
                   <td class="text-center">{{ matchup.a_faults or '–' }}</td>
                   <td class="text-center">{% if matchup.a_disqualified %}⚠️{% else %}–{% endif %}</td>
@@ -107,6 +111,7 @@
                       {{ "%.3f"|format(matchup.a_total_time) }}s
                     {% else %}–{% endif %}
                   </td>
+                  {% endif %}
                 </tr>
                 {# Teilnehmer B #}
                 {% set b_is_winner = matchup.winner_id and matchup.winner_id == matchup.participant_b_id %}
@@ -122,6 +127,9 @@
                       <span class="badge bg-secondary">{{ matchup.participant_b.draw_number }}</span>
                     {% endif %}
                   </td>
+                  {% if matchup.forfeit_participant_id == matchup.participant_b_id %}
+                  <td colspan="7" class="text-center text-muted fst-italic">Rückzug</td>
+                  {% else %}
                   <td class="text-center">{{ "%.2f"|format(matchup.b_time1) if matchup.b_time1 else '–' }}</td>
                   <td class="text-center">{{ matchup.b_faults or '–' }}</td>
                   <td class="text-center">{% if matchup.b_disqualified %}⚠️{% else %}–{% endif %}</td>
@@ -133,6 +141,7 @@
                       {{ "%.3f"|format(matchup.b_total_time) }}s
                     {% else %}–{% endif %}
                   </td>
+                  {% endif %}
                 </tr>
               </tbody>
             </table>

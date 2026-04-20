@@ -1048,6 +1048,9 @@ class CupFinalMatchup(db.Model):
     b_refusals = db.Column(db.Integer, default=0, nullable=True)
     b_disqualified = db.Column(db.Boolean, default=False, nullable=True)
 
+    # Rückzug (Forfeit): welcher Teilnehmer hat sich zurückgezogen?
+    forfeit_participant_id = db.Column(db.Integer, db.ForeignKey("cup_final_participants.id"), nullable=True)
+
     # Ergebnis
     winner_id = db.Column(db.Integer, db.ForeignKey("cup_final_participants.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -1055,6 +1058,7 @@ class CupFinalMatchup(db.Model):
     final = db.relationship("CupFinal", back_populates="matchups")
     participant_a = db.relationship("CupFinalParticipant", foreign_keys=[participant_a_id])
     participant_b = db.relationship("CupFinalParticipant", foreign_keys=[participant_b_id])
+    forfeit_participant = db.relationship("CupFinalParticipant", foreign_keys=[forfeit_participant_id])
     winner = db.relationship("CupFinalParticipant", foreign_keys=[winner_id])
 
     PENALTY_FAULT = 2.0       # Sekunden pro Fehler
@@ -1083,8 +1087,18 @@ class CupFinalMatchup(db.Model):
                                 self.b_faults, self.b_refusals, self.b_disqualified)
 
     @property
+    def is_forfeit(self) -> bool:
+        return self.forfeit_participant_id is not None
+
+    @property
     def computed_winner_id(self) -> int | None:
-        """Ermittelt den Gewinner anhand der Gesamtzeiten (automatisch)."""
+        """Ermittelt den Gewinner anhand der Gesamtzeiten oder Rückzug."""
+        # Rückzug: Gegner gewinnt automatisch
+        if self.forfeit_participant_id == self.participant_a_id:
+            return self.participant_b_id
+        if self.forfeit_participant_id == self.participant_b_id:
+            return self.participant_a_id
+        # Normale Zeitauswertung
         a = self.a_total_time
         b = self.b_total_time
         if a is None or b is None:

@@ -288,17 +288,28 @@ def cup_final_matchup_result(cup_id, final_id, matchup_id):
         except ValueError:
             return None
 
-    matchup.a_time1 = _get_float("a_time1")
-    matchup.a_time2 = _get_float("a_time2")
-    matchup.a_faults = request.form.get("a_faults", type=int) or 0
-    matchup.a_refusals = request.form.get("a_refusals", type=int) or 0
-    matchup.a_disqualified = bool(request.form.get("a_disqualified"))
+    # Rückzug prüfen
+    forfeit = request.form.get("forfeit", "")
+    if forfeit == "a":
+        matchup.forfeit_participant_id = matchup.participant_a_id
+    elif forfeit == "b":
+        matchup.forfeit_participant_id = matchup.participant_b_id
+    else:
+        matchup.forfeit_participant_id = None
 
-    matchup.b_time1 = _get_float("b_time1")
-    matchup.b_time2 = _get_float("b_time2")
-    matchup.b_faults = request.form.get("b_faults", type=int) or 0
-    matchup.b_refusals = request.form.get("b_refusals", type=int) or 0
-    matchup.b_disqualified = bool(request.form.get("b_disqualified"))
+    # Zeiten und Fehler nur setzen wenn kein Rückzug
+    if not matchup.forfeit_participant_id:
+        matchup.a_time1 = _get_float("a_time1")
+        matchup.a_time2 = _get_float("a_time2")
+        matchup.a_faults = request.form.get("a_faults", type=int) or 0
+        matchup.a_refusals = request.form.get("a_refusals", type=int) or 0
+        matchup.a_disqualified = bool(request.form.get("a_disqualified"))
+
+        matchup.b_time1 = _get_float("b_time1")
+        matchup.b_time2 = _get_float("b_time2")
+        matchup.b_faults = request.form.get("b_faults", type=int) or 0
+        matchup.b_refusals = request.form.get("b_refusals", type=int) or 0
+        matchup.b_disqualified = bool(request.form.get("b_disqualified"))
 
     # Gewinner automatisch berechnen
     matchup.winner_id = matchup.computed_winner_id
