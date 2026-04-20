@@ -10,43 +10,50 @@
 <div class="card">
   <div class="card-body">
     <p class="text-muted">
-      Wähle die Gruppe (Kategorie/Klasse) aus der Qualifikation, für die ein Finale angelegt werden soll.
-      Alle Teilnehmer aus der Qualifikation werden automatisch übernommen.
+      Wähle die Kategorie, für die ein KO-Finale angelegt werden soll.
+      Alle qualifizierten Teams dieser Kategorie werden automatisch als Teilnehmer übernommen.
     </p>
 
-    {% if standings %}
+    {% if qualification %}
     <form method="POST">
       <div class="mb-3">
-        <label class="form-label fw-semibold">Gruppe *</label>
+        <label class="form-label fw-semibold">Kategorie *</label>
         <select name="group_label" class="form-select" id="group_select" required
-                onchange="fillGroupFields(this)">
-          <option value="">— Gruppe wählen —</option>
-          {% for group, dogs in standings.items() %}
+                onchange="fillCatField(this)">
+          <option value="">— Kategorie wählen —</option>
+          {% for group, teams in qualification.items() %}
           <option value="{{ group }}"
-                  data-cat="{{ dogs[0].category_code if dogs else '' }}"
-                  data-cls="{{ dogs[0].class_level if dogs and dogs[0].class_level else '' }}">
-            {{ group }} ({{ dogs | length }} Teilnehmer)
+                  data-cat="{{ teams[0].category_code if teams else '' }}">
+            {{ group }} — {{ teams | length }} qualifizierte Teams
+            {% set n = teams | length %}
+            {% if n == 2 or n == 4 or n == 8 or n == 16 or n == 32 %}
+              ✓ {{ n }}er-Bracket
+            {% endif %}
           </option>
           {% endfor %}
         </select>
       </div>
       <input type="hidden" name="category_code" id="category_code">
-      <input type="hidden" name="class_level" id="class_level">
+
+      <div class="alert alert-info small">
+        <strong>Hinweis:</strong> Die Teilnehmer werden aus der gespeicherten Qualifikationsliste übernommen.
+        Falls diese noch nicht aktuell ist, zuerst auf der Cup-Detailseite «Jetzt berechnen» klicken.
+      </div>
 
       <button type="submit" class="btn btn-primary">Finale anlegen</button>
     </form>
 
     <script>
-    function fillGroupFields(sel) {
+    function fillCatField(sel) {
       const opt = sel.options[sel.selectedIndex];
       document.getElementById('category_code').value = opt.dataset.cat || '';
-      document.getElementById('class_level').value = opt.dataset.cls || '';
     }
     </script>
 
     {% else %}
     <div class="alert alert-warning">
-      Keine Qualifikations-Ranglisten vorhanden. Bitte erst Meetings verknüpfen und Resultate importieren.
+      Keine qualifizierten Teams vorhanden. Qualifikationsläufe konfigurieren, Resultate importieren und
+      Qualifikation auf der Cup-Detailseite berechnen.
     </div>
     {% endif %}
   </div>

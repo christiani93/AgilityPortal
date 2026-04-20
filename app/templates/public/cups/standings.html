@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ cup.name }} – Rangliste{% endblock %}
+{% block title %}{{ cup.name }} – Qualifikation{% endblock %}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -10,39 +10,36 @@
     {% if cup.description %}
     <p class="text-muted">{{ cup.description }}</p>
     {% endif %}
-    <small class="text-muted">
-      {% if cup.count_best_meetings %}
-        Beste {{ cup.count_best_meetings }} von {{ cup.cup_events | length }} Meetings zählen.
-      {% else %}
-        Alle {{ cup.cup_events | length }} Meetings zählen.
-      {% endif %}
-    </small>
   </div>
   <a href="{{ url_for('public_cups.cup_index') }}" class="btn btn-outline-secondary">← Alle Cups</a>
 </div>
 
-{# Meetings-Übersicht #}
-{% if cup.cup_events %}
-<div class="mb-3">
-  {% for ce in cup.cup_events %}
-  <span class="badge bg-dark me-1">
-    M{{ ce.meeting_no }}{% if ce.event %}: {{ ce.event.name }}
-    {% if ce.event.date_from %}({{ ce.event.date_from.strftime('%d.%m.%Y') }}){% endif %}{% endif %}
-  </span>
-  {% endfor %}
+{# Veröffentlichte Finale #}
+{% if finals %}
+<div class="card mb-4 border-warning">
+  <div class="card-header bg-warning fw-semibold">🥊 Finale – Bracket</div>
+  <div class="card-body">
+    <div class="d-flex gap-2 flex-wrap">
+      {% for f in finals %}
+      <a href="{{ url_for('public_cups.cup_final_bracket', cup_id=cup.id, final_id=f.id) }}"
+         class="btn btn-warning">
+        {{ f.group_label }} → Bracket
+      </a>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 {% endif %}
 
-{# Ranglisten #}
-{% if standings %}
-  {# Navigation bei mehreren Gruppen #}
-  {% if standings | length > 1 %}
-  <ul class="nav nav-pills mb-3">
-    {% for group in standings %}
+{# Qualifikationsliste #}
+{% if qualification %}
+  {# Navigation bei mehreren Kategorien #}
+  {% if qualification | length > 1 %}
+  <ul class="nav nav-pills mb-3" id="catNav">
+    {% for group in qualification %}
     <li class="nav-item">
       <a class="nav-link {% if loop.first %}active{% endif %}"
-         href="#group-{{ loop.index }}"
-         onclick="showGroup({{ loop.index }}); return false;">
+         href="#" onclick="showGroup({{ loop.index }}); return false;">
         {{ group }}
       </a>
     </li>
@@ -50,68 +47,59 @@
   </ul>
   {% endif %}
 
-  {% for group, dogs in standings.items() %}
+  {% for group, teams in qualification.items() %}
   <div class="group-section" id="group-{{ loop.index }}"
-       {% if not loop.first and standings | length > 1 %}style="display:none"{% endif %}>
-    <h4>{{ group }}</h4>
-    {% if dogs %}
+       {% if not loop.first and qualification | length > 1 %}style="display:none"{% endif %}>
+    <h4>{{ group }}
+      <span class="badge bg-dark ms-2">{{ teams | length }} qualifiziert</span>
+    </h4>
+    {% if teams %}
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead class="table-dark">
           <tr>
-            <th style="width:3rem">Pl.</th>
+            <th>#</th>
             <th>Hund</th>
             <th>Hundeführer</th>
-            {% for ce in cup.cup_events %}
-            <th class="text-center">
-              M{{ ce.meeting_no }}
-              {% if ce.event and ce.event.date_from %}
-              <br><small class="text-muted fw-normal">{{ ce.event.date_from.strftime('%d.%m') }}</small>
-              {% endif %}
-            </th>
-            {% endfor %}
-            <th class="text-end">Total</th>
+            <th>Qualifikation</th>
+            <th class="text-center">Rang</th>
+            <th class="text-muted small">Kl.</th>
           </tr>
         </thead>
         <tbody>
-          {% for dog in dogs %}
-          <tr {% if loop.index == 1 %}class="table-warning fw-bold"
-              {% elif loop.index == 2 %}class="table-light"
-              {% elif loop.index == 3 %}class="table-light"{% endif %}>
+          {% for qt in teams %}
+          <tr {% if qt.qualification_source == 'title_defender' %}class="table-warning"{% endif %}>
+            <td>{{ loop.index }}</td>
+            <td><strong>{{ qt.dog_name }}</strong></td>
+            <td class="text-muted">{{ qt.handler_name }}</td>
             <td>
-              {% if loop.index == 1 %}🥇
-              {% elif loop.index == 2 %}🥈
-              {% elif loop.index == 3 %}🥉
-              {% else %}{{ loop.index }}.{% endif %}
-            </td>
-            <td>{{ dog.dog_name }}</td>
-            <td class="text-muted">{{ dog.handler_name }}</td>
-            {% for ce in cup.cup_events %}
-            <td class="text-center">
-              {% if ce.meeting_no in dog.meeting_scores %}
-                {% set s = dog.meeting_scores[ce.meeting_no] %}
-                <span title="{{ s.run_details | map(attribute='discipline') | join(', ') }}">
-                  {{ s.points }}
-                </span>
+              {% if qt.qualification_source == 'title_defender' %}
+                <span class="badge bg-warning text-dark">👑 Titelverteidiger</span>
+              {% elif qt.qualification_source == 'wildcard' %}
+                <span class="badge bg-info text-dark">🃏 Wildcard</span>
+                {% if qt.seeding_note %}<small class="text-muted ms-1">{{ qt.seeding_note }}</small>{% endif %}
+              {% elif qt.qualification_source == 'fillup' %}
+                <span class="badge bg-secondary">Auffüller</span>
               {% else %}
-                <span class="text-muted">–</span>
+                <span class="badge bg-success">✅ {{ qt.qual_run.display_label if qt.qual_run else '–' }}</span>
               {% endif %}
             </td>
-            {% endfor %}
-            <td class="text-end fw-bold">{{ dog.total_points }}</td>
+            <td class="text-center text-muted">{{ qt.qualified_rank or '–' }}</td>
+            <td class="text-muted small">{% if qt.class_level %}Kl. {{ qt.class_level }}{% else %}–{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <p class="text-muted">Keine Resultate für diese Gruppe.</p>
+    <p class="text-muted">Noch keine Teams qualifiziert.</p>
     {% endif %}
   </div>
   {% endfor %}
+
 {% else %}
 <div class="alert alert-info mt-3">
-  Die Rangliste ist noch nicht verfügbar – Resultate werden nach jedem Meeting aktualisiert.
+  Die Qualifikationsliste ist noch nicht verfügbar – sie wird nach jedem Meeting aktualisiert.
 </div>
 {% endif %}
 
@@ -120,7 +108,7 @@ function showGroup(idx) {
   document.querySelectorAll('.group-section').forEach((el, i) => {
     el.style.display = (i + 1 === idx) ? '' : 'none';
   });
-  document.querySelectorAll('.nav-pills .nav-link').forEach((el, i) => {
+  document.querySelectorAll('#catNav .nav-link').forEach((el, i) => {
     el.classList.toggle('active', i + 1 === idx);
   });
 }

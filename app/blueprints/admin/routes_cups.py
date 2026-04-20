@@ -9,8 +9,9 @@ from functools import wraps
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for, current_app
 
 from app.extensions import db
-from app.models import Cup, CupEvent, CupFinal, CupFinalParticipant, CupFinalMatchup, Event
-from app.services.cup_standings import compute_standings
+from app.models import (Cup, CupEvent, CupFinal, CupFinalParticipant, CupFinalMatchup,
+                        CupQualificationRun, CupQualifiedTeam, Event)
+from app.services.cup_qualification import run_qualification, get_qualification
 
 
 cups_admin_bp = Blueprint("cups_admin", __name__)
@@ -60,19 +61,144 @@ def cup_new():
 @_require_admin_key
 def cup_detail(cup_id):
     cup = db.get_or_404(Cup, cup_id)
-    standings = compute_standings(cup)
-    # Alle Events für Event-Verknüpfungs-Dropdown
+    qualification = get_qualification(cup)
     events = Event.query.order_by(Event.date_from.desc()).limit(200).all()
-    # Finale dieses Cups
     finals = CupFinal.query.filter_by(cup_id=cup_id).order_by(CupFinal.group_label).all()
     return render_template(
         "admin/cups/detail.html",
         cup=cup,
-        standings=standings,
+        qualification=qualification,
         events=events,
         finals=finals,
         admin_key=_admin_key(),
     )
+
+
+# ── Qualifikationsläufe konfigurieren ─────────────────────────────────────────
+
+@cups_admin_bp.post("/admin/cups/<int:cup_id>/qual-runs/add")
+@_require_admin_key
+def cup_qual_run_add(cup_id):
+    cup = db.get_or_404(Cup, cup_id)
+    event_id = request.form.get("event_id", type=int)
+    discipline = request.form.get("discipline", "").strip()
+    spots = request.form.get("spots", type=int) or 3
+    run_order = request.form.get("run_order", type=int)
+    is_fillup = bool(request.form.get("is_fillup"))
+    label = request.form.get("label", "").strip() or None
+
+    if not event_id or not discipline:
+        flash("Event und Disziplin sind Pflicht.", "danger")
+        return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+    # Automatische run_order wenn nicht angegeben
+    if not run_order:
+        existing = CupQualificationRun.query.filter_by(cup_id=cup_id).count()
+        run_order = existing + 1
+
+    # Plätze pro Kategorie aus Formular lesen
+    spots_large = request.form.get("spots_large", type=int) or 1
+    spots_intermediate = request.form.get("spots_intermediate", type=int) or 1
+    spots_medium = request.form.get("spots_medium", type=int) or 1
+    spots_small = request.form.get("spots_small", type=int) or 1
+    split_by_class = bool(request.form.get("split_by_class"))
+
+    spots_map = {
+        "Large": spots_large,
+        "Intermediate": spots_intermediate,
+        "Medium": spots_medium,
+        "Small": spots_small,
+    }
+    # Falls alle gleich: spots_json weglassen und nur spots setzen
+    all_same = len(set(spots_map.values())) == 1
+    spots_json_val = None if all_same else json.dumps(spots_map)
+    spots_default = spots_large  # einheitlicher Wert
+
+    qr = CupQualificationRun(
+        cup_id=cup_id,
+        event_id=event_id,
+        discipline=discipline,
+        spots=spots_default,
+        spots_json=spots_json_val,
+        split_by_class=split_by_class,
+        run_order=run_order,
+        is_fillup=is_fillup,
+        label=label,
+    )
+    db.session.add(qr)
+    db.session.commit()
+    flash(f"Qualifikationslauf «{qr.display_label}» hinzugefügt.", "success")
+    return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+
+@cups_admin_bp.post("/admin/cups/<int:cup_id>/qual-runs/<int:qr_id>/remove")
+@_require_admin_key
+def cup_qual_run_remove(cup_id, qr_id):
+    qr = db.get_or_404(CupQualificationRun, qr_id)
+    if qr.cup_id != cup_id:
+        abort(404)
+    db.session.delete(qr)
+    db.session.commit()
+    flash("Qualifikationslauf entfernt.", "success")
+    return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+
+@cups_admin_bp.post("/admin/cups/<int:cup_id>/qualify/run")
+@_require_admin_key
+def cup_run_qualification(cup_id):
+    """Qualifikation neu berechnen und in DB speichern."""
+    cup = db.get_or_404(Cup, cup_id)
+    result = run_qualification(cup)
+    total = sum(len(v) for v in result.values())
+    flash(f"Qualifikation berechnet: {total} Teams qualifiziert.", "success")
+    return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+
+@cups_admin_bp.post("/admin/cups/<int:cup_id>/qualify/add-manual")
+@_require_admin_key
+def cup_qualify_add_manual(cup_id):
+    """Manuellen Eintrag hinzufügen (Titelverteidiger / Wildcard)."""
+    cup = db.get_or_404(Cup, cup_id)
+    source = request.form.get("source", "wildcard")
+    if source not in (CupQualifiedTeam.SOURCE_TITLE_DEFENDER, CupQualifiedTeam.SOURCE_WILDCARD):
+        source = CupQualifiedTeam.SOURCE_WILDCARD
+
+    dog_name = request.form.get("dog_name", "").strip()
+    handler_name = request.form.get("handler_name", "").strip()
+    category_code = request.form.get("category_code", "").strip()
+    class_level = request.form.get("class_level", type=int) or None
+    note = request.form.get("note", "").strip() or None
+
+    if not dog_name or not handler_name or not category_code:
+        flash("Hund, Hundeführer und Kategorie sind Pflicht.", "danger")
+        return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+    qt = CupQualifiedTeam(
+        cup_id=cup_id,
+        category_code=category_code,
+        class_level=class_level if cup.split_by_class else None,
+        dog_name=dog_name,
+        handler_name=handler_name,
+        qualification_source=source,
+        seeding_note=note,
+    )
+    db.session.add(qt)
+    db.session.commit()
+    label = CupQualifiedTeam.SOURCE_LABELS.get(source, source)
+    flash(f"{label} «{dog_name}» hinzugefügt.", "success")
+    return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+
+@cups_admin_bp.post("/admin/cups/<int:cup_id>/qualify/<int:qt_id>/remove")
+@_require_admin_key
+def cup_qualify_remove(cup_id, qt_id):
+    qt = db.get_or_404(CupQualifiedTeam, qt_id)
+    if qt.cup_id != cup_id:
+        abort(404)
+    db.session.delete(qt)
+    db.session.commit()
+    flash("Eintrag entfernt.", "success")
+    return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
 
 
 # ── Cup bearbeiten ─────────────────────────────────────────────────────────────
@@ -142,42 +268,41 @@ def cup_event_remove(cup_id, cup_event_id):
 @_require_admin_key
 def cup_final_new(cup_id):
     cup = db.get_or_404(Cup, cup_id)
-    standings = compute_standings(cup)
+    qualification = get_qualification(cup)
 
     if request.method == "POST":
         group_label = request.form.get("group_label", "").strip()
         category_code = request.form.get("category_code", "").strip()
-        class_level = request.form.get("class_level", type=int) or None
 
         final = CupFinal(
             cup_id=cup_id,
             group_label=group_label,
             category_code=category_code,
-            class_level=class_level,
+            class_level=None,
         )
         db.session.add(final)
         db.session.flush()
 
-        # Teilnehmer aus Qualifikation übernehmen
-        dogs = standings.get(group_label, [])
-        for rank, dog in enumerate(dogs, start=1):
+        # Teilnehmer aus Qualifikationsliste übernehmen
+        teams = qualification.get(group_label, [])
+        for rank, qt in enumerate(teams, start=1):
             p = CupFinalParticipant(
                 final_id=final.id,
-                dog_name=dog.dog_name,
-                handler_name=dog.handler_name,
-                qualifying_points=dog.total_points,
+                dog_name=qt.dog_name,
+                handler_name=qt.handler_name,
+                qualifying_points=0,
                 seeding_rank=rank,
             )
             db.session.add(p)
 
         db.session.commit()
-        flash(f"Finale für «{group_label}» angelegt.", "success")
+        flash(f"Finale für «{group_label}» mit {len(teams)} Teilnehmern angelegt.", "success")
         return redirect(url_for("cups_admin.cup_final_detail", cup_id=cup_id, final_id=final.id, key=_admin_key()))
 
     return render_template(
         "admin/cups/final_new.html",
         cup=cup,
-        standings=standings,
+        qualification=qualification,
         admin_key=_admin_key(),
     )
 

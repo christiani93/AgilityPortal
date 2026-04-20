@@ -19,10 +19,10 @@ def cup_index():
 def cup_standings(cup_id):
     """Öffentliche Qualifikations-Rangliste eines Cups."""
     cup = Cup.query.filter_by(id=cup_id, is_active=True).first_or_404()
-    standings = compute_standings(cup)
-    # Veröffentlichte Finale
+    from app.services.cup_qualification import get_qualification
+    qualification = get_qualification(cup)
     finals = CupFinal.query.filter_by(cup_id=cup_id, is_published=True).all()
-    return render_template("public/cups/standings.html", cup=cup, standings=standings, finals=finals)
+    return render_template("public/cups/standings.html", cup=cup, qualification=qualification, finals=finals)
 
 
 @public_cups_bp.get("/cups/<int:cup_id>/finals/<int:final_id>")

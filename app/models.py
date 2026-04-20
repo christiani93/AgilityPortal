@@ -878,11 +878,10 @@ class Cup(db.Model):
     """
     Eine Cup-Serie (z.B. Halloween Cup 2026), bestehend aus mehreren Meetings.
 
-    point_system_json: JSON-Array mit Punkten pro Platzierung, z.B.
-        [25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    count_best_meetings: nur die besten N Meetings zählen (None = alle).
-    split_by_class: getrennte Ranglisten pro Klasse (1/2/3).
-    split_by_run_type: getrennte Punktevergabe pro Lauftyp (Agility/Jumping).
+    Qualifikation: Pro Lauf (Discipline) wird eine konfigurierbare Anzahl
+    Direktqualifikationen vergeben. Doppelqualifikation wird übersprungen.
+    Titelverteidiger und Wildcards werden manuell gesetzt.
+    Offene Plätze werden über einen Auffüller-Lauf auf die nächste 2er-Potenz gebracht.
     """
     __tablename__ = "cups"
 
@@ -892,10 +891,10 @@ class Cup(db.Model):
     special_ruleset = db.Column(db.String(50), nullable=True)  # halloween_cup etc.
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    point_system_json = db.Column(db.Text, nullable=True)      # JSON-Array
-    count_best_meetings = db.Column(db.Integer, nullable=True) # None = alle
-    split_by_class = db.Column(db.Boolean, default=False, nullable=False)
-    split_by_run_type = db.Column(db.Boolean, default=False, nullable=False)
+    # Qualifikations-Konfiguration
+    title_defender_spots = db.Column(db.Integer, default=1, nullable=False)   # Titelverteidiger
+    wildcard_spots = db.Column(db.Integer, default=0, nullable=False)         # Prüfungsleiter
+    split_by_class = db.Column(db.Boolean, default=False, nullable=False)     # getrennt nach Klasse
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     cup_events = db.relationship(
@@ -904,30 +903,18 @@ class Cup(db.Model):
         order_by="CupEvent.meeting_no",
         cascade="all, delete-orphan",
     )
-
-    # Standard-Punkte: Platz 1→25, 2→20, 3→16, ..., 15+→1
-    DEFAULT_POINTS = [25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-
-    @property
-    def point_table(self) -> list[int]:
-        """Gibt die konfigurierte Punktetabelle zurück."""
-        import json
-        if self.point_system_json:
-            try:
-                return json.loads(self.point_system_json)
-            except (ValueError, TypeError):
-                pass
-        return self.DEFAULT_POINTS
-
-    def points_for_rank(self, rank: int | None) -> int:
-        """Punkte für eine gegebene Platzierung (1-basiert). 0 bei Disqualifikation."""
-        if not rank or rank < 1:
-            return 0
-        table = self.point_table
-        if rank <= len(table):
-            return table[rank - 1]
-        # Nach letztem Tabelleneintrag: 1 Punkt (oder 0 wenn Tabelle leer)
-        return table[-1] if table else 0
+    qualification_runs = db.relationship(
+        "CupQualificationRun",
+        back_populates="cup",
+        order_by="CupQualificationRun.run_order",
+        cascade="all, delete-orphan",
+    )
+    qualified_teams = db.relationship(
+        "CupQualifiedTeam",
+        back_populates="cup",
+        order_by="CupQualifiedTeam.category_code, CupQualifiedTeam.class_level, CupQualifiedTeam.id",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self):
         return f"<Cup {self.name!r} {self.season}>"
@@ -951,6 +938,120 @@ class CupEvent(db.Model):
 
     def __repr__(self):
         return f"<CupEvent cup={self.cup_id} event={self.event_id} meeting={self.meeting_no}>"
+
+
+class CupQualificationRun(db.Model):
+    """
+    Konfiguriert einen Qualifikationslauf innerhalb eines Cups.
+
+    spots_json: Plätze pro Kategorie als JSON-Objekt.
+      z.B. {"Large": 5, "Intermediate": 3, "Medium": 3, "Small": 3}
+      Falls null → spots (Integer) gilt für alle Kategorien gleich.
+
+    split_by_class: True = Klassen separat auswerten (Agility/Jumping).
+                    False = alle Klassen zusammen (Tunnellauf).
+
+    Doppelqualifikation: bereits qualifizierte Teams werden übersprungen,
+    das nächste noch nicht qualifizierte Team rückt nach.
+    """
+    __tablename__ = "cup_qualification_runs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cup_id = db.Column(db.Integer, db.ForeignKey("cups.id"), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    discipline = db.Column(db.String(30), nullable=False)       # agility / jumping / open / tunnel
+    spots = db.Column(db.Integer, nullable=False, default=1)    # Plätze (einheitlich, Fallback)
+    spots_json = db.Column(db.Text, nullable=True)              # JSON: {"Large": 5, "Intermediate": 3, ...}
+    split_by_class = db.Column(db.Boolean, default=False, nullable=False)  # Klassen separat?
+    run_order = db.Column(db.Integer, nullable=False)           # Auswertungsreihenfolge
+    is_fillup = db.Column(db.Boolean, default=False, nullable=False)  # Auffüller-Lauf
+    label = db.Column(db.String(100), nullable=True)            # z.B. "Tunnellauf Freitag"
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    cup = db.relationship("Cup", back_populates="qualification_runs")
+    event = db.relationship("Event")
+
+    DISCIPLINE_LABELS = {
+        "agility": "Agility", "jumping": "Jumping",
+        "open": "Open", "tunnel": "Tunnellauf",
+    }
+
+    @property
+    def spots_per_category(self) -> dict[str, int]:
+        """Gibt die Plätze pro Kategorie zurück."""
+        import json
+        if self.spots_json:
+            try:
+                return json.loads(self.spots_json)
+            except (ValueError, TypeError):
+                pass
+        return {}  # leer = einheitlich via self.spots
+
+    def spots_for_category(self, category_code: str) -> int:
+        """Plätze für eine bestimmte Kategorie."""
+        per_cat = self.spots_per_category
+        return per_cat.get(category_code, self.spots)
+
+    @property
+    def display_label(self) -> str:
+        if self.label:
+            return self.label
+        disc = self.DISCIPLINE_LABELS.get(self.discipline, self.discipline.capitalize())
+        event_name = self.event.name if self.event else f"Event {self.event_id}"
+        return f"{disc} – {event_name}"
+
+    def __repr__(self):
+        return f"<CupQualificationRun cup={self.cup_id} discipline={self.discipline!r} order={self.run_order}>"
+
+
+class CupQualifiedTeam(db.Model):
+    """
+    Ein qualifiziertes Team für das Cup-Finale.
+
+    qualification_source:
+      'run'            – qualifiziert durch einen Qualifikationslauf
+      'title_defender' – Titelverteidiger (gesetzt)
+      'wildcard'       – Prüfungsleiter-Wildcard
+      'fillup'         – Auffüller bis zur 2er-Potenz
+    """
+    __tablename__ = "cup_qualified_teams"
+
+    SOURCE_RUN = 'run'
+    SOURCE_TITLE_DEFENDER = 'title_defender'
+    SOURCE_WILDCARD = 'wildcard'
+    SOURCE_FILLUP = 'fillup'
+
+    SOURCE_LABELS = {
+        'run': 'Qualifikationslauf',
+        'title_defender': 'Titelverteidiger',
+        'wildcard': 'Wildcard (Prüfungsleiter)',
+        'fillup': 'Auffüller',
+    }
+
+    id = db.Column(db.Integer, primary_key=True)
+    cup_id = db.Column(db.Integer, db.ForeignKey("cups.id"), nullable=False)
+    category_code = db.Column(db.String(20), nullable=False)   # Small / Medium / ...
+    class_level = db.Column(db.Integer, nullable=True)         # 1/2/3 oder null
+    dog_name = db.Column(db.String(120), nullable=False)
+    handler_name = db.Column(db.String(120), nullable=False)
+    qualification_source = db.Column(db.String(20), nullable=False)
+    qual_run_id = db.Column(db.Integer, db.ForeignKey("cup_qualification_runs.id"), nullable=True)
+    qualified_rank = db.Column(db.Integer, nullable=True)      # Platz im Qualilauf
+    seeding_note = db.Column(db.String(200), nullable=True)    # Notiz (Wildcard/Titelv.)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    cup = db.relationship("Cup", back_populates="qualified_teams")
+    qual_run = db.relationship("CupQualificationRun")
+
+    @property
+    def source_label(self) -> str:
+        base = self.SOURCE_LABELS.get(self.qualification_source, self.qualification_source)
+        if self.qual_run and self.qual_run.display_label:
+            return f"{base}: {self.qual_run.display_label}"
+        return base
+
+    def __repr__(self):
+        return f"<CupQualifiedTeam {self.dog_name!r} src={self.qualification_source!r}>"
 
 
 class CupFinal(db.Model):

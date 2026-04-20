@@ -9,11 +9,6 @@
       {% if cup.is_active %}<span class="badge bg-success fs-6 ms-1">Aktiv</span>{% endif %}
     </h2>
     {% if cup.description %}<p class="text-muted mb-0">{{ cup.description }}</p>{% endif %}
-    <small class="text-muted">
-      Punkte: {{ cup.point_table | join(', ') }} …
-      {% if cup.count_best_meetings %}· Beste {{ cup.count_best_meetings }} Meetings zählen{% else %}· Alle Meetings zählen{% endif %}
-      {% if cup.split_by_class %}· Getrennt nach Klasse{% endif %}
-    </small>
   </div>
   <div class="d-flex gap-2">
     <a href="{{ url_for('cups_admin.cup_edit', cup_id=cup.id, key=admin_key) }}" class="btn btn-outline-secondary">✏️ Bearbeiten</a>
@@ -22,28 +17,19 @@
   </div>
 </div>
 
-{# ── Meetings verwalten ─────────────────────────────────────────────────────── #}
+{# ── Meetings ───────────────────────────────────────────────────────────────── #}
 <div class="card mb-4">
-  <div class="card-header fw-semibold">📅 Meetings</div>
+  <div class="card-header fw-semibold">📅 Meetings (Turniere)</div>
   <div class="card-body">
     {% if cup.cup_events %}
     <table class="table table-sm mb-3">
-      <thead><tr><th>Meeting</th><th>Event</th><th>Datum</th><th>Resultate</th><th></th></tr></thead>
+      <thead><tr><th>Nr.</th><th>Event</th><th>Datum</th><th></th></tr></thead>
       <tbody>
         {% for ce in cup.cup_events %}
         <tr>
           <td><span class="badge bg-dark">{{ ce.meeting_no }}</span></td>
           <td>{{ ce.event.name if ce.event else '?' }}</td>
           <td>{{ ce.event.date_from.strftime('%d.%m.%Y') if ce.event and ce.event.date_from else '–' }}</td>
-          <td>
-            {% if ce.event %}
-              {% set n = ce.event.id %}
-              {# Anzahl importierter Resultate #}
-              <span class="text-muted small">
-                {{ ce.event.name }}
-              </span>
-            {% endif %}
-          </td>
           <td class="text-end">
             <form method="POST"
                   action="{{ url_for('cups_admin.cup_event_remove', cup_id=cup.id, cup_event_id=ce.id, key=admin_key) }}"
@@ -58,8 +44,6 @@
     {% else %}
     <p class="text-muted">Noch keine Meetings verknüpft.</p>
     {% endif %}
-
-    {# Event hinzufügen #}
     <form method="POST"
           action="{{ url_for('cups_admin.cup_event_add', cup_id=cup.id, key=admin_key) }}"
           class="row g-2 align-items-end">
@@ -68,10 +52,7 @@
         <select name="event_id" class="form-select form-select-sm" required>
           <option value="">— Event wählen —</option>
           {% for ev in events %}
-          <option value="{{ ev.id }}">
-            {{ ev.name }}
-            {% if ev.date_from %}({{ ev.date_from.strftime('%d.%m.%Y') }}){% endif %}
-          </option>
+          <option value="{{ ev.id }}">{{ ev.name }}{% if ev.date_from %} ({{ ev.date_from.strftime('%d.%m.%Y') }}){% endif %}</option>
           {% endfor %}
         </select>
       </div>
@@ -84,6 +65,279 @@
         <button class="btn btn-sm btn-primary">+ Hinzufügen</button>
       </div>
     </form>
+  </div>
+</div>
+
+{# ── Qualifikationsläufe ────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">🎯 Qualifikationsläufe</span>
+    <small class="text-muted">Reihenfolge bestimmt Doppelqualifikations-Priorität</small>
+  </div>
+  <div class="card-body">
+    {% if cup.qualification_runs %}
+    <table class="table table-sm mb-3">
+      <thead class="table-light">
+        <tr>
+          <th>Reihenf.</th><th>Label</th><th>Event</th><th>Disziplin</th>
+          <th class="text-center">Klassen getrennt</th>
+          <th>Plätze pro Kat.</th>
+          <th class="text-center">Auffüller</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for qr in cup.qualification_runs %}
+        <tr {% if qr.is_fillup %}class="table-warning"{% endif %}>
+          <td>{{ qr.run_order }}</td>
+          <td>{{ qr.label or '–' }}</td>
+          <td>{{ qr.event.name if qr.event else '?' }}</td>
+          <td><span class="badge bg-secondary">{{ qr.DISCIPLINE_LABELS.get(qr.discipline, qr.discipline) }}</span></td>
+          <td class="text-center">
+            {% if qr.split_by_class %}<span class="badge bg-info text-dark">Ja (Kl. 1/2/3)</span>
+            {% else %}<span class="badge bg-light text-dark">Nein (kombiniert)</span>{% endif %}
+          </td>
+          <td class="font-monospace small">
+            {% set spc = qr.spots_per_category %}
+            {% if spc %}
+              L:{{ spc.get('Large', qr.spots) }}
+              I:{{ spc.get('Intermediate', qr.spots) }}
+              M:{{ spc.get('Medium', qr.spots) }}
+              S:{{ spc.get('Small', qr.spots) }}
+            {% else %}
+              alle: {{ qr.spots }}
+            {% endif %}
+          </td>
+          <td class="text-center">{% if qr.is_fillup %}⭐{% endif %}</td>
+          <td class="text-end">
+            <form method="POST"
+                  action="{{ url_for('cups_admin.cup_qual_run_remove', cup_id=cup.id, qr_id=qr.id, key=admin_key) }}"
+                  onsubmit="return confirm('Lauf entfernen?')">
+              <button class="btn btn-sm btn-outline-danger">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">Noch keine Qualifikationsläufe konfiguriert.</p>
+    {% endif %}
+
+    {# Neuen Qual-Lauf hinzufügen #}
+    <details class="mt-2">
+      <summary class="btn btn-sm btn-outline-primary">+ Qualifikationslauf hinzufügen</summary>
+      <div class="card mt-2">
+        <div class="card-body">
+          <form method="POST"
+                action="{{ url_for('cups_admin.cup_qual_run_add', cup_id=cup.id, key=admin_key) }}">
+            <div class="row g-2 mb-2">
+              <div class="col-md-3">
+                <label class="form-label small">Event *</label>
+                <select name="event_id" class="form-select form-select-sm" required>
+                  <option value="">— wählen —</option>
+                  {% for ev in events %}
+                  <option value="{{ ev.id }}">{{ ev.name }}{% if ev.date_from %} ({{ ev.date_from.strftime('%d.%m.%Y') }}){% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Disziplin *</label>
+                <select name="discipline" class="form-select form-select-sm" required>
+                  <option value="tunnel">Tunnellauf</option>
+                  <option value="agility">Agility</option>
+                  <option value="jumping">Jumping</option>
+                  <option value="open">Open</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Reihenfolge *</label>
+                <input type="number" name="run_order" class="form-control form-control-sm"
+                       value="{{ (cup.qualification_runs | length) + 1 }}" min="1" required>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Label</label>
+                <input type="text" name="label" class="form-control form-control-sm"
+                       placeholder="z.B. Tunnellauf Fr.">
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Plätze pro Kategorie</label>
+                <div class="row g-2">
+                  <div class="col-auto">
+                    <label class="form-label small">Large</label>
+                    <input type="number" name="spots_large" class="form-control form-control-sm" style="width:70px"
+                           min="0" value="1">
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small">Intermediate</label>
+                    <input type="number" name="spots_intermediate" class="form-control form-control-sm" style="width:70px"
+                           min="0" value="1">
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small">Medium</label>
+                    <input type="number" name="spots_medium" class="form-control form-control-sm" style="width:70px"
+                           min="0" value="1">
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small">Small</label>
+                    <input type="number" name="spots_small" class="form-control form-control-sm" style="width:70px"
+                           min="0" value="1">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-auto">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" name="split_by_class" id="split_by_class">
+                  <label class="form-check-label small" for="split_by_class">
+                    Klassen separat auswerten (Agility/Jumping)
+                  </label>
+                </div>
+              </div>
+              <div class="col-auto">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" name="is_fillup" id="is_fillup">
+                  <label class="form-check-label small" for="is_fillup">
+                    Auffüller-Lauf (füllt auf 2er-Potenz)
+                  </label>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Hinzufügen</button>
+          </form>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+
+{# ── Qualifikationsliste ────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">✅ Qualifizierte Teams</span>
+    <div class="d-flex gap-2">
+      <form method="POST" action="{{ url_for('cups_admin.cup_run_qualification', cup_id=cup.id, key=admin_key) }}"
+            onsubmit="return confirm('Qualifikation neu berechnen? Bestehende Auto-Einträge werden ersetzt, manuelle bleiben.')">
+        <button class="btn btn-sm btn-warning">🔄 Jetzt berechnen</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+
+    {# Manuellen Eintrag hinzufügen (Titelverteidiger / Wildcard / Beste Verkleidung) #}
+    <details class="mb-3">
+      <summary class="btn btn-sm btn-outline-secondary">+ Manuell hinzufügen (Titelverteidiger / Wildcard)</summary>
+      <div class="card mt-2">
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('cups_admin.cup_qualify_add_manual', cup_id=cup.id, key=admin_key) }}">
+            <div class="row g-2 mb-2">
+              <div class="col-md-2">
+                <label class="form-label small">Typ *</label>
+                <select name="source" class="form-select form-select-sm">
+                  <option value="title_defender">Titelverteidiger</option>
+                  <option value="wildcard">Wildcard / Beste Verkleidung</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">Hund *</label>
+                <input type="text" name="dog_name" class="form-control form-control-sm" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">Hundeführer *</label>
+                <input type="text" name="handler_name" class="form-control form-control-sm" required>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Kategorie *</label>
+                <select name="category_code" class="form-select form-select-sm" required>
+                  <option value="Large">Large</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Small">Small</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Notiz</label>
+                <input type="text" name="note" class="form-control form-control-sm"
+                       placeholder="z.B. Beste Verkleidung">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Hinzufügen</button>
+          </form>
+        </div>
+      </div>
+    </details>
+
+    {% if qualification %}
+      {% for group, teams in qualification.items() %}
+      <h5 class="mt-3">{{ group }}
+        <span class="badge bg-dark ms-1">{{ teams | length }} Teams</span>
+        {% set target = teams | length %}
+        {# Nächste 2er-Potenz anzeigen #}
+        {% if target > 0 %}
+          {% set p2 = 2 %}
+          {% if target > 2 %}{% set p2 = 4 %}{% endif %}
+          {% if target > 4 %}{% set p2 = 8 %}{% endif %}
+          {% if target > 8 %}{% set p2 = 16 %}{% endif %}
+          {% if target > 16 %}{% set p2 = 32 %}{% endif %}
+          {% if teams | length == p2 %}
+            <span class="badge bg-success ms-1">✓ {{ p2 }}er-Bracket</span>
+          {% else %}
+            <span class="badge bg-warning text-dark ms-1">→ Ziel: {{ p2 }}</span>
+          {% endif %}
+        {% endif %}
+      </h5>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>#</th><th>Hund</th><th>Hundeführer</th>
+              <th>Qualifikation via</th><th class="text-center">Rang</th><th>Klasse</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for qt in teams %}
+            <tr>
+              <td class="text-muted">{{ loop.index }}</td>
+              <td><strong>{{ qt.dog_name }}</strong></td>
+              <td class="text-muted">{{ qt.handler_name }}</td>
+              <td>
+                {% if qt.qualification_source == 'title_defender' %}
+                  <span class="badge bg-warning text-dark">👑 Titelverteidiger</span>
+                {% elif qt.qualification_source == 'wildcard' %}
+                  <span class="badge bg-info text-dark">🃏 Wildcard</span>
+                  {% if qt.seeding_note %}<small class="text-muted ms-1">{{ qt.seeding_note }}</small>{% endif %}
+                {% elif qt.qualification_source == 'fillup' %}
+                  <span class="badge bg-secondary">⬆️ Auffüller</span>
+                  {% if qt.qual_run %}<small class="text-muted ms-1">{{ qt.qual_run.display_label }}</small>{% endif %}
+                {% else %}
+                  <span class="badge bg-success">✅ {{ qt.qual_run.display_label if qt.qual_run else '–' }}</span>
+                {% endif %}
+              </td>
+              <td class="text-center text-muted">{{ qt.qualified_rank or '–' }}</td>
+              <td class="text-muted small">{% if qt.class_level %}Kl. {{ qt.class_level }}{% else %}–{% endif %}</td>
+              <td class="text-end">
+                {% if qt.qualification_source in ('title_defender', 'wildcard') %}
+                <form method="POST"
+                      action="{{ url_for('cups_admin.cup_qualify_remove', cup_id=cup.id, qt_id=qt.id, key=admin_key) }}"
+                      onsubmit="return confirm('Eintrag entfernen?')">
+                  <button class="btn btn-sm btn-outline-danger">✕</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="alert alert-info">
+      Noch keine Teams qualifiziert. Qualifikationsläufe konfigurieren, Resultate importieren und «Jetzt berechnen» klicken.
+    </div>
+    {% endif %}
   </div>
 </div>
 
@@ -126,63 +380,8 @@
     </table>
     {% else %}
     <p class="text-muted mb-0">
-      Noch kein Finale angelegt.
-      Sobald alle Meetings abgeschlossen und Resultate importiert sind, kann hier das Finale aus der Qualifikationsrangliste generiert werden.
+      Noch kein Finale angelegt. Nach Abschluss der Qualifikation Finale pro Gruppe anlegen.
     </p>
-    {% endif %}
-  </div>
-</div>
-
-{# ── Ranglisten ─────────────────────────────────────────────────────────────── #}
-<div class="card">
-  <div class="card-header fw-semibold">🏅 Aktuelle Ranglisten</div>
-  <div class="card-body">
-    {% if standings %}
-      {% for group, dogs in standings.items() %}
-      <h5 class="mt-3">{{ group }}</h5>
-      {% if dogs %}
-      <div class="table-responsive mb-4">
-        <table class="table table-sm table-hover">
-          <thead class="table-light">
-            <tr>
-              <th style="width:3rem">Pl.</th>
-              <th>Hund</th>
-              <th>Hundeführer</th>
-              {% for ce in cup.cup_events %}
-              <th class="text-center">M{{ ce.meeting_no }}</th>
-              {% endfor %}
-              <th class="text-end fw-bold">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for dog in dogs %}
-            <tr {% if loop.index <= 3 %}class="table-warning"{% endif %}>
-              <td class="fw-bold">{{ loop.index }}.</td>
-              <td>{{ dog.dog_name }}</td>
-              <td class="text-muted">{{ dog.handler_name }}</td>
-              {% for ce in cup.cup_events %}
-              <td class="text-center">
-                {% if ce.meeting_no in dog.meeting_scores %}
-                  {{ dog.meeting_scores[ce.meeting_no].points }}
-                {% else %}
-                  <span class="text-muted">–</span>
-                {% endif %}
-              </td>
-              {% endfor %}
-              <td class="text-end fw-bold">{{ dog.total_points }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="text-muted">Keine Resultate für diese Gruppe.</p>
-      {% endif %}
-      {% endfor %}
-    {% else %}
-    <div class="alert alert-info">
-      Noch keine Resultate importiert oder keine Meetings verknüpft.
-    </div>
     {% endif %}
   </div>
 </div>
