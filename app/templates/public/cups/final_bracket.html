@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Finale {{ final.group_label }} – {{ cup.name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2>🥊 Finale: {{ final.group_label }}</h2>
+    <small class="text-muted">{{ cup.name }} · {{ cup.season }}</small>
+  </div>
+  <a href="{{ url_for('public_cups.cup_standings', cup_id=cup.id) }}" class="btn btn-outline-secondary">← Rangliste</a>
+</div>
+
+{# Teilnehmer-Übersicht #}
+{% if final.participants %}
+<div class="card mb-4">
+  <div class="card-header fw-semibold">🎲 Startliste (nach Losnummer)</div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr><th>Los</th><th>Hund</th><th>Hundeführer</th><th class="text-end">Quali-Punkte</th></tr>
+      </thead>
+      <tbody>
+        {% for p in final.participants | sort(attribute='draw_number') %}
+        {% if p.draw_number %}
+        <tr>
+          <td><span class="badge bg-dark">{{ p.draw_number }}</span></td>
+          <td><strong>{{ p.dog_name }}</strong></td>
+          <td class="text-muted">{{ p.handler_name }}</td>
+          <td class="text-end">{{ p.qualifying_points }} Pkt.</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# KO-Bracket #}
+{% if rounds %}
+{% set round_labels = {1: 'Runde 1', 2: 'Viertelfinale', 3: 'Halbfinale', 4: 'Finale'} %}
+{% set max_round = rounds.keys() | max %}
+
+<div class="card">
+  <div class="card-header fw-semibold">🏆 KO-Bracket</div>
+  <div class="card-body overflow-auto">
+
+    {# Horizontales Bracket-Layout #}
+    <div class="d-flex gap-4" style="min-width: max-content;">
+
+      {% for round_no, matchups in rounds.items() %}
+      <div style="min-width: 280px;">
+        <h6 class="text-center text-muted mb-3">
+          {{ round_labels.get(round_no, 'Runde ' ~ round_no) }}
+          {% if round_no == max_round and matchups | selectattr('matchup_type', 'eq', 'winner') | list %}
+            <span class="badge bg-warning text-dark ms-1">🏆</span>
+          {% endif %}
+        </h6>
+
+        {% for matchup in matchups | sort(attribute='matchup_no') %}
+        {% if matchup.matchup_type != 'third_place' %}
+        <div class="card mb-3 {% if matchup.winner_id %}border-success{% endif %}"
+             style="font-size: .85rem;">
+          <div class="card-header py-1 px-2 {% if matchup.winner_id %}bg-success text-white{% else %}bg-light{% endif %}">
+            <small>Duell {{ matchup.matchup_no }}
+              {% if matchup.winner_id %}✓{% endif %}
+            </small>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm mb-0" style="font-size:.8rem;">
+              <thead>
+                <tr class="table-secondary">
+                  <th>Teilnehmer</th>
+                  <th class="text-center" title="Los">🎲</th>
+                  <th class="text-center">L1</th>
+                  <th class="text-center">F</th>
+                  <th class="text-center">DQ</th>
+                  <th class="text-center">L2</th>
+                  <th class="text-center">F</th>
+                  <th class="text-center">DQ</th>
+                  <th class="text-end">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {# Teilnehmer A #}
+                {% set a_is_winner = matchup.winner_id and matchup.winner_id == matchup.participant_a_id %}
+                <tr {% if a_is_winner %}class="table-success fw-bold"{% endif %}>
+                  <td>
+                    {% if matchup.participant_a %}
+                      {% if a_is_winner %}🏅{% endif %}
+                      {{ matchup.participant_a.dog_name }}
+                    {% else %}<span class="text-muted">TBD</span>{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if matchup.participant_a and matchup.participant_a.draw_number %}
+                      <span class="badge bg-secondary">{{ matchup.participant_a.draw_number }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">{{ "%.2f"|format(matchup.a_time1) if matchup.a_time1 else '–' }}</td>
+                  <td class="text-center">{{ matchup.a_faults or '–' }}</td>
+                  <td class="text-center">{% if matchup.a_disqualified %}⚠️{% else %}–{% endif %}</td>
+                  <td class="text-center">{{ "%.2f"|format(matchup.a_time2) if matchup.a_time2 else '–' }}</td>
+                  <td class="text-center">{{ matchup.a_faults or '–' }}</td>
+                  <td class="text-center">{% if matchup.a_disqualified %}⚠️{% else %}–{% endif %}</td>
+                  <td class="text-end fw-bold">
+                    {% if matchup.a_total_time is not none %}
+                      {{ "%.3f"|format(matchup.a_total_time) }}s
+                    {% else %}–{% endif %}
+                  </td>
+                </tr>
+                {# Teilnehmer B #}
+                {% set b_is_winner = matchup.winner_id and matchup.winner_id == matchup.participant_b_id %}
+                <tr {% if b_is_winner %}class="table-success fw-bold"{% endif %}>
+                  <td>
+                    {% if matchup.participant_b %}
+                      {% if b_is_winner %}🏅{% endif %}
+                      {{ matchup.participant_b.dog_name }}
+                    {% else %}<span class="text-muted">TBD</span>{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if matchup.participant_b and matchup.participant_b.draw_number %}
+                      <span class="badge bg-secondary">{{ matchup.participant_b.draw_number }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">{{ "%.2f"|format(matchup.b_time1) if matchup.b_time1 else '–' }}</td>
+                  <td class="text-center">{{ matchup.b_faults or '–' }}</td>
+                  <td class="text-center">{% if matchup.b_disqualified %}⚠️{% else %}–{% endif %}</td>
+                  <td class="text-center">{{ "%.2f"|format(matchup.b_time2) if matchup.b_time2 else '–' }}</td>
+                  <td class="text-center">{{ matchup.b_faults or '–' }}</td>
+                  <td class="text-center">{% if matchup.b_disqualified %}⚠️{% else %}–{% endif %}</td>
+                  <td class="text-end fw-bold">
+                    {% if matchup.b_total_time is not none %}
+                      {{ "%.3f"|format(matchup.b_total_time) }}s
+                    {% else %}–{% endif %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        {# Platz 3 Finale separat anzeigen #}
+        {% set third_place = matchups | selectattr('matchup_type', 'eq', 'third_place') | list %}
+        {% if third_place %}
+        <hr>
+        <h6 class="text-center text-muted">🥉 Platz 3 Finale</h6>
+        {% for matchup in third_place %}
+        {# Gleiche Darstellung wie oben #}
+        <div class="card mb-3 border-warning {% if matchup.winner_id %}border-success{% endif %}"
+             style="font-size: .85rem;">
+          <div class="card-header py-1 px-2 bg-warning">
+            <small>Platz 3 Duell</small>
+          </div>
+          <div class="card-body p-2">
+            <div class="row">
+              {% for side, p, t1, t2, f, dq, total in [
+                ('A', matchup.participant_a, matchup.a_time1, matchup.a_time2, matchup.a_faults, matchup.a_disqualified, matchup.a_total_time),
+                ('B', matchup.participant_b, matchup.b_time1, matchup.b_time2, matchup.b_faults, matchup.b_disqualified, matchup.b_total_time)
+              ] %}
+              <div class="col-6 {% if matchup.winner_id and matchup.winner_id == (matchup.participant_a_id if side == 'A' else matchup.participant_b_id) %}fw-bold{% endif %}">
+                {% if p %}{{ p.dog_name }}{% else %}TBD{% endif %}<br>
+                <small class="text-muted">
+                  L1: {{ "%.2f"|format(t1) if t1 else '–' }} |
+                  L2: {{ "%.2f"|format(t2) if t2 else '–' }} |
+                  {% if total is not none %}Total: {{ "%.3f"|format(total) }}s{% endif %}
+                </small>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="alert alert-info">Das Bracket wird vor Ort ausgelost und hier angezeigt.</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Neues Finale – {{ cup.name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>🏆 Finale anlegen – {{ cup.name }}</h2>
+  <a href="{{ url_for('cups_admin.cup_detail', cup_id=cup.id, key=admin_key) }}" class="btn btn-outline-secondary">← Zurück</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <p class="text-muted">
+      Wähle die Gruppe (Kategorie/Klasse) aus der Qualifikation, für die ein Finale angelegt werden soll.
+      Alle Teilnehmer aus der Qualifikation werden automatisch übernommen.
+    </p>
+
+    {% if standings %}
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Gruppe *</label>
+        <select name="group_label" class="form-select" id="group_select" required
+                onchange="fillGroupFields(this)">
+          <option value="">— Gruppe wählen —</option>
+          {% for group, dogs in standings.items() %}
+          <option value="{{ group }}"
+                  data-cat="{{ dogs[0].category_code if dogs else '' }}"
+                  data-cls="{{ dogs[0].class_level if dogs and dogs[0].class_level else '' }}">
+            {{ group }} ({{ dogs | length }} Teilnehmer)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <input type="hidden" name="category_code" id="category_code">
+      <input type="hidden" name="class_level" id="class_level">
+
+      <button type="submit" class="btn btn-primary">Finale anlegen</button>
+    </form>
+
+    <script>
+    function fillGroupFields(sel) {
+      const opt = sel.options[sel.selectedIndex];
+      document.getElementById('category_code').value = opt.dataset.cat || '';
+      document.getElementById('class_level').value = opt.dataset.cls || '';
+    }
+    </script>
+
+    {% else %}
+    <div class="alert alert-warning">
+      Keine Qualifikations-Ranglisten vorhanden. Bitte erst Meetings verknüpfen und Resultate importieren.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

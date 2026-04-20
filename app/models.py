@@ -868,3 +868,247 @@ class ResultPDF(db.Model):
 
     def __repr__(self):
         return f"<ResultPDF event={self.event_id} run={self.run_name!r}>"
+
+
+# ---------------------------------------------------------------------------
+# Cup-System
+# ---------------------------------------------------------------------------
+
+class Cup(db.Model):
+    """
+    Eine Cup-Serie (z.B. Halloween Cup 2026), bestehend aus mehreren Meetings.
+
+    point_system_json: JSON-Array mit Punkten pro Platzierung, z.B.
+        [25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+    count_best_meetings: nur die besten N Meetings zählen (None = alle).
+    split_by_class: getrennte Ranglisten pro Klasse (1/2/3).
+    split_by_run_type: getrennte Punktevergabe pro Lauftyp (Agility/Jumping).
+    """
+    __tablename__ = "cups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    season = db.Column(db.Integer, nullable=False)        # z.B. 2026
+    special_ruleset = db.Column(db.String(50), nullable=True)  # halloween_cup etc.
+    description = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    point_system_json = db.Column(db.Text, nullable=True)      # JSON-Array
+    count_best_meetings = db.Column(db.Integer, nullable=True) # None = alle
+    split_by_class = db.Column(db.Boolean, default=False, nullable=False)
+    split_by_run_type = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    cup_events = db.relationship(
+        "CupEvent",
+        back_populates="cup",
+        order_by="CupEvent.meeting_no",
+        cascade="all, delete-orphan",
+    )
+
+    # Standard-Punkte: Platz 1→25, 2→20, 3→16, ..., 15+→1
+    DEFAULT_POINTS = [25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+
+    @property
+    def point_table(self) -> list[int]:
+        """Gibt die konfigurierte Punktetabelle zurück."""
+        import json
+        if self.point_system_json:
+            try:
+                return json.loads(self.point_system_json)
+            except (ValueError, TypeError):
+                pass
+        return self.DEFAULT_POINTS
+
+    def points_for_rank(self, rank: int | None) -> int:
+        """Punkte für eine gegebene Platzierung (1-basiert). 0 bei Disqualifikation."""
+        if not rank or rank < 1:
+            return 0
+        table = self.point_table
+        if rank <= len(table):
+            return table[rank - 1]
+        # Nach letztem Tabelleneintrag: 1 Punkt (oder 0 wenn Tabelle leer)
+        return table[-1] if table else 0
+
+    def __repr__(self):
+        return f"<Cup {self.name!r} {self.season}>"
+
+
+class CupEvent(db.Model):
+    """Verknüpft ein Event mit einem Cup (als Meeting Nr. X)."""
+    __tablename__ = "cup_events"
+    __table_args__ = (
+        db.UniqueConstraint("cup_id", "event_id", name="uq_cup_events_cup_event"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    cup_id = db.Column(db.Integer, db.ForeignKey("cups.id"), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    meeting_no = db.Column(db.Integer, nullable=False)  # 1, 2, 3 …
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    cup = db.relationship("Cup", back_populates="cup_events")
+    event = db.relationship("Event")
+
+    def __repr__(self):
+        return f"<CupEvent cup={self.cup_id} event={self.event_id} meeting={self.meeting_no}>"
+
+
+class CupFinal(db.Model):
+    """
+    Finale eines Cups für eine bestimmte Gruppe (Kategorie + Klasse).
+
+    KO-System: Teilnehmer erhalten Losnummern. Höchste vs. Tiefste Nummer.
+    Jedes Duell: 2 Läufe, Zeit + Straffsekunden (Fehler/Verweigerung: +2s, DQ: +5s).
+    Geringere Gesamtzeit gewinnt.
+
+    Halbfinale-Sonderregel: Beide Sieger ins Finale um Platz 1,
+    beide Verlierer ins Finale um Platz 3.
+    """
+    __tablename__ = "cup_finals"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cup_id = db.Column(db.Integer, db.ForeignKey("cups.id"), nullable=False)
+    group_label = db.Column(db.String(100), nullable=False)  # z.B. "Small – Klasse 1"
+    category_code = db.Column(db.String(20), nullable=False)
+    class_level = db.Column(db.Integer, nullable=True)
+    is_published = db.Column(db.Boolean, default=False, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    cup = db.relationship("Cup")
+    participants = db.relationship(
+        "CupFinalParticipant",
+        back_populates="final",
+        order_by="CupFinalParticipant.draw_number",
+        cascade="all, delete-orphan",
+    )
+    matchups = db.relationship(
+        "CupFinalMatchup",
+        back_populates="final",
+        order_by="CupFinalMatchup.round_no, CupFinalMatchup.matchup_no",
+        cascade="all, delete-orphan",
+    )
+
+    def __repr__(self):
+        return f"<CupFinal cup={self.cup_id} group={self.group_label!r}>"
+
+
+class CupFinalParticipant(db.Model):
+    """Teilnehmer im Finale mit Losnummer."""
+    __tablename__ = "cup_final_participants"
+
+    id = db.Column(db.Integer, primary_key=True)
+    final_id = db.Column(db.Integer, db.ForeignKey("cup_finals.id"), nullable=False)
+    dog_name = db.Column(db.String(120), nullable=False)
+    handler_name = db.Column(db.String(120), nullable=False)
+    qualifying_points = db.Column(db.Integer, default=0, nullable=False)
+    draw_number = db.Column(db.Integer, nullable=True)  # Losnummer (wird gezogen)
+    seeding_rank = db.Column(db.Integer, nullable=True)  # Ranglisten-Platz aus Qualifikation
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    final = db.relationship("CupFinal", back_populates="participants")
+
+    def __repr__(self):
+        return f"<CupFinalParticipant {self.dog_name!r} draw={self.draw_number}>"
+
+
+class CupFinalMatchup(db.Model):
+    """
+    Ein Duell im KO-System.
+
+    round_no: 1 = Achtelfinale, 2 = Viertelfinale, 3 = Halbfinale, 4 = Finale (Platz 1+3)
+    matchup_no: Duell-Nummer innerhalb einer Runde
+    matchup_type: 'winner' (normal), 'third_place' (Platz 3 Finale)
+
+    Zeit-Berechnung:
+      time_total = time_run1 + time_run2
+      + faults * 2 + refusals * 2 + (5 wenn disqualified)
+    """
+    __tablename__ = "cup_final_matchups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    final_id = db.Column(db.Integer, db.ForeignKey("cup_finals.id"), nullable=False)
+    round_no = db.Column(db.Integer, nullable=False)
+    matchup_no = db.Column(db.Integer, nullable=False)
+    matchup_type = db.Column(db.String(20), default='winner', nullable=False)  # winner / third_place
+
+    # Teilnehmer A (höhere Losnummer)
+    participant_a_id = db.Column(db.Integer, db.ForeignKey("cup_final_participants.id"), nullable=True)
+    a_time1 = db.Column(db.Float, nullable=True)
+    a_time2 = db.Column(db.Float, nullable=True)
+    a_faults = db.Column(db.Integer, default=0, nullable=True)
+    a_refusals = db.Column(db.Integer, default=0, nullable=True)
+    a_disqualified = db.Column(db.Boolean, default=False, nullable=True)
+
+    # Teilnehmer B (tiefere Losnummer)
+    participant_b_id = db.Column(db.Integer, db.ForeignKey("cup_final_participants.id"), nullable=True)
+    b_time1 = db.Column(db.Float, nullable=True)
+    b_time2 = db.Column(db.Float, nullable=True)
+    b_faults = db.Column(db.Integer, default=0, nullable=True)
+    b_refusals = db.Column(db.Integer, default=0, nullable=True)
+    b_disqualified = db.Column(db.Boolean, default=False, nullable=True)
+
+    # Ergebnis
+    winner_id = db.Column(db.Integer, db.ForeignKey("cup_final_participants.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    final = db.relationship("CupFinal", back_populates="matchups")
+    participant_a = db.relationship("CupFinalParticipant", foreign_keys=[participant_a_id])
+    participant_b = db.relationship("CupFinalParticipant", foreign_keys=[participant_b_id])
+    winner = db.relationship("CupFinalParticipant", foreign_keys=[winner_id])
+
+    PENALTY_FAULT = 2.0       # Sekunden pro Fehler
+    PENALTY_REFUSAL = 2.0     # Sekunden pro Verweigerung
+    PENALTY_DQ = 5.0          # Straffsekunden bei Disqualifikation
+
+    def _total_time(self, t1, t2, faults, refusals, dq) -> float | None:
+        """Berechnet die Gesamtzeit mit Straffsekunden."""
+        if t1 is None or t2 is None:
+            return None
+        total = t1 + t2
+        total += (faults or 0) * self.PENALTY_FAULT
+        total += (refusals or 0) * self.PENALTY_REFUSAL
+        if dq:
+            total += self.PENALTY_DQ
+        return round(total, 3)
+
+    @property
+    def a_total_time(self) -> float | None:
+        return self._total_time(self.a_time1, self.a_time2,
+                                self.a_faults, self.a_refusals, self.a_disqualified)
+
+    @property
+    def b_total_time(self) -> float | None:
+        return self._total_time(self.b_time1, self.b_time2,
+                                self.b_faults, self.b_refusals, self.b_disqualified)
+
+    @property
+    def computed_winner_id(self) -> int | None:
+        """Ermittelt den Gewinner anhand der Gesamtzeiten (automatisch)."""
+        a = self.a_total_time
+        b = self.b_total_time
+        if a is None or b is None:
+            return None
+        if a < b:
+            return self.participant_a_id
+        if b < a:
+            return self.participant_b_id
+        return None  # Gleichstand
+
+    def __repr__(self):
+        return (f"<CupFinalMatchup final={self.final_id} "
+                f"round={self.round_no} matchup={self.matchup_no}>")
+
+
+class CupFinalResult(db.Model):
+    """Schlussrangliste eines Finales."""
+    __tablename__ = "cup_final_results"
+
+    id = db.Column(db.Integer, primary_key=True)
+    final_id = db.Column(db.Integer, db.ForeignKey("cup_finals.id"), nullable=False)
+    participant_id = db.Column(db.Integer, db.ForeignKey("cup_final_participants.id"), nullable=False)
+    final_rank = db.Column(db.Integer, nullable=False)  # 1, 2, 3, 4 …
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    final = db.relationship("CupFinal")
+    participant = db.relationship("CupFinalParticipant")

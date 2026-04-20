@@ -73,6 +73,17 @@ def create_app():
         from flask_wtf.csrf import generate_csrf
         return {"get_locale": get_locale, "csrf_token": generate_csrf}
 
+    @app.template_filter("fromjson")
+    def fromjson_filter(s):
+        """Parst einen JSON-String zu einem Python-Objekt."""
+        import json
+        if not s:
+            return []
+        try:
+            return json.loads(s)
+        except (ValueError, TypeError):
+            return []
+
     @app.template_filter("localtime")
     def localtime_filter(dt, fmt="%d.%m. %H:%M"):
         """Konvertiert ein UTC-datetime in Schweizer Lokalzeit (Europe/Zurich)."""

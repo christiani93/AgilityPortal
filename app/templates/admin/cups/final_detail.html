@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Finale {{ final.group_label }} – {{ cup.name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2>🥊 Finale: {{ final.group_label }}</h2>
+    <small class="text-muted">{{ cup.name }} · {{ cup.season }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('cups_admin.cup_detail', cup_id=cup.id, key=admin_key) }}" class="btn btn-outline-secondary">← Cup</a>
+    <form method="POST" action="{{ url_for('cups_admin.cup_final_publish', cup_id=cup.id, final_id=final.id, key=admin_key) }}">
+      <button class="btn {% if final.is_published %}btn-warning{% else %}btn-success{% endif %}">
+        {% if final.is_published %}🙈 Verstecken{% else %}🌐 Veröffentlichen{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+
+{# ── Teilnehmer ─────────────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">👥 Teilnehmer ({{ final.participants | length }})</span>
+    <div class="d-flex gap-2">
+      {% if final.participants %}
+      <form method="POST" action="{{ url_for('cups_admin.cup_final_draw', cup_id=cup.id, final_id=final.id, key=admin_key) }}"
+            onsubmit="return confirm('Losnummern neu auslosen?')">
+        <button class="btn btn-sm btn-outline-primary">🎲 Losnummern auslosen</button>
+      </form>
+      {% if final.participants | selectattr('draw_number') | list %}
+      <form method="POST" action="{{ url_for('cups_admin.cup_final_bracket_generate', cup_id=cup.id, final_id=final.id, key=admin_key) }}"
+            onsubmit="return confirm('Bracket neu generieren? Bestehende Duelle werden gelöscht.')">
+        <button class="btn btn-sm btn-outline-warning">🔄 Bracket generieren</button>
+      </form>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {% if final.participants %}
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Los-Nr.</th>
+          <th>Hund</th>
+          <th>Hundeführer</th>
+          <th class="text-end">Quali-Punkte</th>
+          <th class="text-end">Quali-Rang</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in final.participants | sort(attribute='draw_number') %}
+        <tr>
+          <td>
+            {% if p.draw_number %}
+              <span class="badge bg-dark fs-6">{{ p.draw_number }}</span>
+            {% else %}
+              <span class="text-muted">–</span>
+            {% endif %}
+          </td>
+          <td>{{ p.dog_name }}</td>
+          <td class="text-muted">{{ p.handler_name }}</td>
+          <td class="text-end">{{ p.qualifying_points }}</td>
+          <td class="text-end text-muted">{{ p.seeding_rank or '–' }}.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted p-3">Keine Teilnehmer.</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── KO-Bracket ─────────────────────────────────────────────────────────────── #}
+{% if final.matchups %}
+<div class="card">
+  <div class="card-header fw-semibold">🥊 KO-Bracket</div>
+  <div class="card-body">
+    {% set rounds = final.matchups | groupby('round_no') %}
+    {% for round_no, matchups in rounds %}
+    <h5 class="mt-3">
+      Runde {{ round_no }}
+      {% if round_no == final.matchups | map(attribute='round_no') | max %}
+        <span class="badge bg-warning text-dark ms-2">Finale</span>
+      {% endif %}
+    </h5>
+    {% for matchup in matchups | sort(attribute='matchup_no') %}
+    <div class="card mb-3 {% if matchup.winner_id %}border-success{% endif %}">
+      <div class="card-header d-flex justify-content-between align-items-center py-1">
+        <span class="small fw-semibold">Duell {{ matchup.matchup_no }}
+          {% if matchup.matchup_type == 'third_place' %}<span class="badge bg-secondary ms-1">Platz 3</span>{% endif %}
+        </span>
+        {% if matchup.winner_id %}
+          <span class="badge bg-success">
+            ✓ Sieger:
+            {% if matchup.winner_id == matchup.participant_a_id %}{{ matchup.participant_a.dog_name }}
+            {% else %}{{ matchup.participant_b.dog_name }}{% endif %}
+          </span>
+        {% endif %}
+      </div>
+      <div class="card-body p-2">
+        <form method="POST"
+              action="{{ url_for('cups_admin.cup_final_matchup_result', cup_id=cup.id, final_id=final.id, matchup_id=matchup.id, key=admin_key) }}">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-2">
+              <thead class="table-light">
+                <tr>
+                  <th>Teilnehmer</th>
+                  <th class="text-center">Los-Nr.</th>
+                  <th>Lauf 1 (s)</th>
+                  <th>Lauf 2 (s)</th>
+                  <th class="text-center">Fehler</th>
+                  <th class="text-center">Verw.</th>
+                  <th class="text-center">DQ</th>
+                  <th class="text-end fw-bold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {# Teilnehmer A #}
+                <tr {% if matchup.winner_id == matchup.participant_a_id %}class="table-success"{% endif %}>
+                  <td>
+                    {% if matchup.participant_a %}
+                      <strong>{{ matchup.participant_a.dog_name }}</strong>
+                      <span class="text-muted small">{{ matchup.participant_a.handler_name }}</span>
+                    {% else %}–{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if matchup.participant_a %}<span class="badge bg-dark">{{ matchup.participant_a.draw_number or '?' }}</span>{% endif %}
+                  </td>
+                  <td><input type="number" name="a_time1" class="form-control form-control-sm" style="width:80px"
+                             step="0.001" value="{{ matchup.a_time1 or '' }}"></td>
+                  <td><input type="number" name="a_time2" class="form-control form-control-sm" style="width:80px"
+                             step="0.001" value="{{ matchup.a_time2 or '' }}"></td>
+                  <td class="text-center"><input type="number" name="a_faults" class="form-control form-control-sm text-center" style="width:60px"
+                             min="0" value="{{ matchup.a_faults or 0 }}"></td>
+                  <td class="text-center"><input type="number" name="a_refusals" class="form-control form-control-sm text-center" style="width:60px"
+                             min="0" value="{{ matchup.a_refusals or 0 }}"></td>
+                  <td class="text-center"><input type="checkbox" name="a_disqualified" class="form-check-input"
+                             {% if matchup.a_disqualified %}checked{% endif %}></td>
+                  <td class="text-end fw-bold">
+                    {% if matchup.a_total_time is not none %}{{ "%.3f"|format(matchup.a_total_time) }}s{% else %}–{% endif %}
+                  </td>
+                </tr>
+                {# Teilnehmer B #}
+                <tr {% if matchup.winner_id == matchup.participant_b_id %}class="table-success"{% endif %}>
+                  <td>
+                    {% if matchup.participant_b %}
+                      <strong>{{ matchup.participant_b.dog_name }}</strong>
+                      <span class="text-muted small">{{ matchup.participant_b.handler_name }}</span>
+                    {% else %}–{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if matchup.participant_b %}<span class="badge bg-dark">{{ matchup.participant_b.draw_number or '?' }}</span>{% endif %}
+                  </td>
+                  <td><input type="number" name="b_time1" class="form-control form-control-sm" style="width:80px"
+                             step="0.001" value="{{ matchup.b_time1 or '' }}"></td>
+                  <td><input type="number" name="b_time2" class="form-control form-control-sm" style="width:80px"
+                             step="0.001" value="{{ matchup.b_time2 or '' }}"></td>
+                  <td class="text-center"><input type="number" name="b_faults" class="form-control form-control-sm text-center" style="width:60px"
+                             min="0" value="{{ matchup.b_faults or 0 }}"></td>
+                  <td class="text-center"><input type="number" name="b_refusals" class="form-control form-control-sm text-center" style="width:60px"
+                             min="0" value="{{ matchup.b_refusals or 0 }}"></td>
+                  <td class="text-center"><input type="checkbox" name="b_disqualified" class="form-check-input"
+                             {% if matchup.b_disqualified %}checked{% endif %}></td>
+                  <td class="text-end fw-bold">
+                    {% if matchup.b_total_time is not none %}{{ "%.3f"|format(matchup.b_total_time) }}s{% else %}–{% endif %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="submit" class="btn btn-sm btn-primary">💾 Ergebnis speichern</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+  Noch kein Bracket generiert. Erst Losnummern auslosen, dann Bracket generieren.
+</div>
+{% endif %}
+
+{% endblock %}

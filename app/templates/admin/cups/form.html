@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{% if cup %}Cup bearbeiten{% else %}Neuer Cup{% endif %}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>{% if cup %}✏️ Cup bearbeiten{% else %}+ Neuer Cup{% endif %}</h2>
+  <a href="{{ url_for('cups_admin.cup_list', key=admin_key) }}" class="btn btn-outline-secondary">← Zurück</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form method="POST">
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-7">
+          <label class="form-label fw-semibold">Name *</label>
+          <input type="text" name="name" class="form-control"
+                 value="{{ cup.name if cup else '' }}" required
+                 placeholder="z.B. Halloween Cup 2026">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Saison *</label>
+          <input type="number" name="season" class="form-control"
+                 value="{{ cup.season if cup else 2026 }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Ruleset</label>
+          <select name="special_ruleset" class="form-select">
+            <option value="">– keins –</option>
+            <option value="halloween_cup" {% if cup and cup.special_ruleset == 'halloween_cup' %}selected{% endif %}>Halloween Cup</option>
+            <option value="advents_cup" {% if cup and cup.special_ruleset == 'advents_cup' %}selected{% endif %}>Advents Cup</option>
+            <option value="edelweiss_challenge" {% if cup and cup.special_ruleset == 'edelweiss_challenge' %}selected{% endif %}>Edelweiss Challenge</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Beschreibung</label>
+        <textarea name="description" class="form-control" rows="3"
+                  placeholder="Optionale Beschreibung (öffentlich sichtbar)">{{ cup.description if cup else '' }}</textarea>
+      </div>
+
+      <hr>
+      <h6 class="text-muted mb-3">Punkte-Konfiguration</h6>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">Punktetabelle</label>
+          <input type="text" name="point_system" class="form-control font-monospace"
+                 value="{{ cup.point_system_json | fromjson | join(', ') if cup and cup.point_system_json else '' }}"
+                 placeholder="leer = Standard: 25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1">
+          <div class="form-text">Kommagetrennte Punkte: Platz 1, Platz 2, … Disqualifiziert = immer 0.</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Beste N Meetings zählen</label>
+          <input type="number" name="count_best_meetings" class="form-control"
+                 value="{{ cup.count_best_meetings if cup and cup.count_best_meetings else '' }}"
+                 min="1" placeholder="leer = alle">
+          <div class="form-text">Leer = alle Meetings zählen.</div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-auto">
+          <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" name="split_by_class" id="split_by_class"
+                   {% if cup and cup.split_by_class %}checked{% endif %}>
+            <label class="form-check-label" for="split_by_class">
+              Getrennte Ranglisten pro Klasse (1/2/3)
+            </label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" name="split_by_run_type" id="split_by_run_type"
+                   {% if cup and cup.split_by_run_type %}checked{% endif %}>
+            <label class="form-check-label" for="split_by_run_type">
+              Punkte getrennt nach Lauftyp (Agility/Jumping)
+            </label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
+                   {% if not cup or cup.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">
+              Cup aktiv (öffentlich sichtbar)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">💾 Speichern</button>
+      <a href="{{ url_for('cups_admin.cup_list', key=admin_key) }}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
