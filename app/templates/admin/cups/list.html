@@ -4,7 +4,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2>🏆 Cups</h2>
-  <a href="{{ url_for('cups_admin.cup_new', key=admin_key) }}" class="btn btn-primary">+ Neuer Cup</a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('cups_admin.cup_club_assignments', key=admin_key) }}" class="btn btn-outline-secondary">🔒 Vereins-Freigaben</a>
+    <a href="{{ url_for('cups_admin.cup_new', key=admin_key) }}" class="btn btn-primary">+ Neuer Cup</a>
+  </div>
 </div>
 
 {% if cups %}
@@ -28,6 +31,12 @@
           </a>
           {% if cup.special_ruleset %}
             <span class="badge bg-secondary ms-1" style="font-size:.7em;">{{ cup.special_ruleset }}</span>
+          {% endif %}
+          {% if cup.restricts_organisers %}
+            <span class="badge bg-warning text-dark ms-1" style="font-size:.7em;"
+                  title="Nur: {% for ao in cup.allowed_organisers %}{{ ao.club.name }}{% if not loop.last %}, {% endif %}{% endfor %}">
+              🔒
+            </span>
           {% endif %}
         </td>
         <td>{{ cup.season }}</td>

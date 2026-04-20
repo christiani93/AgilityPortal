@@ -53,6 +53,28 @@ def cup_list():
     return render_template("admin/cups/list.html", cups=cups, admin_key=_admin_key())
 
 
+# ── Vereins-Freigaben Übersicht ────────────────────────────────────────────────
+
+@cups_admin_bp.get("/admin/cup-club-assignments")
+@_require_admin_key
+def cup_club_assignments():
+    """Übersicht: welche Vereine dürfen welche Cups durchführen."""
+    clubs = Club.query.order_by(Club.name).all()
+    cups  = Cup.query.order_by(Cup.season.desc(), Cup.name).all()
+    # Für jede Kombination: darf dieser Verein den Cup durchführen?
+    # Matrix: {club.id: {cup.id: bool}}
+    matrix = {}
+    for club in clubs:
+        matrix[club.id] = {cup.id: cup.allows_club(club.id) for cup in cups}
+    return render_template(
+        "admin/cups/club_assignments.html",
+        clubs=clubs,
+        cups=cups,
+        matrix=matrix,
+        admin_key=_admin_key(),
+    )
+
+
 # ── Cup anlegen ────────────────────────────────────────────────────────────────
 
 @cups_admin_bp.route("/admin/cups/new", methods=["GET", "POST"])

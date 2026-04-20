@@ -103,8 +103,12 @@
       {% if current_user.is_superadmin %}
       <div class="nav-section">Cups</div>
       <a href="{{ url_for('cups_admin.cup_list') }}"
-         class="{% if 'cups_admin' in request.endpoint %}active{% endif %}">
+         class="{% if request.endpoint == 'cups_admin.cup_list' or request.endpoint == 'cups_admin.cup_new' or request.endpoint == 'cups_admin.cup_detail' or request.endpoint == 'cups_admin.cup_edit' %}active{% endif %}">
         🏆 Cup-Verwaltung
+      </a>
+      <a href="{{ url_for('cups_admin.cup_club_assignments') }}"
+         class="{% if request.endpoint == 'cups_admin.cup_club_assignments' %}active{% endif %}">
+        🔒 Vereins-Freigaben
       </a>
       <div class="nav-section">Import</div>
       <a href="{{ url_for('aoa_import.aoa_import_home') }}"
