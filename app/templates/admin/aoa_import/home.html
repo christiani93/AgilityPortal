@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}AOA-Import{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <h2 class="mb-0">⬆ AOA-Import</h2>
+  <span class="text-muted small">SportyDog CSV-Export → Portal</span>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header fw-semibold">CSV importieren</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('aoa_import.aoa_import_preview', key=admin_key) }}"
+              enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Event *</label>
+            <select name="event_id" class="form-select" required>
+              <option value="">— Event auswählen —</option>
+              {% for ev in events %}
+              <option value="{{ ev.id }}">
+                {{ ev.name }}
+                {% if ev.date_from %}({{ ev.date_from.strftime('%d.%m.%Y') }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">CSV-Datei * <span class="text-muted small">(SportyDog Export)</span></label>
+            <input type="file" name="csv_file" class="form-control" accept=".csv,.txt" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Vorschau anzeigen →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-info">
+      <div class="card-header text-info fw-semibold">ℹ Hinweise</div>
+      <div class="card-body small">
+        <ul class="mb-0">
+          <li>Format: SportyDog Export-CSV (Semikolon oder Komma getrennt)</li>
+          <li>Alle Einträge werden als <strong>CONFIRMED</strong> importiert</li>
+          <li>TKA-Lizenzcheck wird auf <strong>PENDING</strong> gesetzt (noch nicht geprüft)</li>
+          <li><strong>Es werden keine E-Mails versendet</strong></li>
+          <li>Lizenznummern: rein numerisch = CH, Präfix (FRA-, ESP-, A-...) = FOREIGN</li>
+          <li>Bereits registrierte Hunde werden übersprungen (wählbar)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

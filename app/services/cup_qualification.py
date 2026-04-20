@@ -22,7 +22,7 @@ import re
 from collections import defaultdict
 
 from app.extensions import db
-from app.models import Cup, CupQualificationRun, CupQualifiedTeam, Result
+from app.models import Cup, CupFinal, CupFinalResult, CupQualificationRun, CupQualifiedTeam, Registration, Result
 
 
 CATEGORIES = ["Large", "Intermediate", "Medium", "Small"]
@@ -170,6 +170,9 @@ def _process_run(
         cat_key = _group_key(cat_code, None)
         spots_given = 0
 
+        # Cache: registration_external_id → license_no (für Titelverteidiger-Erkennung)
+        ext_to_license: dict[str, str] = {}
+
         for r in group_results:
             if spots_given >= spots:
                 break
@@ -181,6 +184,17 @@ def _process_run(
             if dog_key in qualified[cat_key]:
                 # Doppelqualifikation: überspringen, nächstes Team rückt nach
                 continue
+            # Lizenz nachschlagen (via Registration → Dog)
+            license_no: str | None = None
+            ext_id = r.registration_external_id or ''
+            if ext_id:
+                if ext_id not in ext_to_license:
+                    reg = Registration.query.filter_by(
+                        event_id=qr.event_id,
+                        external_id=ext_id,
+                    ).first()
+                    ext_to_license[ext_id] = (reg.dog.license_no if reg and reg.dog else '') or ''
+                license_no = ext_to_license[ext_id] or None
             # Qualifiziert!
             qualified[cat_key].add(dog_key)
             spots_given += 1
@@ -190,6 +204,7 @@ def _process_run(
                 class_level=cls,  # merken aus welcher Klasse qualifiziert
                 dog_name=r.dog_name or '',
                 handler_name=r.handler_name or '',
+                license_no=license_no,
                 qualification_source=CupQualifiedTeam.SOURCE_RUN,
                 qual_run_id=qr.id,
                 qualified_rank=r.rank,
@@ -263,3 +278,64 @@ def _process_fillup(
             )
             db.session.add(entry)
             new_entries.append(entry)
+
+
+# ---------------------------------------------------------------------------
+# Titelverteidiger-Erkennung: Vorjahressieger ermitteln
+# ---------------------------------------------------------------------------
+
+def detect_title_defenders(cup: Cup) -> dict[str, dict]:
+    """
+    Ermittelt die Vorjahressieger aus dem Cup der vorherigen Saison.
+
+    Sucht nach einem Cup mit gleichem special_ruleset und season = cup.season - 1.
+    Gibt pro Kategorie die Informationen des Finalsiegers zurück.
+
+    Rückgabe: {group_key: {"dog_name": ..., "handler_name": ..., "license_no": ...}}
+    """
+    if not cup.special_ruleset:
+        return {}
+
+    prev_cup = Cup.query.filter_by(
+        special_ruleset=cup.special_ruleset,
+        season=cup.season - 1,
+    ).first()
+    if not prev_cup:
+        return {}
+
+    # Alle Finale des Vorjahres-Cups laden
+    prev_finals = CupFinal.query.filter_by(cup_id=prev_cup.id).all()
+    if not prev_finals:
+        return {}
+
+    result: dict[str, dict] = {}
+
+    for final in prev_finals:
+        # Sieger = Rank 1 in CupFinalResult
+        winner_result = (
+            CupFinalResult.query
+            .filter_by(final_id=final.id, final_rank=1)
+            .first()
+        )
+        if not winner_result or not winner_result.participant:
+            continue
+
+        p = winner_result.participant
+        group = final.group_label or final.category_code or ''
+        result[group] = {
+            "dog_name": p.dog_name,
+            "handler_name": p.handler_name,
+            "license_no": p.license_no,
+            "category_code": final.category_code,
+        }
+
+    return result
+
+
+def already_has_title_defender(cup: Cup, category_code: str) -> bool:
+    """Prüft ob für diese Kategorie bereits ein Titelverteidiger eingetragen ist."""
+    return CupQualifiedTeam.query.filter_by(
+        cup_id=cup.id,
+        category_code=category_code,
+        qualification_source=CupQualifiedTeam.SOURCE_TITLE_DEFENDER,
+    ).count() > 0

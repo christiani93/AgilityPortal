@@ -1034,6 +1034,7 @@ class CupQualifiedTeam(db.Model):
     class_level = db.Column(db.Integer, nullable=True)         # 1/2/3 oder null
     dog_name = db.Column(db.String(120), nullable=False)
     handler_name = db.Column(db.String(120), nullable=False)
+    license_no = db.Column(db.String(50), nullable=True)       # Lizenz für Titelverteidiger-Erkennung
     qualification_source = db.Column(db.String(20), nullable=False)
     qual_run_id = db.Column(db.Integer, db.ForeignKey("cup_qualification_runs.id"), nullable=True)
     qualified_rank = db.Column(db.Integer, nullable=True)      # Platz im Qualilauf
@@ -1102,6 +1103,7 @@ class CupFinalParticipant(db.Model):
     final_id = db.Column(db.Integer, db.ForeignKey("cup_finals.id"), nullable=False)
     dog_name = db.Column(db.String(120), nullable=False)
     handler_name = db.Column(db.String(120), nullable=False)
+    license_no = db.Column(db.String(50), nullable=True)       # Lizenz für Titelverteidiger-Erkennung
     qualifying_points = db.Column(db.Integer, default=0, nullable=False)
     draw_number = db.Column(db.Integer, nullable=True)  # Losnummer (wird gezogen)
     seeding_rank = db.Column(db.Integer, nullable=True)  # Ranglisten-Platz aus Qualifikation

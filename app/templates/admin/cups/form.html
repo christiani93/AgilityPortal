@@ -31,6 +31,7 @@
             <option value="advents_cup" {% if cup and cup.special_ruleset == 'advents_cup' %}selected{% endif %}>Advents Cup</option>
             <option value="edelweiss_challenge" {% if cup and cup.special_ruleset == 'edelweiss_challenge' %}selected{% endif %}>Edelweiss Challenge</option>
           </select>
+          <div class="form-text">Wird für die automatische Titelverteidiger-Erkennung verwendet.</div>
         </div>
       </div>
 
@@ -41,46 +42,32 @@
       </div>
 
       <hr>
-      <h6 class="text-muted mb-3">Punkte-Konfiguration</h6>
-
-      <div class="row g-3 mb-3">
-        <div class="col-md-8">
-          <label class="form-label fw-semibold">Punktetabelle</label>
-          <input type="text" name="point_system" class="form-control font-monospace"
-                 value="{{ cup.point_system_json | fromjson | join(', ') if cup and cup.point_system_json else '' }}"
-                 placeholder="leer = Standard: 25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1">
-          <div class="form-text">Kommagetrennte Punkte: Platz 1, Platz 2, … Disqualifiziert = immer 0.</div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Beste N Meetings zählen</label>
-          <input type="number" name="count_best_meetings" class="form-control"
-                 value="{{ cup.count_best_meetings if cup and cup.count_best_meetings else '' }}"
-                 min="1" placeholder="leer = alle">
-          <div class="form-text">Leer = alle Meetings zählen.</div>
-        </div>
-      </div>
+      <h6 class="text-muted mb-3">Qualifikations-Konfiguration</h6>
 
       <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Titelverteidiger-Plätze</label>
+          <input type="number" name="title_defender_spots" class="form-control"
+                 value="{{ cup.title_defender_spots if cup else 1 }}" min="0" max="4">
+          <div class="form-text">Anzahl gesetzte Plätze für Titelverteidiger (pro Kategorie).</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Wildcard-Plätze</label>
+          <input type="number" name="wildcard_spots" class="form-control"
+                 value="{{ cup.wildcard_spots if cup else 0 }}" min="0">
+          <div class="form-text">Plätze vom Prüfungsleiter / Beste Verkleidung.</div>
+        </div>
         <div class="col-auto">
-          <div class="form-check form-switch mt-2">
+          <div class="form-check form-switch mt-4">
             <input class="form-check-input" type="checkbox" name="split_by_class" id="split_by_class"
                    {% if cup and cup.split_by_class %}checked{% endif %}>
             <label class="form-check-label" for="split_by_class">
-              Getrennte Ranglisten pro Klasse (1/2/3)
+              Finale getrennt nach Klasse (1/2/3)
             </label>
           </div>
         </div>
         <div class="col-auto">
-          <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" name="split_by_run_type" id="split_by_run_type"
-                   {% if cup and cup.split_by_run_type %}checked{% endif %}>
-            <label class="form-check-label" for="split_by_run_type">
-              Punkte getrennt nach Lauftyp (Agility/Jumping)
-            </label>
-          </div>
-        </div>
-        <div class="col-auto">
-          <div class="form-check form-switch mt-2">
+          <div class="form-check form-switch mt-4">
             <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
                    {% if not cup or cup.is_active %}checked{% endif %}>
             <label class="form-check-label" for="is_active">

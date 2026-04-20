@@ -100,6 +100,18 @@
       </a>
       {% endif %}
       {% endif %}
+      {% if current_user.is_superadmin %}
+      <div class="nav-section">Cups</div>
+      <a href="{{ url_for('cups_admin.cup_list') }}"
+         class="{% if 'cups_admin' in request.endpoint %}active{% endif %}">
+        🏆 Cup-Verwaltung
+      </a>
+      <div class="nav-section">Import</div>
+      <a href="{{ url_for('aoa_import.aoa_import_home') }}"
+         class="{% if 'aoa_import' in request.endpoint %}active{% endif %}">
+        ⬆ AOA-Import
+      </a>
+      {% endif %}
     </nav>
     <main class="col-md-10 main-content">
     {% else %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Titelverteidiger erkennen – {{ cup.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('cups_admin.cup_detail', cup_id=cup.id, key=admin_key) }}"
+     class="btn btn-outline-secondary btn-sm">← Zurück</a>
+  <h2 class="mb-0">🏆 Titelverteidiger erkennen</h2>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">
+    <strong>{{ cup.name }} {{ cup.season }}</strong>
+    – Vorjahressieger aus Saison {{ cup.season - 1 }}
+  </div>
+  <div class="card-body">
+    {% if candidates %}
+    <p class="text-muted small">
+      Folgende Teams haben in der Vorsaison ({{ cup.season - 1 }}) den Cup gewonnen.
+      Wähle aus, welche du als Titelverteidiger eintragen möchtest.
+      Bereits eingetragene Kategorien sind gesperrt.
+    </p>
+    <form method="post">
+      <table class="table table-sm table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40px"></th>
+            <th>Gruppe</th>
+            <th>Hund</th>
+            <th>Hundeführer</th>
+            <th>Lizenz</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for group_key, info in candidates.items() %}
+          {% set already = info.category_code in existing_defenders %}
+          <tr class="{% if already %}table-secondary{% endif %}">
+            <td class="text-center">
+              {% if already %}
+              <input type="checkbox" disabled>
+              {% else %}
+              <input type="checkbox" name="add_{{ group_key }}" value="1" checked>
+              {% endif %}
+            </td>
+            <td><strong>{{ group_key }}</strong></td>
+            <td>{{ info.dog_name }}</td>
+            <td>{{ info.handler_name }}</td>
+            <td><code>{{ info.license_no or '—' }}</code></td>
+            <td>
+              {% if already %}
+              <span class="badge bg-warning text-dark">Bereits eingetragen</span>
+              {% else %}
+              <span class="badge bg-success">Neu</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Ausgewählte eintragen</button>
+        <a href="{{ url_for('cups_admin.cup_detail', cup_id=cup.id, key=admin_key) }}"
+           class="btn btn-outline-secondary">Abbrechen</a>
+      </div>
+    </form>
+    {% else %}
+    <div class="alert alert-warning mb-0">
+      <strong>Kein Vorjahres-Cup gefunden.</strong><br>
+      Es wurde kein Cup mit <code>special_ruleset = {{ cup.special_ruleset or '(leer)' }}</code>
+      und Saison {{ cup.season - 1 }} gefunden, oder es sind noch keine Finalresultate eingetragen.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

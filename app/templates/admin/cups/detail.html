@@ -219,6 +219,8 @@
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="fw-semibold">✅ Qualifizierte Teams</span>
     <div class="d-flex gap-2">
+      <a href="{{ url_for('cups_admin.cup_detect_title_defender', cup_id=cup.id, key=admin_key) }}"
+         class="btn btn-sm btn-outline-warning">👑 Titelverteidiger erkennen</a>
       <form method="POST" action="{{ url_for('cups_admin.cup_run_qualification', cup_id=cup.id, key=admin_key) }}"
             onsubmit="return confirm('Qualifikation neu berechnen? Bestehende Auto-Einträge werden ersetzt, manuelle bleiben.')">
         <button class="btn btn-sm btn-warning">🔄 Jetzt berechnen</button>

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}AOA-Import Vorschau – {{ event.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('aoa_import.aoa_import_home', key=admin_key) }}"
+     class="btn btn-outline-secondary btn-sm">← Zurück</a>
+  <h2 class="mb-0">⬆ AOA-Import Vorschau</h2>
+  <span class="badge bg-primary fs-6">{{ event.name }}</span>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">{{ previews | length }} Zeilen erkannt</span>
+    <div class="d-flex gap-3 align-items-center small text-muted">
+      <span>
+        <span class="badge bg-success">{{ previews | selectattr('already_registered', 'false') | selectattr('already_registered', 'equalto', false) | list | length }}</span> neu
+      </span>
+      <span>
+        <span class="badge bg-warning text-dark">{{ previews | selectattr('already_registered') | list | length }}</span> bereits registriert
+      </span>
+      <span>
+        <span class="badge bg-info text-dark">{{ previews | selectattr('existing_dog') | list | length }}</span> Hund bekannt
+      </span>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div style="max-height: 450px; overflow-y: auto;">
+      <table class="table table-sm table-bordered mb-0" style="font-size:.85rem">
+        <thead class="table-light sticky-top">
+          <tr>
+            <th>#</th>
+            <th>Lizenz</th>
+            <th>Hund</th>
+            <th>Kat / Kl</th>
+            <th>Hundeführer</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in previews %}
+          <tr class="{% if p.already_registered %}table-warning{% elif p.existing_dog %}table-info{% endif %}">
+            <td class="text-muted">{{ p.row_no }}</td>
+            <td>
+              <code>{{ p.license_no }}</code>
+              <span class="badge bg-secondary ms-1">{{ p.license_kind }}</span>
+            </td>
+            <td>{{ p.dog_name }}</td>
+            <td>{{ p.category }} / {{ p.class_level }}</td>
+            <td>{{ p.first_name }} {{ p.last_name }}{% if p.email %}<br><small class="text-muted">{{ p.email }}</small>{% endif %}</td>
+            <td>
+              {% if p.already_registered %}
+              <span class="badge bg-warning text-dark">Bereits registriert</span>
+              {% elif p.existing_dog %}
+              <span class="badge bg-info text-dark">Hund bekannt</span>
+              {% else %}
+              <span class="badge bg-success">Neu</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# Spalten-Mapping anzeigen #}
+<div class="card mb-3 border-secondary">
+  <div class="card-header small text-muted">Erkannte Spaltenzuordnung</div>
+  <div class="card-body small">
+    <div class="row g-2">
+      {% for label, col in [
+        ('Lizenz', col_license), ('Hundename', col_dog_name),
+        ('Kategorie', col_category), ('Klasse', col_class),
+        ('Vorname', col_first_name), ('Nachname', col_last_name),
+        ('Email', col_email), ('Telefon', col_phone), ('Verein', col_club),
+      ] %}
+      <div class="col-md-3">
+        <span class="text-muted">{{ label }}:</span>
+        {% if col %}
+        <code class="text-success">{{ col }}</code>
+        {% else %}
+        <span class="text-danger">—</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('aoa_import.aoa_import_execute', key=admin_key) }}">
+  <input type="hidden" name="event_id" value="{{ event.id }}">
+  <input type="hidden" name="csv_b64" value="{{ csv_b64 }}">
+  <div class="card">
+    <div class="card-body">
+      <div class="form-check mb-3">
+        <input type="checkbox" name="skip_existing" id="skip_existing" class="form-check-input" checked>
+        <label class="form-check-label" for="skip_existing">
+          Bereits registrierte Hunde überspringen (nicht aktualisieren)
+        </label>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success"
+                onclick="return confirm('{{ previews | length }} Einträge für {{ event.name }} importieren?')">
+          ✅ Import durchführen
+        </button>
+        <a href="{{ url_for('aoa_import.aoa_import_home', key=admin_key) }}"
+           class="btn btn-outline-secondary">Abbrechen</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

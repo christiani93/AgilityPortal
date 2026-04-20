@@ -8,10 +8,15 @@ from functools import wraps
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for, current_app
 
+from flask_login import current_user
+
 from app.extensions import db
 from app.models import (Cup, CupEvent, CupFinal, CupFinalParticipant, CupFinalMatchup,
                         CupQualificationRun, CupQualifiedTeam, Event)
-from app.services.cup_qualification import run_qualification, get_qualification
+from app.services.cup_qualification import (
+    run_qualification, get_qualification,
+    detect_title_defenders, already_has_title_defender,
+)
 
 
 cups_admin_bp = Blueprint("cups_admin", __name__)
@@ -20,6 +25,9 @@ cups_admin_bp = Blueprint("cups_admin", __name__)
 def _require_admin_key(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        # Eingeloggte Superadmins haben immer Zugriff
+        if current_user.is_authenticated and getattr(current_user, 'is_superadmin', False):
+            return func(*args, **kwargs)
         expected = current_app.config.get("ADMIN_KEY")
         provided = request.args.get("key") or request.headers.get("X-Admin-Key")
         if not expected or provided != expected:
@@ -29,6 +37,9 @@ def _require_admin_key(func):
 
 
 def _admin_key():
+    """Key für URL-Parameter – leer wenn Superadmin eingeloggt."""
+    if current_user.is_authenticated and getattr(current_user, 'is_superadmin', False):
+        return ""
     return request.args.get("key") or ""
 
 
@@ -444,26 +455,70 @@ def cup_final_matchup_result(cup_id, final_id, matchup_id):
     return redirect(url_for("cups_admin.cup_final_detail", cup_id=cup_id, final_id=final_id, key=_admin_key()))
 
 
+# ── Titelverteidiger automatisch ermitteln ────────────────────────────────────
+
+@cups_admin_bp.route("/admin/cups/<int:cup_id>/title-defender/detect", methods=["GET", "POST"])
+@_require_admin_key
+def cup_detect_title_defender(cup_id):
+    """Vorjahressieger ermitteln und als Titelverteidiger eintragen."""
+    cup = db.get_or_404(Cup, cup_id)
+    candidates = detect_title_defenders(cup)
+
+    if request.method == "POST":
+        added = 0
+        for group_key, info in candidates.items():
+            cat = info["category_code"]
+            # Nur eintragen wenn noch kein Titelverteidiger für diese Kategorie
+            if already_has_title_defender(cup, cat):
+                continue
+            selected = request.form.get(f"add_{group_key}")
+            if selected != "1":
+                continue
+            qt = CupQualifiedTeam(
+                cup_id=cup.id,
+                category_code=cat,
+                class_level=None,
+                dog_name=info["dog_name"],
+                handler_name=info["handler_name"],
+                license_no=info.get("license_no"),
+                qualification_source=CupQualifiedTeam.SOURCE_TITLE_DEFENDER,
+                seeding_note=f"Vorjahressieger {cup.season - 1}",
+            )
+            db.session.add(qt)
+            added += 1
+        db.session.commit()
+        if added:
+            flash(f"{added} Titelverteidiger eingetragen.", "success")
+        else:
+            flash("Keine neuen Titelverteidiger eingetragen (bereits vorhanden oder nicht ausgewählt).", "warning")
+        return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+    # GET: Vorschau anzeigen
+    existing_defenders = {
+        qt.category_code
+        for qt in CupQualifiedTeam.query.filter_by(
+            cup_id=cup_id,
+            qualification_source=CupQualifiedTeam.SOURCE_TITLE_DEFENDER,
+        ).all()
+    }
+    return render_template(
+        "admin/cups/title_defender_detect.html",
+        cup=cup,
+        candidates=candidates,
+        existing_defenders=existing_defenders,
+        admin_key=_admin_key(),
+    )
+
+
 # ── Hilfsfunktion: Formular → Cup ─────────────────────────────────────────────
 
 def _cup_from_form(cup: Cup) -> Cup:
     cup.name = request.form.get("name", "").strip()
     cup.season = request.form.get("season", type=int) or 2026
-    cup.special_ruleset = request.form.get("special_ruleset") or None
+    cup.special_ruleset = request.form.get("special_ruleset", "").strip() or None
     cup.description = request.form.get("description", "").strip() or None
     cup.is_active = bool(request.form.get("is_active"))
-    cup.count_best_meetings = request.form.get("count_best_meetings", type=int) or None
+    cup.title_defender_spots = request.form.get("title_defender_spots", type=int) or 1
+    cup.wildcard_spots = request.form.get("wildcard_spots", type=int) or 0
     cup.split_by_class = bool(request.form.get("split_by_class"))
-    cup.split_by_run_type = bool(request.form.get("split_by_run_type"))
-
-    # Punktetabelle: kommagetrennte Zahlen → JSON
-    points_raw = request.form.get("point_system", "").strip()
-    if points_raw:
-        try:
-            points = [int(x.strip()) for x in points_raw.split(",") if x.strip()]
-            cup.point_system_json = json.dumps(points)
-        except ValueError:
-            cup.point_system_json = None
-    else:
-        cup.point_system_json = None  # Default verwenden
     return cup
