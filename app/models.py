@@ -915,9 +915,51 @@ class Cup(db.Model):
         order_by="CupQualifiedTeam.category_code, CupQualifiedTeam.class_level, CupQualifiedTeam.id",
         cascade="all, delete-orphan",
     )
+    allowed_organisers = db.relationship(
+        "CupAllowedOrganiser",
+        back_populates="cup",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def restricts_organisers(self) -> bool:
+        """True wenn nur bestimmte Vereine diesen Cup durchführen dürfen."""
+        return len(self.allowed_organisers) > 0
+
+    @property
+    def allowed_club_ids(self) -> set:
+        return {ao.club_id for ao in self.allowed_organisers}
+
+    def allows_club(self, club_id) -> bool:
+        """True wenn kein Restriction oder Verein in der Erlaubnisliste."""
+        if not self.restricts_organisers:
+            return True
+        return club_id in self.allowed_club_ids
 
     def __repr__(self):
         return f"<Cup {self.name!r} {self.season}>"
+
+
+class CupAllowedOrganiser(db.Model):
+    """
+    Erlaubter Veranstalter-Verein für einen Cup.
+    Falls für einen Cup keine Einträge vorhanden: alle Vereine erlaubt.
+    Falls mindestens ein Eintrag vorhanden: nur diese Vereine erlaubt.
+    """
+    __tablename__ = "cup_allowed_organisers"
+    __table_args__ = (
+        db.UniqueConstraint("cup_id", "club_id", name="uq_cup_allowed_org"),
+    )
+
+    id      = db.Column(db.Integer, primary_key=True)
+    cup_id  = db.Column(db.Integer, db.ForeignKey("cups.id"), nullable=False)
+    club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=False)
+
+    cup  = db.relationship("Cup", back_populates="allowed_organisers")
+    club = db.relationship("Club")
+
+    def __repr__(self):
+        return f"<CupAllowedOrganiser cup={self.cup_id} club={self.club_id}>"
 
 
 class CupEvent(db.Model):

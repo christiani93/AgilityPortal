@@ -77,6 +77,35 @@
         </div>
       </div>
 
+      <hr>
+      <h6 class="text-muted mb-3">Veranstalter-Einschränkung</h6>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Erlaubte Veranstalter-Vereine</label>
+        <div class="form-text mb-2">
+          Kein Verein ausgewählt = alle Vereine dürfen diesen Cup durchführen.<br>
+          Vereine auswählen = nur diese Vereine sind als Veranstalter zugelassen
+          (z.B. «Halloween Cup» nur durch Agility Team Seeland).
+        </div>
+        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+          {% if clubs %}
+            {% for club in clubs %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox"
+                     name="allowed_club_ids" value="{{ club.id }}"
+                     id="club_{{ club.id }}"
+                     {% if cup and club.id in cup.allowed_club_ids %}checked{% endif %}>
+              <label class="form-check-label" for="club_{{ club.id }}">
+                {{ club.name }}
+                <span class="text-muted small">({{ club.vereinsnummer }})</span>
+              </label>
+            </div>
+            {% endfor %}
+          {% else %}
+            <span class="text-muted">Keine Vereine im System.</span>
+          {% endif %}
+        </div>
+      </div>
+
       <button type="submit" class="btn btn-primary">💾 Speichern</button>
       <a href="{{ url_for('cups_admin.cup_list', key=admin_key) }}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
     </form>

@@ -9,6 +9,17 @@
       {% if cup.is_active %}<span class="badge bg-success fs-6 ms-1">Aktiv</span>{% endif %}
     </h2>
     {% if cup.description %}<p class="text-muted mb-0">{{ cup.description }}</p>{% endif %}
+    {% if cup.restricts_organisers %}
+    <div class="mt-2">
+      <span class="badge bg-warning text-dark">
+        🔒 Nur bestimmte Veranstalter:
+        {% for ao in cup.allowed_organisers %}{{ ao.club.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+      </span>
+      {% if current_user.is_superadmin %}
+      <span class="badge bg-secondary ms-1" title="SuperAdmin kann trotzdem alle Events verknüpfen">🛡 SuperAdmin-Bypass aktiv</span>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
   <div class="d-flex gap-2">
     <a href="{{ url_for('cups_admin.cup_edit', cup_id=cup.id, key=admin_key) }}" class="btn btn-outline-secondary">✏️ Bearbeiten</a>

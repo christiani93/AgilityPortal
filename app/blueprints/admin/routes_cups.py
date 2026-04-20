@@ -11,7 +11,8 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user
 
 from app.extensions import db
-from app.models import (Cup, CupEvent, CupFinal, CupFinalParticipant, CupFinalMatchup,
+from app.models import (Club, Cup, CupAllowedOrganiser, CupEvent, CupFinal,
+                        CupFinalParticipant, CupFinalMatchup,
                         CupQualificationRun, CupQualifiedTeam, Event)
 from app.services.cup_qualification import (
     run_qualification, get_qualification,
@@ -57,13 +58,14 @@ def cup_list():
 @cups_admin_bp.route("/admin/cups/new", methods=["GET", "POST"])
 @_require_admin_key
 def cup_new():
+    clubs = Club.query.order_by(Club.name).all()
     if request.method == "POST":
         cup = _cup_from_form(Cup())
         db.session.add(cup)
         db.session.commit()
         flash(f"Cup «{cup.name}» wurde angelegt.", "success")
         return redirect(url_for("cups_admin.cup_detail", cup_id=cup.id, key=_admin_key()))
-    return render_template("admin/cups/form.html", cup=None, admin_key=_admin_key())
+    return render_template("admin/cups/form.html", cup=None, clubs=clubs, admin_key=_admin_key())
 
 
 # ── Cup-Detail + Standings ─────────────────────────────────────────────────────
@@ -75,12 +77,14 @@ def cup_detail(cup_id):
     qualification = get_qualification(cup)
     events = Event.query.order_by(Event.date_from.desc()).limit(200).all()
     finals = CupFinal.query.filter_by(cup_id=cup_id).order_by(CupFinal.group_label).all()
+    clubs = Club.query.order_by(Club.name).all()
     return render_template(
         "admin/cups/detail.html",
         cup=cup,
         qualification=qualification,
         events=events,
         finals=finals,
+        clubs=clubs,
         admin_key=_admin_key(),
     )
 
@@ -100,6 +104,19 @@ def cup_qual_run_add(cup_id):
 
     if not event_id or not discipline:
         flash("Event und Disziplin sind Pflicht.", "danger")
+        return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+    # Veranstalter-Einschränkung prüfen (Superadmin darf immer)
+    is_superadmin = current_user.is_authenticated and getattr(current_user, 'is_superadmin', False)
+    qual_event = db.session.get(Event, event_id)
+    if not is_superadmin and qual_event and not cup.allows_club(qual_event.organiser_club_id):
+        allowed_names = ", ".join(ao.club.name for ao in cup.allowed_organisers)
+        club_name = qual_event.organiser_club.name if qual_event.organiser_club else "kein Verein"
+        flash(
+            f"Der Veranstalter «{club_name}» darf diesen Cup nicht durchführen. "
+            f"Erlaubte Vereine: {allowed_names}.",
+            "danger",
+        )
         return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
 
     # Automatische run_order wenn nicht angegeben
@@ -218,12 +235,13 @@ def cup_qualify_remove(cup_id, qt_id):
 @_require_admin_key
 def cup_edit(cup_id):
     cup = db.get_or_404(Cup, cup_id)
+    clubs = Club.query.order_by(Club.name).all()
     if request.method == "POST":
         _cup_from_form(cup)
         db.session.commit()
         flash("Cup gespeichert.", "success")
         return redirect(url_for("cups_admin.cup_detail", cup_id=cup.id, key=_admin_key()))
-    return render_template("admin/cups/form.html", cup=cup, admin_key=_admin_key())
+    return render_template("admin/cups/form.html", cup=cup, clubs=clubs, admin_key=_admin_key())
 
 
 # ── Event zum Cup hinzufügen ───────────────────────────────────────────────────
@@ -242,6 +260,18 @@ def cup_event_add(cup_id):
     event = db.session.get(Event, event_id)
     if not event:
         flash("Event nicht gefunden.", "danger")
+        return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
+
+    # Veranstalter-Einschränkung prüfen (Superadmin darf immer)
+    is_superadmin = current_user.is_authenticated and getattr(current_user, 'is_superadmin', False)
+    if not is_superadmin and not cup.allows_club(event.organiser_club_id):
+        allowed_names = ", ".join(ao.club.name for ao in cup.allowed_organisers)
+        club_name = event.organiser_club.name if event.organiser_club else "kein Verein"
+        flash(
+            f"Der Veranstalter «{club_name}» darf diesen Cup nicht durchführen. "
+            f"Erlaubte Vereine: {allowed_names}.",
+            "danger",
+        )
         return redirect(url_for("cups_admin.cup_detail", cup_id=cup_id, key=_admin_key()))
 
     # Prüfen ob bereits verknüpft
@@ -521,4 +551,14 @@ def _cup_from_form(cup: Cup) -> Cup:
     cup.title_defender_spots = request.form.get("title_defender_spots", type=int) or 1
     cup.wildcard_spots = request.form.get("wildcard_spots", type=int) or 0
     cup.split_by_class = bool(request.form.get("split_by_class"))
+
+    # Erlaubte Veranstalter-Vereine
+    selected_club_ids = {int(v) for v in request.form.getlist("allowed_club_ids") if v.isdigit()}
+    # Bestehende löschen und neu setzen
+    cup.allowed_organisers.clear()
+    for club_id in selected_club_ids:
+        club = db.session.get(Club, club_id)
+        if club:
+            cup.allowed_organisers.append(CupAllowedOrganiser(club_id=club_id))
+
     return cup
