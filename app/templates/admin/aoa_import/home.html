@@ -20,7 +20,7 @@
               {% for ev in events %}
               <option value="{{ ev.id }}">
                 {{ ev.name }}
-                {% if ev.date_from %}({{ ev.date_from.strftime('%d.%m.%Y') }}){% endif %}
+                {% if ev.starts_at %}({{ ev.starts_at.strftime('%d.%m.%Y') }}){% endif %}
               </option>
               {% endfor %}
             </select>

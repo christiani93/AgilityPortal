@@ -79,7 +79,7 @@ def compute_standings(cup: Cup) -> dict[str, list[DogStanding]]:
         if not results:
             continue
 
-        event_date = event.date_from.strftime('%d.%m.%Y') if event.date_from else '–'
+        event_date = event.starts_at.strftime('%d.%m.%Y') if event.starts_at else '–'
 
         # Resultate nach Gruppe und Hund gruppieren
         # Gruppe: (category_code, class_level_or_None)

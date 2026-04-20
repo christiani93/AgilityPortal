@@ -40,7 +40,7 @@
         <tr>
           <td><span class="badge bg-dark">{{ ce.meeting_no }}</span></td>
           <td>{{ ce.event.name if ce.event else '?' }}</td>
-          <td>{{ ce.event.date_from.strftime('%d.%m.%Y') if ce.event and ce.event.date_from else '–' }}</td>
+          <td>{{ ce.event.starts_at.strftime('%d.%m.%Y') if ce.event and ce.event.starts_at else '–' }}</td>
           <td class="text-end">
             <form method="POST"
                   action="{{ url_for('cups_admin.cup_event_remove', cup_id=cup.id, cup_event_id=ce.id, key=admin_key) }}"
@@ -63,7 +63,7 @@
         <select name="event_id" class="form-select form-select-sm" required>
           <option value="">— Event wählen —</option>
           {% for ev in events %}
-          <option value="{{ ev.id }}">{{ ev.name }}{% if ev.date_from %} ({{ ev.date_from.strftime('%d.%m.%Y') }}){% endif %}</option>
+          <option value="{{ ev.id }}">{{ ev.name }}{% if ev.starts_at %} ({{ ev.starts_at.strftime('%d.%m.%Y') }}){% endif %}</option>
           {% endfor %}
         </select>
       </div>
@@ -148,7 +148,7 @@
                 <select name="event_id" class="form-select form-select-sm" required>
                   <option value="">— wählen —</option>
                   {% for ev in events %}
-                  <option value="{{ ev.id }}">{{ ev.name }}{% if ev.date_from %} ({{ ev.date_from.strftime('%d.%m.%Y') }}){% endif %}</option>
+                  <option value="{{ ev.id }}">{{ ev.name }}{% if ev.starts_at %} ({{ ev.starts_at.strftime('%d.%m.%Y') }}){% endif %}</option>
                   {% endfor %}
                 </select>
               </div>

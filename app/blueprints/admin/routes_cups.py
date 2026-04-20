@@ -97,7 +97,7 @@ def cup_new():
 def cup_detail(cup_id):
     cup = db.get_or_404(Cup, cup_id)
     qualification = get_qualification(cup)
-    events = Event.query.order_by(Event.date_from.desc()).limit(200).all()
+    events = Event.query.order_by(Event.starts_at.desc()).limit(200).all()
     finals = CupFinal.query.filter_by(cup_id=cup_id).order_by(CupFinal.group_label).all()
     clubs = Club.query.order_by(Club.name).all()
     return render_template(
