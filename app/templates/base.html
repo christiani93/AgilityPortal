@@ -116,6 +116,11 @@
         ⬆ AOA-Import
       </a>
       {% endif %}
+      <div class="nav-section">Feedback</div>
+      <a href="/feedback"
+         class="{% if request.path == '/feedback' %}active{% endif %}">
+        🐞 {{ _('Bug / Wunsch melden') }}
+      </a>
     </nav>
     <main class="col-md-10 main-content">
     {% else %}
