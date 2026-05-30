@@ -27,6 +27,7 @@ def create_app():
         import crashguard
         crashguard.install(project="AgilityPortal", repo_dir=_cg_root)
         crashguard.init_flask(app)
+        crashguard.install_feedback(app, project="AgilityPortal")
     except Exception:
         pass
 
