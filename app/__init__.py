@@ -17,6 +17,19 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     os.makedirs(app.instance_path, exist_ok=True)
 
+    # crashguard: Crash-/Fehler-Erfassung (URL+Token via CRASHGUARD_URL/_TOKEN env;
+    # ohne gesetzte Env nur lokales Schreiben, kein Versand).
+    try:
+        import sys as _cg_sys
+        _cg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if _cg_root not in _cg_sys.path:
+            _cg_sys.path.insert(0, _cg_root)
+        import crashguard
+        crashguard.install(project="AgilityPortal", repo_dir=_cg_root)
+        crashguard.init_flask(app)
+    except Exception:
+        pass
+
     # --- Datenbank ---
     database_uri = os.environ.get("DATABASE_URL")
     if not database_uri:
