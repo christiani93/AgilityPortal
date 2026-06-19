@@ -14,23 +14,59 @@ branch_labels = None
 depends_on = None
 
 
+def _column_exists(bind, table, column):
+    cols = [c['name'] for c in sa.inspect(bind).get_columns(table)]
+    return column in cols
+
+
 def upgrade():
-    with op.batch_alter_table('event_runs') as batch_op:
-        batch_op.add_column(
-            sa.Column('is_final', sa.Boolean(), nullable=False, server_default=sa.false())
-        )
-        batch_op.drop_constraint('uq_event_run', type_='unique')
-        batch_op.create_unique_constraint(
-            'uq_event_run',
-            ['event_id', 'run_type', 'category', 'class_level', 'is_final'],
-        )
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+
+    if dialect == 'mysql':
+        # MySQL: uq_event_run wird vom event_id-FK als Backing-Index benutzt.
+        # → DROP INDEX scheitert direkt. Workaround: neuen Index unter anderem
+        #   Namen anlegen, dann den alten droppen (MySQL nimmt automatisch den
+        #   neuen als FK-Backing), dann optional umbenennen.
+        if not _column_exists(bind, 'event_runs', 'is_final'):
+            op.add_column('event_runs',
+                          sa.Column('is_final', sa.Boolean(), nullable=False,
+                                    server_default=sa.false()))
+        op.execute("ALTER TABLE event_runs ADD UNIQUE KEY uq_event_run_v2 "
+                   "(event_id, run_type, category, class_level, is_final)")
+        op.execute("ALTER TABLE event_runs DROP INDEX uq_event_run")
+        op.execute("ALTER TABLE event_runs RENAME INDEX uq_event_run_v2 TO uq_event_run")
+    else:
+        # SQLite & andere: batch-Mode (re-create-table) klappt sauber.
+        with op.batch_alter_table('event_runs') as batch_op:
+            if not _column_exists(bind, 'event_runs', 'is_final'):
+                batch_op.add_column(
+                    sa.Column('is_final', sa.Boolean(), nullable=False,
+                              server_default=sa.false())
+                )
+            batch_op.drop_constraint('uq_event_run', type_='unique')
+            batch_op.create_unique_constraint(
+                'uq_event_run',
+                ['event_id', 'run_type', 'category', 'class_level', 'is_final'],
+            )
 
 
 def downgrade():
-    with op.batch_alter_table('event_runs') as batch_op:
-        batch_op.drop_constraint('uq_event_run', type_='unique')
-        batch_op.create_unique_constraint(
-            'uq_event_run',
-            ['event_id', 'run_type', 'category', 'class_level'],
-        )
-        batch_op.drop_column('is_final')
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+
+    if dialect == 'mysql':
+        op.execute("ALTER TABLE event_runs ADD UNIQUE KEY uq_event_run_v2 "
+                   "(event_id, run_type, category, class_level)")
+        op.execute("ALTER TABLE event_runs DROP INDEX uq_event_run")
+        op.execute("ALTER TABLE event_runs RENAME INDEX uq_event_run_v2 TO uq_event_run")
+        if _column_exists(bind, 'event_runs', 'is_final'):
+            op.drop_column('event_runs', 'is_final')
+    else:
+        with op.batch_alter_table('event_runs') as batch_op:
+            batch_op.drop_constraint('uq_event_run', type_='unique')
+            batch_op.create_unique_constraint(
+                'uq_event_run',
+                ['event_id', 'run_type', 'category', 'class_level'],
+            )
+            batch_op.drop_column('is_final')
