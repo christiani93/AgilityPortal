@@ -813,10 +813,14 @@
           <td>
             {% if reg.status.value == 'PENDING' %}
               <span class="badge bg-warning text-dark">{{ _('Ausstehend') }}</span>
+            {% elif reg.status.value == 'SUBMITTED' %}
+              <span class="badge bg-primary">{{ _('Eingereicht') }}</span>
             {% elif reg.status.value == 'CONFIRMED' %}
               <span class="badge bg-success">{{ _('Bestätigt') }}</span>
-            {% else %}
+            {% elif reg.status.value == 'CANCELLED' %}
               <span class="badge bg-secondary">{{ _('Storniert') }}</span>
+            {% else %}
+              <span class="badge bg-light text-dark">{{ reg.status.value }}</span>
             {% endif %}
           </td>
           <td class="text-center">

@@ -552,6 +552,7 @@ def import_event_package_zip(zip_bytes: bytes, is_test: bool = True) -> EventPac
             status=status,
             tka_event_check_status=tka_status,
             club_name=r.get("club_name"),
+            start_number=r.get("start_number"),
         )
         db.session.add(reg)
         db.session.flush()
