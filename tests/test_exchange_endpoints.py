@@ -192,6 +192,139 @@ def test_resultexport_import_finalists_block(app):
         assert [f.position for f in persisted] == [1, 2, 3]
 
 
+def _build_event_export_zip(external_id="evt-imp-1", with_schedule=True,
+                             with_startnumbers=True):
+    """Synthetisches eventexport.v1.zip für Import-Tests."""
+    manifest = {"schema": "agility.exchange.eventexport.v1"}
+    event_payload = {
+        "external_id": external_id,
+        "name":        "Imported Event",
+        "location":    "Münsingen",
+        "starts_at":   "2026-12-05T08:00:00",
+        "billing_mode":"ORGANIZER",
+    }
+    entities = {
+        "persons": [
+            {"external_id": "p-1", "first_name": "Anna", "last_name": "Tester"},
+            {"external_id": "p-2", "first_name": "Beat", "last_name": "Beispiel"},
+        ],
+        "dogs": [
+            {"external_id": "d-1", "name": "Rex", "license_no": "1001", "license_kind": "CH"},
+            {"external_id": "d-2", "name": "Bo",  "license_no": "1002", "license_kind": "CH"},
+        ],
+    }
+    registrations = [
+        {"external_id": "r-1", "event_external_id": external_id,
+         "dog_external_id": "d-1", "handler_person_external_id": "p-1",
+         "category_code": "Large", "class_level": 3, "status": "SUBMITTED",
+         "tka_event_check_status": "PENDING"},
+        {"external_id": "r-2", "event_external_id": external_id,
+         "dog_external_id": "d-2", "handler_person_external_id": "p-2",
+         "category_code": "Large", "class_level": 2, "status": "SUBMITTED",
+         "tka_event_check_status": "PENDING"},
+    ]
+    start_numbers = {
+        "event_external_id": external_id,
+        "locked": True,
+        "numbers": [
+            {"registration_external_id": "r-1", "start_no": 1},
+            {"registration_external_id": "r-2", "start_no": 2},
+        ],
+    } if with_startnumbers else {}
+    schedule = {
+        "event_external_id": external_id,
+        "timezone": "Europe/Zurich",
+        "locked": False,
+        "blocks": [
+            {"ring": "1", "start_at": "2026-12-05T08:00:00",
+             "discipline": "Agility", "category_code": "Large",
+             "class_level": 3, "notes": "Block 1"},
+        ],
+    } if with_schedule else {}
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("manifest.json",      json.dumps(manifest))
+        zf.writestr("event.json",         json.dumps(event_payload))
+        zf.writestr("entities.json",      json.dumps(entities))
+        zf.writestr("registrations.json", json.dumps(registrations))
+        if with_startnumbers:
+            zf.writestr("start_numbers.json", json.dumps(start_numbers))
+        if with_schedule:
+            zf.writestr("schedule.json", json.dumps(schedule))
+    return buf.getvalue()
+
+
+def test_event_package_import_creates_event(app):
+    with app.app_context():
+        zip_bytes = _build_event_export_zip("evt-imp-1")
+        resp = app.test_client().post(
+            "/admin/exchange/event-package/import?key=dev-admin-key",
+            data={"package": (io.BytesIO(zip_bytes), "evt.zip")},
+            content_type="multipart/form-data",
+            follow_redirects=False,
+        )
+        # POST redirects to GET → 302
+        assert resp.status_code == 302
+        event = Event.query.filter_by(external_id="evt-imp-1").first()
+        assert event is not None
+        assert event.is_test is True
+        assert event.is_published is False
+        assert event.name == "Imported Event"
+        # Anmeldungen + Stammdaten
+        from app.models import Person, Dog, ScheduleBlock, StartNumber
+        assert Person.query.filter_by(external_id="p-1").count() == 1
+        assert Dog.query.filter_by(external_id="d-1").count() == 1
+        from app.models import Registration as Reg
+        assert Reg.query.filter_by(event_id=event.id).count() == 2
+        assert StartNumber.query.filter_by(event_id=event.id).count() == 2
+        assert ScheduleBlock.query.filter_by(event_id=event.id).count() == 1
+
+
+def test_event_package_import_idempotent(app):
+    """Zweiter Import des gleichen Events: ersetzt Anmeldungen, dupliziert nicht."""
+    with app.app_context():
+        zip_bytes = _build_event_export_zip("evt-imp-2")
+        client = app.test_client()
+        # 1. Import
+        client.post(
+            "/admin/exchange/event-package/import?key=dev-admin-key",
+            data={"package": (io.BytesIO(zip_bytes), "evt.zip")},
+            content_type="multipart/form-data",
+        )
+        event = Event.query.filter_by(external_id="evt-imp-2").first()
+        assert event is not None
+        first_id = event.id
+
+        # 2. Import: gleiche Daten, sollte updaten nicht duplizieren
+        client.post(
+            "/admin/exchange/event-package/import?key=dev-admin-key",
+            data={"package": (io.BytesIO(zip_bytes), "evt.zip")},
+            content_type="multipart/form-data",
+        )
+        events = Event.query.filter_by(external_id="evt-imp-2").all()
+        assert len(events) == 1
+        assert events[0].id == first_id
+        from app.models import Registration as Reg
+        assert Reg.query.filter_by(event_id=event.id).count() == 2
+
+
+def test_event_package_import_rejects_wrong_schema(app):
+    with app.app_context():
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("manifest.json", json.dumps({"schema": "wrong.schema.v1"}))
+            zf.writestr("event.json", json.dumps({"external_id": "x"}))
+        resp = app.test_client().post(
+            "/admin/exchange/event-package/import?key=dev-admin-key",
+            data={"package": (io.BytesIO(buf.getvalue()), "bad.zip")},
+            content_type="multipart/form-data",
+            follow_redirects=True,
+        )
+        # Flash-Message zeigt Fehler
+        assert b"Import fehlgeschlagen" in resp.data or b"Ung" in resp.data
+
+
 def test_ensure_test_event_creates_with_test_flag(app):
     with app.app_context():
         client = app.test_client()

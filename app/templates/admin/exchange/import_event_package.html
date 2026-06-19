@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Event-Paket importieren{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-3">Event-Paket importieren</h1>
+  <p class="text-muted">
+    Lade ein <code>eventexport.v1.zip</code> hoch (z.B. von AgilitySoftware exportiert).
+    Das Event wird über die <code>external_id</code> im ZIP identifiziert — idempotent:
+    bestehende Events werden aktualisiert, neue Events werden mit <strong>is_test=True</strong>
+    und <strong>is_published=False</strong> angelegt (nicht öffentlich sichtbar).
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="alert alert-{{ category if category in ['success','danger','warning','info'] else 'info' }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" enctype="multipart/form-data"
+        action="{{ url_for('exchange_admin.import_event_package', key=admin_key) }}"
+        class="card card-body shadow-sm" style="max-width: 700px;">
+    <div class="mb-3">
+      <label for="package" class="form-label">ZIP-Datei</label>
+      <input type="file" id="package" name="package" accept=".zip" required class="form-control">
+      <div class="form-text">Schema: <code>agility.exchange.eventexport.v1</code></div>
+    </div>
+    <button type="submit" class="btn btn-primary">Importieren</button>
+  </form>
+
+  <div class="alert alert-secondary mt-4" style="max-width: 700px;">
+    <strong>Idempotenz-Hinweis:</strong>
+    Anmeldungen, Startnummern und Zeitplan-Blöcke des Events werden beim Import
+    <em>ersetzt</em> (alte gelöscht, neue eingefügt). Stammdaten (Personen, Hunde)
+    werden via <code>external_id</code> upgedatet, NICHT gelöscht.
+  </div>
+</div>
+{% endblock %}

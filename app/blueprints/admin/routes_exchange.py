@@ -1,11 +1,14 @@
 from datetime import datetime
 from functools import wraps
 
-from flask import Blueprint, Response, abort, current_app, jsonify, request
+from flask import (Blueprint, Response, abort, current_app, flash, jsonify,
+                   redirect, render_template, request, url_for)
 
 from app.extensions import db
 from app.models import Event, ExchangeExportLog
-from app.services.exchange_service import EVENT_EXPORT_SCHEMA, build_event_export_zip
+from app.services.exchange_service import (EVENT_EXPORT_SCHEMA,
+                                            build_event_export_zip,
+                                            import_event_package_zip)
 
 
 exchange_admin_bp = Blueprint("exchange_admin", __name__)
@@ -102,3 +105,43 @@ def ensure_test_event(external_id):
         "is_published":  event.is_published,
         "name":          event.name,
     })
+
+
+@exchange_admin_bp.route("/admin/exchange/event-package/import",
+                         methods=["GET", "POST"])
+@_require_admin_key
+def import_event_package():
+    """
+    Upload eines eventexport.v1.zip → erstellt/aktualisiert Event idempotent.
+    Neue Events werden als Test-Event markiert (is_test=True, is_published=False).
+    """
+    admin_key = request.args.get("key") or ""
+
+    if request.method == "POST":
+        uploaded = request.files.get("package")
+        if not uploaded or not uploaded.filename:
+            flash("Keine Datei hochgeladen.", "danger")
+            return redirect(url_for("exchange_admin.import_event_package", key=admin_key))
+
+        try:
+            zip_bytes = uploaded.read()
+            result = import_event_package_zip(zip_bytes, is_test=True)
+        except Exception as exc:
+            flash(f"Import fehlgeschlagen: {exc}", "danger")
+            return redirect(url_for("exchange_admin.import_event_package", key=admin_key))
+
+        action = "erstellt" if result.created else "aktualisiert"
+        msg = (
+            f"Event {action}: id={result.event_id}, external_id={result.external_id}. "
+            f"{result.persons} Personen, {result.dogs} Hunde, "
+            f"{result.registrations} Anmeldungen, {result.start_numbers} Startnummern, "
+            f"{result.schedule_blocks} Schedule-Blöcke."
+        )
+        flash(msg, "success")
+        for w in result.warnings:
+            flash(w, "warning")
+        return redirect(url_for("exchange_admin.import_event_package", key=admin_key))
+
+    # GET: Upload-Formular
+    return render_template("admin/exchange/import_event_package.html",
+                           admin_key=admin_key)

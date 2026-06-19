@@ -16,12 +16,16 @@ from app.models import (
     Dog,
     Event,
     EventFinalist,
+    LicenseKind,
     LiveUpdate,
+    Person,
     Registration,
+    RegistrationStatus,
     Result,
     ResultImport,
     StartNumber,
     ScheduleBlock,
+    TkaEventCheckStatus,
 )
 
 EVENT_EXPORT_SCHEMA = "agility.exchange.eventexport.v1"
@@ -378,3 +382,205 @@ def _parse_datetime(value):
         return datetime.fromisoformat(value)
     except ValueError:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Event-Package Import (inverse von build_event_export_zip)
+# ---------------------------------------------------------------------------
+
+class EventPackageImportResult:
+    def __init__(self):
+        self.created = False
+        self.event_id = None
+        self.external_id = None
+        self.persons = 0
+        self.dogs = 0
+        self.registrations = 0
+        self.start_numbers = 0
+        self.schedule_blocks = 0
+        self.warnings: list[str] = []
+
+
+def import_event_package_zip(zip_bytes: bytes, is_test: bool = True) -> EventPackageImportResult:
+    """
+    Importiert ein eventexport.v1.zip ins Portal — invers zu build_event_export_zip.
+
+    Idempotent: Match via external_id, create-or-update.
+      - Event: erstellt oder aktualisiert Stammdaten (Name, Datum, Location)
+      - Persons / Dogs: upsert via external_id, Fallback: Dog matched über license_no
+      - Registrations: gelöscht und neu erstellt (einfacher als komplexer Diff)
+      - StartNumbers: gelöscht und neu erstellt
+      - ScheduleBlocks: gelöscht und neu erstellt
+
+    is_test=True (Default): neue Events bekommen is_test=True und is_published=False
+    (geeignet für Demo-Daten). Bei bestehendem Event werden Test-Flags NICHT geändert.
+    """
+    result = EventPackageImportResult()
+
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zip_file:
+        names = set(zip_file.namelist())
+        if "manifest.json" not in names:
+            raise ValueError("ZIP enthält kein manifest.json")
+        manifest = json.loads(zip_file.read("manifest.json"))
+        if manifest.get("schema") != EVENT_EXPORT_SCHEMA:
+            raise ValueError(f"Ungültiges Schema: {manifest.get('schema')!r}, erwartet {EVENT_EXPORT_SCHEMA!r}")
+        if "event.json" not in names:
+            raise ValueError("ZIP enthält kein event.json")
+        event_payload = json.loads(zip_file.read("event.json"))
+        entities = json.loads(zip_file.read("entities.json")) if "entities.json" in names else {}
+        regs_payload = json.loads(zip_file.read("registrations.json")) if "registrations.json" in names else []
+        snums_payload = json.loads(zip_file.read("start_numbers.json")) if "start_numbers.json" in names else {}
+        schedule = json.loads(zip_file.read("schedule.json")) if "schedule.json" in names else {}
+
+    external_id = event_payload.get("external_id")
+    if not external_id:
+        raise ValueError("event.external_id fehlt")
+    result.external_id = external_id
+
+    # 1) Event upsert
+    event = Event.query.filter_by(external_id=external_id).first()
+    if not event:
+        event = Event(
+            external_id=external_id,
+            name=event_payload.get("name") or f"Importiert {external_id[:8]}",
+            is_test=is_test,
+            is_published=False,
+        )
+        db.session.add(event)
+        result.created = True
+    else:
+        if event_payload.get("name"):
+            event.name = event_payload["name"]
+    if event_payload.get("location"):
+        event.location = event_payload["location"]
+    if event_payload.get("starts_at"):
+        event.starts_at = _parse_datetime(event_payload["starts_at"])
+    if event_payload.get("ends_at"):
+        event.ends_at = _parse_datetime(event_payload["ends_at"])
+    db.session.flush()
+    result.event_id = event.id
+
+    # 2) Persons upsert
+    person_id_by_ext: dict[str, int] = {}
+    for p in entities.get("persons", []):
+        ext = p.get("external_id")
+        if not ext:
+            continue
+        person = Person.query.filter_by(external_id=ext).first()
+        if not person:
+            person = Person(
+                external_id=ext,
+                first_name=(p.get("first_name") or "")[:100],
+                last_name=(p.get("last_name") or "")[:100],
+                email=(p.get("email") or None),
+            )
+            db.session.add(person)
+        else:
+            if p.get("first_name"):
+                person.first_name = p["first_name"][:100]
+            if p.get("last_name"):
+                person.last_name = p["last_name"][:100]
+            if p.get("email"):
+                person.email = p["email"]
+        db.session.flush()
+        person_id_by_ext[ext] = person.id
+    result.persons = len(person_id_by_ext)
+
+    # 3) Dogs upsert (match via external_id ODER license_no als Fallback)
+    dog_id_by_ext: dict[str, int] = {}
+    for d in entities.get("dogs", []):
+        ext = d.get("external_id")
+        if not ext:
+            continue
+        dog = Dog.query.filter_by(external_id=ext).first()
+        license_no = (d.get("license_no") or "").strip() or None
+        if not dog and license_no:
+            dog = Dog.query.filter_by(license_no=license_no).first()
+            if dog and not dog.external_id:
+                dog.external_id = ext
+        if not dog:
+            try:
+                lk = LicenseKind(d.get("license_kind", "CH"))
+            except ValueError:
+                lk = LicenseKind.CH
+            dog = Dog(
+                external_id=ext,
+                name=(d.get("name") or "Unbenannt")[:120],
+                license_no=license_no or ext[:50],
+                license_kind=lk,
+            )
+            db.session.add(dog)
+        else:
+            if d.get("name"):
+                dog.name = d["name"][:120]
+        db.session.flush()
+        dog_id_by_ext[ext] = dog.id
+    result.dogs = len(dog_id_by_ext)
+
+    # 4) Registrations: replace
+    Registration.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    db.session.flush()
+    reg_id_by_ext: dict[str, int] = {}
+    for r in regs_payload:
+        ext = r.get("external_id")
+        dog_id = dog_id_by_ext.get(r.get("dog_external_id"))
+        handler_id = person_id_by_ext.get(r.get("handler_person_external_id"))
+        if not dog_id:
+            result.warnings.append(f"Registration {ext}: dog_external_id unbekannt — übersprungen")
+            continue
+        try:
+            status = RegistrationStatus(r.get("status", "SUBMITTED"))
+        except ValueError:
+            status = RegistrationStatus.SUBMITTED
+        try:
+            tka_status = TkaEventCheckStatus(r.get("tka_event_check_status", "PENDING"))
+        except ValueError:
+            tka_status = TkaEventCheckStatus.PENDING
+        reg = Registration(
+            external_id=ext,
+            event_id=event.id,
+            dog_id=dog_id,
+            handler_id=handler_id,
+            category_code=r.get("category_code") or "Large",
+            class_level=int(r.get("class_level") or 1),
+            status=status,
+            tka_event_check_status=tka_status,
+            club_name=r.get("club_name"),
+        )
+        db.session.add(reg)
+        db.session.flush()
+        if ext:
+            reg_id_by_ext[ext] = reg.id
+    result.registrations = len(reg_id_by_ext)
+
+    # 5) StartNumbers: replace (optional)
+    StartNumber.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    for n in snums_payload.get("numbers", []):
+        reg_id = reg_id_by_ext.get(n.get("registration_external_id"))
+        start_no = n.get("start_no")
+        if not reg_id or start_no is None:
+            continue
+        db.session.add(StartNumber(event_id=event.id, registration_id=reg_id, start_no=int(start_no)))
+        result.start_numbers += 1
+    if "locked" in snums_payload:
+        event.start_numbers_locked = bool(snums_payload["locked"])
+
+    # 6) ScheduleBlocks: replace (optional)
+    ScheduleBlock.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    for idx, b in enumerate(schedule.get("blocks", [])):
+        db.session.add(ScheduleBlock(
+            event_id=event.id,
+            ring=(b.get("ring") or "1")[:50],
+            start_at=_parse_datetime(b.get("start_at")),
+            discipline=(b.get("discipline") or "")[:100],
+            category_code=(b.get("category_code") or "")[:20],
+            class_level=b.get("class_level"),
+            notes=(b.get("notes") or "")[:1000],
+            sort_index=idx,
+        ))
+        result.schedule_blocks += 1
+    if "locked" in schedule:
+        event.schedule_locked = bool(schedule["locked"])
+
+    db.session.commit()
+    return result
