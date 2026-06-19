@@ -16,6 +16,7 @@ from app.models import (
     Dog,
     Event,
     EventFinalist,
+    EventRun,
     LicenseKind,
     LiveUpdate,
     Person,
@@ -398,6 +399,7 @@ class EventPackageImportResult:
         self.registrations = 0
         self.start_numbers = 0
         self.schedule_blocks = 0
+        self.event_runs = 0
         self.warnings: list[str] = []
 
 
@@ -431,6 +433,7 @@ def import_event_package_zip(zip_bytes: bytes, is_test: bool = True) -> EventPac
         regs_payload = json.loads(zip_file.read("registrations.json")) if "registrations.json" in names else []
         snums_payload = json.loads(zip_file.read("start_numbers.json")) if "start_numbers.json" in names else {}
         schedule = json.loads(zip_file.read("schedule.json")) if "schedule.json" in names else {}
+        runs_payload = json.loads(zip_file.read("runs.json")) if "runs.json" in names else []
 
     external_id = event_payload.get("external_id")
     if not external_id:
@@ -587,6 +590,30 @@ def import_event_package_zip(zip_bytes: bytes, is_test: bool = True) -> EventPac
         result.schedule_blocks += 1
     if "locked" in schedule:
         event.schedule_locked = bool(schedule["locked"])
+
+    # 7) EventRuns: replace (Portal-Modell separat von ScheduleBlocks)
+    EventRun.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    seen_runs: set[tuple] = set()
+    for r in runs_payload:
+        run_type = (r.get("run_type") or "agility")[:20]
+        category = (r.get("category") or "L")[:5]
+        try:
+            class_level = int(r.get("class_level") or 1)
+        except (ValueError, TypeError):
+            class_level = 1
+        is_final = bool(r.get("is_final"))
+        key = (run_type, category, class_level, is_final)
+        if key in seen_runs:
+            continue
+        seen_runs.add(key)
+        db.session.add(EventRun(
+            event_id=event.id,
+            run_type=run_type,
+            category=category,
+            class_level=class_level,
+            is_final=is_final,
+        ))
+        result.event_runs += 1
 
     db.session.commit()
     return result

@@ -135,7 +135,7 @@ def import_event_package():
             f"Event {action}: id={result.event_id}, external_id={result.external_id}. "
             f"{result.persons} Personen, {result.dogs} Hunde, "
             f"{result.registrations} Anmeldungen, {result.start_numbers} Startnummern, "
-            f"{result.schedule_blocks} Schedule-Blöcke."
+            f"{result.schedule_blocks} Schedule-Blöcke, {result.event_runs} Läufe."
         )
         flash(msg, "success")
         for w in result.warnings:
