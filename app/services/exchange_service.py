@@ -15,6 +15,7 @@ from app.models import (
     BillingMode,
     Dog,
     Event,
+    EventFinalist,
     LiveUpdate,
     Registration,
     Result,
@@ -302,6 +303,7 @@ def import_result_export_zip(zip_bytes: bytes):
                     time_s=row.get("time_s"),
                     faults=row.get("faults"),
                     refusals=row.get("refusals"),
+                    total_faults=row.get("total_faults"),
                     eliminated=row.get("eliminated"),
                     status=row.get("status"),
                     dog_name=row.get("dog_name"),
@@ -335,11 +337,38 @@ def import_result_export_zip(zip_bytes: bytes):
                 )
                 db.session.add(document)
 
+        # Schema v1.6: optionale Finalisten-Liste (SKBS-SM) übernehmen
+        if "finalists.json" in zip_file.namelist() and event:
+            _import_finalists(zip_file, event)
+
         if final and event:
             event.is_completed = True
 
         db.session.commit()
         return result_import
+
+
+def _import_finalists(zip_file, event):
+    """
+    Liest finalists.json und ersetzt EventFinalist-Einträge für das Event
+    idempotent (alte Einträge werden gelöscht, neue eingefügt).
+    """
+    payload = json.loads(zip_file.read("finalists.json"))
+    finalists = payload.get("finalists") or []
+
+    EventFinalist.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+
+    for pos, f in enumerate(finalists, start=1):
+        db.session.add(EventFinalist(
+            event_id=event.id,
+            license=(f.get("license") or "")[:50],
+            dog_name=(f.get("dog_name") or "")[:120],
+            handler_name=(f.get("handler_name") or "")[:120],
+            source=(f.get("source") or "")[:30],
+            from_class=f.get("from_class"),
+            quali_rank=f.get("quali_rank"),
+            position=pos,
+        ))
 
 
 def _parse_datetime(value):

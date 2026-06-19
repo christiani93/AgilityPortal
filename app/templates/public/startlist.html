@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Startliste – {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-3">{{ event.name }} – Startliste</h1>
+
+  {% if has_numbers %}
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead class="table-light">
+        <tr>
+          <th>Startnummer</th>
+          <th>Hund</th>
+          <th>Führer/in</th>
+          <th>Kategorie</th>
+          <th>Klasse</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.start_no }}</td>
+          <td>{{ row.dog_name }}</td>
+          <td>{{ row.handler_name }}</td>
+          <td>{{ row.category_code }}</td>
+          <td>{% if row.class_level %}Klasse {{ row.class_level }}{% else %}–{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">Noch keine Startnummern vergeben.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@ import json
 import zipfile
 
 from app.extensions import db
-from app.models import Event, Registration, RegistrationStatus, ScheduleBlock
+from app.models import Dog, Event, LicenseKind, Person, Registration, RegistrationStatus, ScheduleBlock
 from app.services.exchange_service import build_event_export_zip
 from app.services.schedule_service import (
     add_block,
@@ -45,25 +45,27 @@ def test_add_update_delete_block(app):
 def test_auto_generate_blocks_creates_unique_combinations(app):
     with app.app_context():
         event = Event(name="Schedule Event")
-        reg1 = Registration(
-            event=event,
-            status=RegistrationStatus.SUBMITTED,
-            class_level=1,
-            category_code="Large",
-        )
-        reg2 = Registration(
-            event=event,
-            status=RegistrationStatus.SUBMITTED,
-            class_level=2,
-            category_code="Large",
-        )
-        reg3 = Registration(
-            event=event,
-            status=RegistrationStatus.SUBMITTED,
-            class_level=1,
-            category_code="Small",
-        )
-        db.session.add_all([event, reg1, reg2, reg3])
+
+        counter = {"n": 0}
+
+        def _make_reg(class_level, category):
+            counter["n"] += 1
+            n = counter["n"]
+            dog = Dog(name=f"D_{n}", license_no=f"{20000 + n}",
+                      license_kind=LicenseKind.CH)
+            person = Person(first_name="HF", last_name=f"X_{n}")
+            return Registration(event=event, dog=dog, handler=person,
+                                status=RegistrationStatus.SUBMITTED,
+                                class_level=class_level, category_code=category)
+
+        reg1 = _make_reg(1, "Large")
+        reg2 = _make_reg(2, "Large")
+        reg3 = _make_reg(1, "Small")
+        db.session.add(event)
+        for reg in [reg1, reg2, reg3]:
+            db.session.add(reg.dog)
+            db.session.add(reg.handler)
+            db.session.add(reg)
         db.session.commit()
 
         auto_generate_blocks_from_registrations(event.id)

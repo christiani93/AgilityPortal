@@ -160,16 +160,18 @@ def aoa_import_preview():
         return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
 
     # Spaltenmapping ermitteln
-    col_license = _find_column(headers, "Lizenz", "LicenseNo", "License", "Lizenznummer")
-    col_dog_name = _find_column(headers, "Hundename", "DogName", "Hund", "Name Hund")
-    col_category = _find_column(headers, "Kategorie", "Category", "Kat")
-    col_class = _find_column(headers, "Klasse", "Class", "KL", "Kl")
-    col_first_name = _find_column(headers, "Vorname", "FirstName", "Fname")
-    col_last_name = _find_column(headers, "Nachname", "LastName", "Lname", "Name")
-    col_email = _find_column(headers, "Email", "E-Mail", "EMail")
-    col_phone = _find_column(headers, "Telefon", "Phone", "Tel", "Mobile")
-    col_club = _find_column(headers, "Verein", "Club", "ClubName")
-    col_club_no = _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr")
+    # Aliase decken AOA-/SportyDog-Original ("Lizenz") sowie TKAMO-Variante
+    # mit "H "-/"HF "-Präfixen (= gleicher Inhalt, andere Header-Namen) ab.
+    col_license = _find_column(headers, "Lizenz", "LicenseNo", "License", "Lizenznummer", "H Lizenz")
+    col_dog_name = _find_column(headers, "Hundename", "DogName", "Hund", "Name Hund", "H Name")
+    col_category = _find_column(headers, "Kategorie", "Category", "Kat", "H Kategorie")
+    col_class = _find_column(headers, "Klasse", "Class", "KL", "Kl", "H Kl Eingabe", "H Klasse")
+    col_first_name = _find_column(headers, "Vorname", "FirstName", "Fname", "HF Vorname")
+    col_last_name = _find_column(headers, "Nachname", "LastName", "Lname", "Name", "HF Name")
+    col_email = _find_column(headers, "Email", "E-Mail", "EMail", "HF Email")
+    col_phone = _find_column(headers, "Telefon", "Phone", "Tel", "Mobile", "HF Telefon")
+    col_club = _find_column(headers, "Verein", "Club", "ClubName", "HF Verein")
+    col_club_no = _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr", "HF Vereinnr")
 
     missing = [n for n, c in [
         ("Lizenz", col_license), ("Hundename", col_dog_name),

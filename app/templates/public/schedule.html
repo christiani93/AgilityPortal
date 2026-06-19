@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Zeitplan – {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-3">{{ event.name }} – Zeitplan</h1>
+
+  {% if blocks %}
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead class="table-light">
+        <tr>
+          <th>Ring</th>
+          <th>Start</th>
+          <th>Disziplin</th>
+          <th>Kategorie</th>
+          <th>Klasse</th>
+          <th>Notizen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in blocks %}
+        <tr>
+          <td>{{ b.ring }}</td>
+          <td>{% if b.start_at %}{{ b.start_at.strftime("%d.%m.%Y %H:%M") }}{% else %}–{% endif %}</td>
+          <td>{{ b.discipline or "" }}</td>
+          <td>{{ b.category_code or "" }}</td>
+          <td>{% if b.class_level %}Klasse {{ b.class_level }}{% else %}–{% endif %}</td>
+          <td>{{ b.notes or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">Noch kein Zeitplan veröffentlicht.</p>
+  {% endif %}
+</div>
+{% endblock %}

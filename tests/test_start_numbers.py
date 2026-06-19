@@ -3,7 +3,7 @@ import json
 import zipfile
 
 from app.extensions import db
-from app.models import Event, Registration, RegistrationStatus, StartNumber
+from app.models import Dog, Event, LicenseKind, Person, Registration, RegistrationStatus, StartNumber
 from app.services.exchange_service import build_event_export_zip
 from app.services.start_number_service import (
     generate_start_numbers,
@@ -13,30 +13,25 @@ from app.services.start_number_service import (
 
 def _setup_event_with_regs():
     event = Event(name="Start Number Event")
-    registrations = [
-        Registration(
+    clubs = ["Alpha", "Beta", "Alpha"]
+    registrations = []
+    for i, club in enumerate(clubs, start=1):
+        dog = Dog(name=f"Dog_{i}", license_no=f"{10000 + i}", license_kind=LicenseKind.CH)
+        person = Person(first_name=f"HF{i}", last_name=f"Name{i}")
+        registrations.append(Registration(
             event=event,
+            dog=dog,
+            handler=person,
             status=RegistrationStatus.SUBMITTED,
             class_level=1,
             category_code="Large",
-            club_name="Alpha",
-        ),
-        Registration(
-            event=event,
-            status=RegistrationStatus.SUBMITTED,
-            class_level=1,
-            category_code="Large",
-            club_name="Beta",
-        ),
-        Registration(
-            event=event,
-            status=RegistrationStatus.SUBMITTED,
-            class_level=1,
-            category_code="Large",
-            club_name="Alpha",
-        ),
-    ]
-    db.session.add_all([event, *registrations])
+            club_name=club,
+        ))
+    db.session.add(event)
+    for reg in registrations:
+        db.session.add(reg.dog)
+        db.session.add(reg.handler)
+        db.session.add(reg)
     db.session.commit()
     return event, registrations
 

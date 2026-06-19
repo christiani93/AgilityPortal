@@ -396,13 +396,17 @@ class Event(db.Model):
 
     TYPE_LABELS = {
         "regular": "Reguläres Turnier",
-        "sm": "Schweizermeisterschaft",
+        "sm": "Schweizermeisterschaft (generisch)",
+        "tkamo_sm": "TKAMO-Schweizermeisterschaft",
+        "skbs_sm": "SKBS-Schweizermeisterschaft",
+        "bccs_sm": "BCCS-Schweizermeisterschaft",
         "asmv_quali": "ASMV-Qualifikation",
         "asmv_final": "ASMV-Final",
         "eo_quali": "EO-Qualifikation",
         "wm_quali": "WM-Qualifikation",
         "sao_quali": "SAO-Qualifikation",
         "jao_quali": "JAO-Qualifikation",
+        "fmbb_quali": "FMBB-WM-Qualifikation",
     }
 
     SPECIAL_RULESET_LABELS = {
@@ -413,8 +417,10 @@ class Event(db.Model):
 
     @property
     def is_qualifier(self):
-        return self.type in {"sm", "asmv_quali", "asmv_final",
-                             "eo_quali", "wm_quali", "sao_quali", "jao_quali"}
+        return self.type in {"sm", "tkamo_sm", "skbs_sm", "bccs_sm",
+                             "asmv_quali", "asmv_final",
+                             "eo_quali", "wm_quali", "sao_quali", "jao_quali",
+                             "fmbb_quali"}
 
 
 # ---------------------------------------------------------------------------
@@ -428,11 +434,13 @@ class EventRun(db.Model):
     run_type: agility | jumping | open
     category: S | M | I | L  (Small / Medium / Intermediate / Large)
     class_level: 1 | 2 | 3
+    is_final: True für klassenübergreifende Sonderläufe (z.B. SKBS-SM-Final
+              auf Klasse-3-Niveau für alle Quali-Teilnehmer)
     """
     __tablename__ = "event_runs"
     __table_args__ = (
         db.UniqueConstraint("event_id", "run_type", "category", "class_level",
-                            name="uq_event_run"),
+                            "is_final", name="uq_event_run"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -440,6 +448,7 @@ class EventRun(db.Model):
     run_type = db.Column(db.String(20), nullable=False)   # agility / jumping / open
     category = db.Column(db.String(5), nullable=False)    # S / M / I / L
     class_level = db.Column(db.Integer, nullable=False)   # 1 / 2 / 3
+    is_final = db.Column(db.Boolean, nullable=False, default=False)
     judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -710,11 +719,35 @@ class Result(db.Model):
     time_s = db.Column(db.Float)
     faults = db.Column(db.Integer)
     refusals = db.Column(db.Integer)
+    total_faults = db.Column(db.Float)  # Gesamtfehlerpunkte (Parcours + Refusals + Zeitfehler), berechnet von AgilitySoftware
     eliminated = db.Column(db.Boolean)
     status = db.Column(db.String(50))
     dog_name = db.Column(db.String(120))
     handler_name = db.Column(db.String(120))
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class EventFinalist(db.Model):
+    """
+    Von AgilitySoftware berechnete Finalisten-Liste für SKBS-SM-Events
+    (Schema resultexport.v1.6). Beim Import wird die bestehende Liste pro Event
+    ersetzt (idempotent).
+    """
+    __tablename__ = "event_finalists"
+    __table_args__ = (
+        db.Index("ix_event_finalists_event", "event_id"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    license = db.Column(db.String(50))
+    dog_name = db.Column(db.String(120))
+    handler_name = db.Column(db.String(120))
+    source = db.Column(db.String(30))       # "agility" | "jumping" | "title_defender" | "nachruecker"
+    from_class = db.Column(db.Integer, nullable=True)   # 1 / 2 / 3 oder NULL für Titelverteidiger
+    quali_rank = db.Column(db.Integer, nullable=True)
+    position = db.Column(db.Integer, nullable=False)    # Aufnahme-Reihenfolge aus Software (1-basiert)
+    imported_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Document(db.Model):
