@@ -517,7 +517,13 @@ def import_event_package_zip(zip_bytes: bytes, is_test: bool = True) -> EventPac
         dog_id_by_ext[ext] = dog.id
     result.dogs = len(dog_id_by_ext)
 
-    # 4) Registrations: replace
+    # 4) Replace: erst Children löschen (StartNumber, Result, EventFinalist),
+    #    dann Registrations. MySQL erzwingt FK-Reihenfolge — SQLite tolerant,
+    #    aber wir wollen beidseitig sauberes Verhalten.
+    StartNumber.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    Result.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    EventFinalist.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    db.session.flush()
     Registration.query.filter_by(event_id=event.id).delete(synchronize_session=False)
     db.session.flush()
     reg_id_by_ext: dict[str, int] = {}
@@ -553,8 +559,7 @@ def import_event_package_zip(zip_bytes: bytes, is_test: bool = True) -> EventPac
             reg_id_by_ext[ext] = reg.id
     result.registrations = len(reg_id_by_ext)
 
-    # 5) StartNumbers: replace (optional)
-    StartNumber.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    # 5) StartNumbers: schon vorher gelöscht (s. Schritt 4 — FK-Reihenfolge)
     for n in snums_payload.get("numbers", []):
         reg_id = reg_id_by_ext.get(n.get("registration_external_id"))
         start_no = n.get("start_no")
