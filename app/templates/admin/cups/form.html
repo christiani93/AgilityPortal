@@ -30,6 +30,7 @@
             <option value="halloween_cup" {% if cup and cup.special_ruleset == 'halloween_cup' %}selected{% endif %}>Halloween Cup</option>
             <option value="advents_cup" {% if cup and cup.special_ruleset == 'advents_cup' %}selected{% endif %}>Advents Cup</option>
             <option value="edelweiss_challenge" {% if cup and cup.special_ruleset == 'edelweiss_challenge' %}selected{% endif %}>Edelweiss Challenge</option>
+            <option value="wimesma_cup" {% if cup and cup.special_ruleset == 'wimesma_cup' %}selected{% endif %}>WiMeSma-Cup</option>
           </select>
           <div class="form-text">Wird für die automatische Titelverteidiger-Erkennung verwendet.</div>
         </div>
@@ -73,6 +74,50 @@
             <label class="form-check-label" for="is_active">
               Cup aktiv (öffentlich sichtbar)
             </label>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+      <h6 class="text-muted mb-3">Saison-Ranglisten (Punktewertung über mehrere Meetings)</h6>
+      <div class="form-text mb-3">
+        Nur nötig für Saison-Cups mit Punktewertung (z.B. WiMeSma). Bleibt die Punktetabelle
+        leer, wird keine Saisonrangliste berechnet.
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Punktetabelle (Rang = Punkte)</label>
+          <textarea name="points_table" class="form-control" rows="6"
+                    placeholder="1=20&#10;2=17&#10;3=15&#10;…">{% if cup and cup.points_map %}{% for rank, pts in cup.points_map | dictsort %}{{ rank }}={{ pts }}
+{% endfor %}{% endif %}</textarea>
+          <div class="form-text">
+            Eine Zeile pro Rang, z.B. <code>1=20</code>. Nicht aufgeführte Ränge erhalten 0 Punkte
+            (so wird «nur die ersten 10 zählen» abgebildet).
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Zählende Disziplinen</label>
+          {% set counting = cup.counting_disciplines if cup else None %}
+          {% for disc, label in [('open','Open'), ('jumping','Jumping'), ('agility','Agility'), ('tunnel','Tunnellauf')] %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="standings_disciplines"
+                   value="{{ disc }}" id="disc_{{ disc }}"
+                   {% if counting and disc in counting %}checked{% endif %}>
+            <label class="form-check-label" for="disc_{{ disc }}">{{ label }}</label>
+          </div>
+          {% endfor %}
+          <div class="form-text">
+            Keine Auswahl = alle Disziplinen zählen. WiMeSma: nur Open + Jumping (Agility zählt nicht).
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Beste N Meetings</label>
+          <input type="number" name="count_best_meetings" class="form-control"
+                 value="{{ cup.count_best_meetings if cup and cup.count_best_meetings else '' }}"
+                 min="1" placeholder="alle">
+          <div class="form-text">
+            Nur die besten N Meetings pro Hund werten. Leer = alle Meetings zählen.
           </div>
         </div>
       </div>

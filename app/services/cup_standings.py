@@ -91,6 +91,9 @@ def compute_standings(cup: Cup) -> dict[str, list[DogStanding]]:
         group_dog_runs: dict[tuple, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
 
         for r in results:
+            # Disziplinen-Filter: z.B. WiMeSma wertet nur Open + Jumping, nicht Agility.
+            if not cup.discipline_counts(r.discipline):
+                continue
             cat = r.category_code or 'Unbekannt'
             cls = r.class_level if cup.split_by_class else None
             group_key = (cat, cls)

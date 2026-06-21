@@ -928,6 +928,10 @@ class Cup(db.Model):
     title_defender_spots = db.Column(db.Integer, default=1, nullable=False)   # Titelverteidiger
     wildcard_spots = db.Column(db.Integer, default=0, nullable=False)         # Prüfungsleiter
     split_by_class = db.Column(db.Boolean, default=False, nullable=False)     # getrennt nach Klasse
+    # Saison-Ranglisten-Konfiguration (Punktewertung über mehrere Meetings, z.B. WiMeSma)
+    points_table = db.Column(db.Text, nullable=True)            # JSON {"1": 20, "2": 17, ...} Rang→Punkte
+    count_best_meetings = db.Column(db.Integer, nullable=True)  # nur beste N Meetings werten (null = alle)
+    standings_disciplines = db.Column(db.Text, nullable=True)   # JSON-Liste zählender Disziplinen (null = alle)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     cup_events = db.relationship(
@@ -953,6 +957,61 @@ class Cup(db.Model):
         back_populates="cup",
         cascade="all, delete-orphan",
     )
+
+    SPECIAL_RULESET_LABELS = {
+        "halloween_cup": "Halloween Cup",
+        "advents_cup": "Advents Cup",
+        "edelweiss_challenge": "Edelweiss Challenge",
+        "wimesma_cup": "WiMeSma-Cup",
+    }
+
+    @property
+    def points_map(self) -> dict:
+        """Rang→Punkte aus points_table (JSON). Leeres Dict wenn nicht/ungültig gesetzt."""
+        import json
+        if not self.points_table:
+            return {}
+        try:
+            raw = json.loads(self.points_table)
+        except (ValueError, TypeError):
+            return {}
+        out = {}
+        for k, v in (raw or {}).items():
+            try:
+                out[int(k)] = int(v)
+            except (ValueError, TypeError):
+                continue
+        return out
+
+    def points_for_rank(self, rank) -> int:
+        """Punkte für eine Platzierung. 0 wenn Rang nicht in der Tabelle (z.B. ausserhalb Top-N)."""
+        if rank is None:
+            return 0
+        try:
+            return self.points_map.get(int(rank), 0)
+        except (ValueError, TypeError):
+            return 0
+
+    @property
+    def counting_disciplines(self) -> set | None:
+        """Disziplinen (lowercased), die in die Saisonwertung zählen.
+        None = alle zählen. Beispiel WiMeSma: {'open', 'jumping'} → Agility zählt nicht."""
+        import json
+        if not self.standings_disciplines:
+            return None
+        try:
+            lst = json.loads(self.standings_disciplines)
+        except (ValueError, TypeError):
+            return None
+        normed = {str(d).strip().lower() for d in (lst or []) if str(d).strip()}
+        return normed or None
+
+    def discipline_counts(self, discipline) -> bool:
+        """True wenn ein Lauf dieser Disziplin in die Saisonwertung zählt."""
+        counting = self.counting_disciplines
+        if counting is None:
+            return True
+        return (discipline or "").strip().lower() in counting
 
     @property
     def restricts_organisers(self) -> bool:

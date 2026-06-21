@@ -564,6 +564,31 @@ def cup_detect_title_defender(cup_id):
 
 # ── Hilfsfunktion: Formular → Cup ─────────────────────────────────────────────
 
+_KNOWN_DISCIPLINES = ("open", "jumping", "agility", "tunnel")
+
+
+def _parse_points_table(raw: str):
+    """Eingaben wie '1=20', '1: 20' oder '1 20' (eine pro Zeile, auch komma-getrennt)
+    → JSON {"1": 20, ...}. Leere/ungültige Eingabe → None."""
+    import json
+    import re
+    table = {}
+    for line in (raw or "").replace(",", "\n").splitlines():
+        m = re.match(r'^\s*(\d+)\s*[=:\s]\s*(\d+)\s*$', line)
+        if m:
+            table[str(int(m.group(1)))] = int(m.group(2))
+    return json.dumps(table) if table else None
+
+
+def _parse_standings_disciplines(selected):
+    """JSON-Liste der in die Saisonwertung zählenden Disziplinen.
+    Nichts ausgewählt → None (= alle Disziplinen zählen)."""
+    import json
+    chosen = [d.strip().lower() for d in (selected or []) if d and d.strip()]
+    chosen = [d for d in chosen if d in _KNOWN_DISCIPLINES]
+    return json.dumps(chosen) if chosen else None
+
+
 def _cup_from_form(cup: Cup) -> Cup:
     cup.name = request.form.get("name", "").strip()
     cup.season = request.form.get("season", type=int) or 2026
@@ -573,6 +598,12 @@ def _cup_from_form(cup: Cup) -> Cup:
     cup.title_defender_spots = request.form.get("title_defender_spots", type=int) or 1
     cup.wildcard_spots = request.form.get("wildcard_spots", type=int) or 0
     cup.split_by_class = bool(request.form.get("split_by_class"))
+
+    # Saison-Ranglisten-Konfiguration
+    cup.count_best_meetings = request.form.get("count_best_meetings", type=int) or None
+    cup.points_table = _parse_points_table(request.form.get("points_table", ""))
+    cup.standings_disciplines = _parse_standings_disciplines(
+        request.form.getlist("standings_disciplines"))
 
     # Erlaubte Veranstalter-Vereine
     selected_club_ids = {int(v) for v in request.form.getlist("allowed_club_ids") if v.isdigit()}
