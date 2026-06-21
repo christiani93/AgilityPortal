@@ -605,6 +605,11 @@ def _cup_from_form(cup: Cup) -> Cup:
     cup.standings_disciplines = _parse_standings_disciplines(
         request.form.getlist("standings_disciplines"))
 
+    # WiMeSma: Platzhalter-Punktetabelle + Disziplinen vorbelegen, falls leer gelassen
+    # (provisorisch — wird durch echte Werte aus dem Reglement ersetzt).
+    if cup.special_ruleset == "wimesma_cup":
+        cup.apply_wimesma_placeholder()
+
     # Erlaubte Veranstalter-Vereine
     selected_club_ids = {int(v) for v in request.form.getlist("allowed_club_ids") if v.isdigit()}
     # Bestehende löschen und neu setzen

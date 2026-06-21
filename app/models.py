@@ -965,6 +965,23 @@ class Cup(db.Model):
         "wimesma_cup": "WiMeSma-Cup",
     }
 
+    # PLATZHALTER WiMeSma — die ersten 10 pro Kategorie erhalten Punkte (Open + Jumping).
+    # ACHTUNG: provisorische Werte! Reglement-Website war beim Anlegen down → mit den
+    # echten Punkten ersetzen, sobald wimesma.ch/reglement.php verfügbar ist.
+    WIMESMA_PLACEHOLDER_POINTS = {1: 20, 2: 17, 3: 15, 4: 13, 5: 11,
+                                  6: 9, 7: 7, 8: 5, 9: 3, 10: 1}
+    WIMESMA_DISCIPLINES = ["open", "jumping"]  # Agility zählt nicht für den WiMeSma-Cup
+
+    def apply_wimesma_placeholder(self) -> None:
+        """Belegt Punktetabelle + zählende Disziplinen mit den WiMeSma-Platzhalterwerten,
+        sofern noch nichts gesetzt ist. Überschreibt manuelle Eingaben nicht."""
+        import json
+        if not self.points_table:
+            self.points_table = json.dumps(
+                {str(k): v for k, v in self.WIMESMA_PLACEHOLDER_POINTS.items()})
+        if not self.standings_disciplines:
+            self.standings_disciplines = json.dumps(self.WIMESMA_DISCIPLINES)
+
     @property
     def points_map(self) -> dict:
         """Rang→Punkte aus points_table (JSON). Leeres Dict wenn nicht/ungültig gesetzt."""

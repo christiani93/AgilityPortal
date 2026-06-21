@@ -8,7 +8,7 @@ die Konfiguration sauber neu an. Genutzt u.a. vom WiMeSma-Cup (nur Open+Jumping
 zählen, Agility nicht).
 
 Revision ID: zb1c2d3e4f5a
-Revises: z9a0b1c2d3e4
+Revises: b2c3d4e5f6g7
 Create Date: 2026-06-21
 """
 from alembic import op
@@ -16,7 +16,7 @@ import sqlalchemy as sa
 
 
 revision = 'zb1c2d3e4f5a'
-down_revision = 'z9a0b1c2d3e4'
+down_revision = 'b2c3d4e5f6g7'
 branch_labels = None
 depends_on = None
 
