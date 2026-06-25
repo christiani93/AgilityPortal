@@ -729,9 +729,12 @@ class Result(db.Model):
 
 class EventFinalist(db.Model):
     """
-    Von AgilitySoftware berechnete Finalisten-Liste für SKBS-SM-Events
+    Von AgilitySoftware berechnete Finalisten-Liste für SKBS-SM- und BCCS-SM-Events
     (Schema resultexport.v1.6). Beim Import wird die bestehende Liste pro Event
     ersetzt (idempotent).
+
+    BCCS-SM nutzt zusätzlich category (Intermediate/Large) + division (sm/nachwuchs),
+    da dort 4 parallele Finals existieren. SKBS-SM lässt beide NULL (nur Large, eine Division).
     """
     __tablename__ = "event_finalists"
     __table_args__ = (
@@ -746,6 +749,8 @@ class EventFinalist(db.Model):
     source = db.Column(db.String(30))       # "agility" | "jumping" | "title_defender" | "nachruecker"
     from_class = db.Column(db.Integer, nullable=True)   # 1 / 2 / 3 oder NULL für Titelverteidiger
     quali_rank = db.Column(db.Integer, nullable=True)
+    category = db.Column(db.String(20), nullable=True)   # BCCS: Intermediate / Large
+    division = db.Column(db.String(20), nullable=True)   # BCCS: sm / nachwuchs
     position = db.Column(db.Integer, nullable=False)    # Aufnahme-Reihenfolge aus Software (1-basiert)
     imported_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

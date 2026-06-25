@@ -372,6 +372,8 @@ def _import_finalists(zip_file, event):
             source=(f.get("source") or "")[:30],
             from_class=f.get("from_class"),
             quali_rank=f.get("quali_rank"),
+            category=(f.get("category") or None) and f.get("category")[:20],
+            division=(f.get("division") or None) and f.get("division")[:20],
             position=pos,
         ))
 

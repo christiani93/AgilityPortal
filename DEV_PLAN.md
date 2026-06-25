@@ -52,10 +52,14 @@ Reihenfolge nach Deadline **und** Baubarkeit (Reglement vorhanden?):
          2-Lauf-Final summiert (Fehler→Parcours→Zeit, ex aequo)
    - [ ] **Offene Reglement-Annahmen bestätigen** (im Modul-Docstring dokumentiert): Nachwuchs
          Kl.1/2 wirklich kombiniert? Quali-Lauf-Reihenfolge fürs Nachrücken? Mindest-Quote?
-   - [ ] Routes + Templates in AgilitySoftware (`routes_bccs_sm.py`, `bccs_sm_dashboard/config/final_list`),
-         Blueprint in `app.py`, Event-Typ „BCCS-SM" ins Dropdown (`routes_events.py`), `is_final`-Run-Markierung
-   - [ ] `portal_sync.py`: Finalisten-Payload für BCCS-SM (analog `_build_finalists_payload`)
-   - [ ] Portal: optionale öffentliche BCCS-Finalisten-Anzeige
+   - [x] Routes + Templates in AgilitySoftware: `routes_bccs_sm.py` (Dashboard/Config/CSV),
+         `bccs_sm_dashboard.html` + `bccs_sm_config.html`, Blueprint in `app.py`, Event-Typ „BCCS-SM"
+         im Dropdown (`routes_events.py`), `is_final`-Run-Markierung (manage_runs/run_form). Smoke + 12 Tests grün.
+   - [x] `portal_sync.py`: Finalisten-Payload für BCCS-SM (mit `category`+`division`)
+   - [x] **Portal-Import:** `EventFinalist` um `category`+`division` erweitert (Migration `zc2d3e4f5a6b`),
+         `_import_finalists` übernimmt sie; SKBS lässt NULL. Tests `test_finalists_import.py` (3) grün.
+   - [ ] Portal: öffentliche BCCS-Finalisten-Anzeige (Route + Template, je Division)
+   - [ ] Browser-Test Dashboard (AgilitySoftware) + Import-Roundtrip am Wochenende (I/L, SM + Nachwuchs)
    - [ ] Reglement: `Reglemente_Nützliches/BCCS_Agility_SM_Reglement_2023.pdf`
 
 3. **Adventscup** *(klein)* — prüfen ob `advents_cup` analog Halloween reicht; sonst eigene Regel.
