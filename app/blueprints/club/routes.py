@@ -306,6 +306,9 @@ def _fill_club_choices(form):
 @login_required
 def create_test_event_web():
     """Erstellt eine Testveranstaltung mit Standardläufen direkt aus dem Dashboard."""
+    from flask import current_app
+    if not current_app.config.get("DEBUG_TOOLS_ENABLED"):
+        abort(404)
     if not current_user.is_superadmin:
         abort(403)
 

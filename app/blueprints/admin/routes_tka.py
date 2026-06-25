@@ -105,6 +105,9 @@ def import_event_check(event_id):
 @tka_admin_bp.get("/admin/tka/dev/seed")
 @_require_admin_key
 def seed_tka_data():
+    from flask import current_app, abort
+    if not current_app.config.get("DEBUG_TOOLS_ENABLED"):
+        abort(404)
     event = Event(name="Agility Test Event", location="Test Hall")
     dog_ch = Dog(name="Rex", license_no="12345", license_kind=LicenseKind.CH)
     dog_foreign = Dog(name="Luna", license_no="AAA-999", license_kind=LicenseKind.FOREIGN)

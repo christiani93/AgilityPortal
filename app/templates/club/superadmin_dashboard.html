@@ -53,10 +53,12 @@
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>{{ _('Alle Turniere') }}</span>
     <div class="d-flex gap-2">
+      {% if debug_tools %}
       <button type="button" class="btn btn-sm btn-outline-warning"
               data-bs-toggle="modal" data-bs-target="#testEventModal">
         🧪 {{ _('Testturnier') }}
       </button>
+      {% endif %}
       <a href="{{ url_for('club.event_new') }}" class="btn btn-sm btn-primary">+ {{ _('Turnier erstellen') }}</a>
     </div>
   </div>

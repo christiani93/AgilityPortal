@@ -45,6 +45,11 @@ def create_app():
     app.config["LIVE_API_KEY"] = os.environ.get("LIVE_API_KEY", "dev-live-key")
     app.config["RESULTS_API_KEY"] = os.environ.get("RESULTS_API_KEY", "dev-results-key")
 
+    # --- Test-/Debug-Werkzeuge (Generatoren, Testturnier-Knopf etc.) ---
+    # Default AN (Testphase); in Prod ENABLE_DEBUG_TOOLS=0 → Routes 404, Buttons versteckt.
+    app.config["DEBUG_TOOLS_ENABLED"] = os.environ.get(
+        "ENABLE_DEBUG_TOOLS", "1").strip().lower() not in ("0", "false", "no", "off", "")
+
     # --- Website-Sync (AdminPortal / z-b.tech) ---
     app.config["WEBSITE_API_URL"] = os.environ.get("WEBSITE_API_URL", "")
     app.config["WEBSITE_API_TOKEN"] = os.environ.get("WEBSITE_API_TOKEN", "")
@@ -85,7 +90,8 @@ def create_app():
     @app.context_processor
     def inject_globals():
         from flask_wtf.csrf import generate_csrf
-        return {"get_locale": get_locale, "csrf_token": generate_csrf}
+        return {"get_locale": get_locale, "csrf_token": generate_csrf,
+                "debug_tools": app.config["DEBUG_TOOLS_ENABLED"]}
 
     @app.template_filter("fromjson")
     def fromjson_filter(s):
