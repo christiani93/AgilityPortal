@@ -58,7 +58,9 @@ Reihenfolge nach Deadline **und** Baubarkeit (Reglement vorhanden?):
    - [x] `portal_sync.py`: Finalisten-Payload für BCCS-SM (mit `category`+`division`)
    - [x] **Portal-Import:** `EventFinalist` um `category`+`division` erweitert (Migration `zc2d3e4f5a6b`),
          `_import_finalists` übernimmt sie; SKBS lässt NULL. Tests `test_finalists_import.py` (3) grün.
-   - [ ] Portal: öffentliche BCCS-Finalisten-Anzeige (Route + Template, je Division)
+   - [x] Portal: öffentliche Finalisten-Anzeige `GET /events/<id>/finalists` (BCCS nach Kategorie+Division
+         gruppiert, SKBS flach) + Template `public/finalists.html`. Tests `test_public_finalists.py` (4) grün.
+         (Direkt-URL wie Zeitplan/Startliste; `is_published`-Guard + Admin-Key.)
    - [ ] Browser-Test Dashboard (AgilitySoftware) + Import-Roundtrip am Wochenende (I/L, SM + Nachwuchs)
    - [ ] Reglement: `Reglemente_Nützliches/BCCS_Agility_SM_Reglement_2023.pdf`
 
@@ -116,9 +118,23 @@ Mehrere Dinge zusammen testbar:
   - `startlists\` (6 PDFs) = Input: Teams, Lizenz, Startnummer, Läufe (A/J/S).
   - `official_rankings\` (56 PDFs) = offizieller Output je Lauf.
 - Ist = AgilitySoftware-Auswertung derselben Starttestdaten.
-- Abgleich pro Lauf über Lizenznummer → (Rang, Lauffehler, Zeit, Total). Differenzen = Auswertungs-/
-  Tiebreaker-/Rundungsabweichungen. `pdftotext -layout` extrahiert die PDF-Tabellen; bei Bedarf baut
-  Claude ein Abgleich-Skript, sobald die Software-Ausgabe vorliegt.
+- **Harness fertig + validiert:** `…\Agility_Test_20260620\tools\compare_soll_ist.py`.
+  Soll = SportyDog-PDFs via `parse_rankings.py --json` (pro Lauf); Ist = AgilitySoftware-Ausgabe
+  (`resultexport.v1`-JSON ODER parse_rankings-Format). Vergleich pro Lauf (Disziplin/Kategorie/Klasse)
+  je Lizenz → Rang/Total/Zeit. Selbsttest 209 identisch; Diff-Erkennung bestätigt.
+  Ist-Loader an AgilitySoftware `resultexport.v1` angepasst (Lizenz = `registration_external_id`);
+  liest das Export-**ZIP direkt** (results.json darin) oder JSON.
+  **`parse_rankings.py` kann jetzt BEIDE PDF-Formate:** agilityevents („Normale_Rangliste", via pdftotext)
+  UND **swissagilitysummits** (koordinatenbasiert via **pdfplumber** → 0 Lücken, löst das Overlap-Problem).
+  Validiert: Summits-Wochenend-Event (20.06.2026) Roundtrip **392 identisch, 0 Abweichungen**; BCCS 140 identisch.
+  **Wichtig:** für Summits-PDFs `parse_rankings.py` mit dem **flask_env-Python** laufen (hat pdfplumber):
+  `C:\Users\chris\.venvs\AgilitySoftware\flask_env\Scripts\python.exe`.
+  **Wochenende:** in AgilitySoftware das Result-Export-ZIP erzeugen, dann
+  `<flask_env-py> tools/parse_rankings.py official_rankings/2026-06-20 --json soll.json` und
+  `python tools/compare_soll_ist.py soll.json <export>.zip`.
+- Hinweis: Die DBISAM-Roh-DB hat KEINEN sauberen Lauf-Schlüssel an fester Stelle (verifiziert) →
+  für 1:1 sind die PDFs (= SportyDogs eigene pro-Lauf-Ausgabe) der richtige, fertige Soll-Weg.
+  Der DB-Reader (`sportydog_reader.py --export`) bleibt als Zusatz (Qualifikation + RunTime je Lizenz).
 
 **C) BCCS-SM (sobald in der Woche gebaut)** — erste Quali-/Finalisten-Berechnung gegen die
 15 %-Regel prüfen (Testdaten Intermediate/Large), sofern bis Freitag testbar.
