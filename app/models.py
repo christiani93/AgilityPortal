@@ -970,11 +970,11 @@ class Cup(db.Model):
         "wimesma_cup": "WiMeSma-Cup",
     }
 
-    # PLATZHALTER WiMeSma — die ersten 10 pro Kategorie erhalten Punkte (Open + Jumping).
-    # ACHTUNG: provisorische Werte! Reglement-Website war beim Anlegen down → mit den
-    # echten Punkten ersetzen, sobald wimesma.ch/reglement.php verfügbar ist.
-    WIMESMA_PLACEHOLDER_POINTS = {1: 20, 2: 17, 3: 15, 4: 13, 5: 11,
-                                  6: 9, 7: 7, 8: 5, 9: 3, 10: 1}
+    # WiMeSma-Cup Punktetabelle — ECHTE Werte (Reglement wimesma.ch, Website wieder online
+    # verifiziert 2026-06-26): Open + Jumping identisch, Rang 1..10 = 10..1. Agility zählt NICHT.
+    # Klassen 1/2/3 separate Ranglisten → beim WiMeSma-Cup split_by_class = True setzen.
+    WIMESMA_PLACEHOLDER_POINTS = {1: 10, 2: 9, 3: 8, 4: 7, 5: 6,
+                                  6: 5, 7: 4, 8: 3, 9: 2, 10: 1}
     WIMESMA_DISCIPLINES = ["open", "jumping"]  # Agility zählt nicht für den WiMeSma-Cup
 
     def apply_wimesma_placeholder(self) -> None:

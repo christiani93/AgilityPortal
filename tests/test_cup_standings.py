@@ -46,7 +46,7 @@ def test_counting_disciplines_und_filter():
 def test_apply_wimesma_placeholder():
     cup = Cup(name="w", season=2026, special_ruleset="wimesma_cup")
     cup.apply_wimesma_placeholder()
-    assert cup.points_for_rank(1) == 20
+    assert cup.points_for_rank(1) == 10   # echte WiMeSma-Werte (Rang 1 = 10)
     assert cup.discipline_counts("Open") is True
     assert cup.discipline_counts("Agility") is False     # Agility zählt nicht
     # überschreibt bestehende Werte NICHT
