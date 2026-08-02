@@ -139,11 +139,14 @@ Mehrere Dinge zusammen testbar:
 **C) BCCS-SM (sobald in der Woche gebaut)** — erste Quali-/Finalisten-Berechnung gegen die
 15 %-Regel prüfen (Testdaten Intermediate/Large), sofern bis Freitag testbar.
 
-**E) BCCS-2025-Soll/Ist-Validierung**
-- Referenz unter `OneDrive\Agility_Test_20260620\bccs_2025_reference\` (66 offizielle PDFs:
-  Quali, 2 Finalläufe, kombinierter Final; SM=Kl.3 / Nachwuchs=Kl.1+2, Intermediate+Large).
-- Quali-Läufe → `calculate_bccs_sm_qualification()` → Finalisten-Set vs. Teams in den Final-PDFs.
-- Finalläufe → `rank_final_bccs()` → vs. `Kombinierte_…`-PDF (Soll). Schlüssel: Lizenznummer.
-- Bestätigt zugleich die offene Annahme „Nachwuchs Kl.1+2 kombiniert" (Struktur stützt sie bereits).
+**E) BCCS-2025-Validierung — ✅ AUSGEFÜHRT (2026-06-26)**
+- Quali-PDFs (`bccs_2025_reference/`) → Event-Dict → `calculate_bccs_sm_qualification()` →
+  Finalisten vs. tatsächliche Teilnehmer der offiziellen Final-PDFs (Schlüssel: Lizenz).
+- **Ergebnis:** Intermediate/SM **7/7 exakt**, Intermediate/Nachwuchs **2/2 exakt**,
+  Large/SM 22/23 (1 fehlt: 14967), Large/Nachwuchs 13/14 (1 fehlt: 21800).
+- Die 2 Large-Fehlenden = vermutlich **Titelverteidiger** (im Test nicht konfiguriert) oder
+  Parcoursfehler-Tiebreak (PDF liefert keine Parcoursfehler → 0 gefüttert). → Kern bestätigt.
+- Parser gefixt: einstellige Startnummern in Final-PDFs (`\d{1,5}`).
+- Offen (klein): `rank_final_bccs()` gegen `Kombinierte_…`-Final-PDF gegenchecken.
 
 (Detaillierte Klick-Anleitung erstellt Claude am Freitag davor.)
