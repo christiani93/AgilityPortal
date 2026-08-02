@@ -17,12 +17,16 @@ def cup_index():
 
 @public_cups_bp.get("/cups/<int:cup_id>")
 def cup_standings(cup_id):
-    """Öffentliche Qualifikations-Rangliste eines Cups."""
+    """Öffentliche Rangliste eines Cups: Saison-Punktewertung (z.B. WiMeSma) und/oder
+    Qualifikationsliste (KO-Cup wie Halloween)."""
     cup = Cup.query.filter_by(id=cup_id, is_active=True).first_or_404()
     from app.services.cup_qualification import get_qualification
     qualification = get_qualification(cup)
+    # Saison-Punktewertung nur wenn eine Punktetabelle hinterlegt ist (Saison-Cup)
+    season_standings = compute_standings(cup) if cup.points_map else None
     finals = CupFinal.query.filter_by(cup_id=cup_id, is_published=True).all()
-    return render_template("public/cups/standings.html", cup=cup, qualification=qualification, finals=finals)
+    return render_template("public/cups/standings.html", cup=cup, qualification=qualification,
+                           season_standings=season_standings, finals=finals)
 
 
 @public_cups_bp.get("/cups/<int:cup_id>/finals/<int:final_id>")

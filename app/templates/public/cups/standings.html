@@ -31,6 +31,41 @@
 </div>
 {% endif %}
 
+{# Saison-Punktewertung (WiMeSma & Co.) #}
+{% if season_standings %}
+<h3 class="mb-3">Saison-Rangliste</h3>
+{% for group, dogs in season_standings.items() %}
+<div class="card mb-3 shadow-sm">
+  <div class="card-header fw-semibold">{{ group }}
+    <span class="badge bg-dark ms-2">{{ dogs | length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-striped mb-0 align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th><th>Hund</th><th>Hundeführer/in</th>
+          <th class="text-end">Punkte</th>
+          <th class="text-center text-muted small">gewertete Meetings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in dogs %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ d.dog_name }}</strong></td>
+          <td class="text-muted">{{ d.handler_name }}</td>
+          <td class="text-end fw-semibold">{{ d.total_points }}</td>
+          <td class="text-center text-muted small">{{ d.counted_meetings }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+<hr class="my-4">
+{% endif %}
+
 {# Qualifikationsliste #}
 {% if qualification %}
   {# Navigation bei mehreren Kategorien #}
