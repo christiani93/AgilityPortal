@@ -19,8 +19,8 @@ Erst deployen, wenn ein Stand am Wochenende getestet wurde.
 
 | Deadline | Veranstaltung | Wertung | Status |
 |---|---|---|---|
-| **15.11.2026** (1. v. 4 Meetings) | WiMeSma-Cup (Small/Medium) | Saison-Cup, `wimesma_cup` | 🟡 Fundament gebaut (Commit `dbe60c4`); Punktetabelle offen (Reglement-Website war down) |
-| **21.–22.11.2026** | BCCS-SM (Border Collie) | `bccs_sm`, 2 Quali + 2 Final | 🔴 Reglement liegt vor (PDF 2023); Implementation offen |
+| **15.11.2026** (1. v. 4 Meetings) | WiMeSma-Cup (Small/Medium) | Saison-Cup, `wimesma_cup` | 🟡 Fundament + echte Punktetabelle (10·9·8…1) gesetzt; Detail-Reglementfragen offen |
+| **21.–22.11.2026** | BCCS-SM (Border Collie) | `bccs_sm`, 2 Quali + 2 Final | 🟢 Implementiert, deployed, 1:1-validiert (bis Commit `bf659da`) |
 | **27.–29.11.2026** | Adventscup | `advents_cup`? | 🔴 Regelwerk klären (reicht Halloween-Muster?) |
 | **05.–06.12.2026** | SKBS-SM + FMBB-Quali Münsingen | `skbs_sm` / `fmbb_quali` | 🟡 Plan vorhanden (Dezember-Plan + FMBB-Plan) |
 | **08.–10.01.2027** | Edelweiss Challenge | `edelweiss_challenge`? | 🔴 Reglement noch offen |
@@ -37,9 +37,10 @@ Reihenfolge nach Deadline **und** Baubarkeit (Reglement vorhanden?):
    - [x] **Platzhalter-Punktetabelle** (Top 10: 20·17·15·13·11·9·7·5·3·1) — wird beim Anlegen
          eines WiMeSma-Cups automatisch gesetzt, falls leer. **PROVISORISCH**, mit Reglement ersetzen.
    - [ ] Test-Cup mit 4 Meetings anlegen, öffentliche Rangliste prüfen (Wochenende)
-   - [ ] **Blocker (echte Werte):** exakte Punktetabelle Rang 1–10 (Open/Jumping) + beste-N
-         — sobald wimesma.ch wieder online (Platzhalter ersetzen)
+   - [x] **Echte Punktetabelle** (Rang 1–10: 10·9·8·7·6·5·4·3·2·1, Open+Jumping) — wimesma.ch
+         wieder online, Platzhalter ersetzt (Commit `324fd73`)
    - [ ] Klären: Cup-Punkte pro Klasse getrennt oder Small/Medium kombiniert (`split_by_class`)
+   - [ ] Klären: „beste-N" Meetings-Regel bestätigen
    - [ ] Final-Modus (Open-Lauf, Startreihenfolge umgekehrt) — wartet auf verifiziertes Reglement
 
 2. **BCCS-SM** *(grösster Neubau, Reglement vorhanden → Haupt-Aufwand Juli–Okt)*
@@ -50,8 +51,8 @@ Reihenfolge nach Deadline **und** Baubarkeit (Reglement vorhanden?):
          (`tests_pure/test_bccs_sm_qualification.py`, 12 grün): 15 %-Quote, I+L getrennt,
          SM (Kl.3) / Nachwuchs (Kl.1+2 kombiniert), alternierendes Nachrücken, Titelverteidiger,
          2-Lauf-Final summiert (Fehler→Parcours→Zeit, ex aequo)
-   - [ ] **Offene Reglement-Annahmen bestätigen** (im Modul-Docstring dokumentiert): Nachwuchs
-         Kl.1/2 wirklich kombiniert? Quali-Lauf-Reihenfolge fürs Nachrücken? Mindest-Quote?
+   - [x] **Reglement-Annahmen bestätigt**: Kl.1/2 werden **separat** gewertet (User-Korrektur,
+         Commit `bf330e1`); keine Mindest-Quote (ceil(15%), dokumentierte Design-Entscheidung)
    - [x] Routes + Templates in AgilitySoftware: `routes_bccs_sm.py` (Dashboard/Config/CSV),
          `bccs_sm_dashboard.html` + `bccs_sm_config.html`, Blueprint in `app.py`, Event-Typ „BCCS-SM"
          im Dropdown (`routes_events.py`), `is_final`-Run-Markierung (manage_runs/run_form). Smoke + 12 Tests grün.
@@ -61,10 +62,16 @@ Reihenfolge nach Deadline **und** Baubarkeit (Reglement vorhanden?):
    - [x] Portal: öffentliche Finalisten-Anzeige `GET /events/<id>/finalists` (BCCS nach Kategorie+Division
          gruppiert, SKBS flach) + Template `public/finalists.html`. Tests `test_public_finalists.py` (4) grün.
          (Direkt-URL wie Zeitplan/Startliste; `is_published`-Guard + Admin-Key.)
-   - [ ] Browser-Test Dashboard (AgilitySoftware) + Import-Roundtrip am Wochenende (I/L, SM + Nachwuchs)
-   - [ ] Reglement: `Reglemente_Nützliches/BCCS_Agility_SM_Reglement_2023.pdf`
+   - [x] Dashboard-Berechnung + Import-Roundtrip serverseitig verifiziert (I/L, SM + Nachwuchs,
+         alle 4 Divisionen korrekt); Export→Portal-Import End-to-End auf Prod getestet
+   - [ ] Browser-Klicktest der BCCS-Dashboard-UI durch Chris (serverseitige Logik bereits geprüft)
 
 3. **Adventscup** *(klein)* — prüfen ob `advents_cup` analog Halloween reicht; sonst eigene Regel.
+   **Blocker gefunden (2026-08-16):** Das KO-Final-Datenmodell (`CupFinal`/`CupFinalMatchup`,
+   „American"-Format) generiert nur Runde 1. Es fehlt die Route/Logik, um Runde 2+ (Viertelfinale/
+   Halbfinale/Finale) aus den Vorrunden-Siegern zu generieren, die Halbfinale-Sonderregel
+   (Verlierer → Spiel um Platz 3) anzuwenden und die Schlussrangliste (`CupFinalResult`) zu
+   befüllen. Betrifft jeden Cup mit KO-Finale (Halloween, ggf. Adventscup).
 
 4. **SKBS-SM + FMBB Münsingen** — bestehender Dezember-Plan + FMBB-Plan abarbeiten.
 
