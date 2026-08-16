@@ -3,19 +3,13 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-05-30
+Stand: 2026-08-16
 
-## Crashguard-Rollout
+## Crashguard-Rollout — ✅ ERLEDIGT (2026-08-16)
 
-Code (`crashguard.py` im Projekt-Root) ist eingebaut. Server-Aktivierung offen.
-
-- [ ] In `~/apps/agilityportal/.env` ergaenzen:
-  ```
-  CRASHGUARD_URL=https://admin.z-b.tech
-  CRASHGUARD_TOKEN=<token-aus-AdminPortal-Setup>
-  ```
-- [ ] `supervisorctl restart agilityportal`
-- [ ] Verifikation: in Claude-MultiPC unter `🐞 Crashes` sollte ein Test-Crash erscheinen, sobald hier ein Fehler auftritt (oder via `crashguard.report_manual(...)`)
+`CRASHGUARD_URL` + `CRASHGUARD_TOKEN` sind in `~/apps/agilityportal/.env` gesetzt, Dienst
+läuft, Collector (AdminPortal) empfängt Reports (verifiziert). Debug-Tools auf Prod aus
+(`ENABLE_DEBUG_TOOLS` nicht gesetzt).
 
 Anleitung: `~/.claude/playbooks/crashguard-deploy.md`
 
