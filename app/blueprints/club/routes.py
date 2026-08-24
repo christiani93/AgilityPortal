@@ -12,7 +12,7 @@ from flask_babel import _
 from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
-from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF, StartNumber, TkaExportBatch, TkaExportRow, TkaImport, TkaFinding, ExchangeExportLog, EventFinalist, CupEvent, CupQualificationRun, CupQualifiedTeam, Document
 from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, DogClassForm, EventRegistrationForm
 
 
@@ -539,13 +539,51 @@ def event_delete(event_id):
     if not event:
         abort(404)
 
-    # Manuell löschen was nicht via cascade abgedeckt ist
-    db.session.execute(
-        db.delete(Registration).where(Registration.event_id == event_id)
-    )
-    db.session.execute(
-        db.delete(ScheduleBlock).where(ScheduleBlock.event_id == event_id)
-    )
+    # Alle event-abhängigen Zeilen in FK-sicherer Reihenfolge löschen.
+    # Viele event_id-FKs haben KEIN ON DELETE CASCADE (nur EventRun/EventJudge sind
+    # ORM-cascaded), und Bulk-DELETE umgeht die ORM-Cascade — daher explizit, Kinder zuerst.
+    reg_ids = db.select(Registration.id).where(Registration.event_id == event_id).scalar_subquery()
+    batch_ids = db.select(TkaExportBatch.id).where(TkaExportBatch.event_id == event_id).scalar_subquery()
+    import_ids = db.select(TkaImport.id).where(TkaImport.batch_id.in_(batch_ids)).scalar_subquery()
+    ri_ids = db.select(ResultImport.id).where(ResultImport.event_id == event_id).scalar_subquery()
+    qr_ids = db.select(CupQualificationRun.id).where(CupQualificationRun.event_id == event_id).scalar_subquery()
+
+    # TKA-Historie (event-scoped über die Export-Batches; Batch.event_id verweist aufs Event)
+    db.session.execute(db.delete(TkaFinding).where(db.or_(
+        TkaFinding.tka_import_id.in_(import_ids),
+        TkaFinding.registration_id.in_(reg_ids),
+    )))
+    db.session.execute(db.delete(TkaImport).where(TkaImport.batch_id.in_(batch_ids)))
+    db.session.execute(db.delete(TkaExportRow).where(db.or_(
+        TkaExportRow.batch_id.in_(batch_ids),
+        TkaExportRow.registration_id.in_(reg_ids),
+    )))
+    db.session.execute(db.delete(TkaExportBatch).where(TkaExportBatch.event_id == event_id))
+
+    # Ergebnisse (Result + Document hängen an ResultImport; Kinder zuerst)
+    db.session.execute(db.delete(Result).where(db.or_(
+        Result.event_id == event_id,
+        Result.result_import_id.in_(ri_ids),
+    )))
+    db.session.execute(db.delete(Document).where(Document.result_import_id.in_(ri_ids)))
+    db.session.execute(db.delete(ResultImport).where(ResultImport.event_id == event_id))
+    db.session.execute(db.delete(ResultPDF).where(ResultPDF.event_id == event_id))
+
+    # Live-Daten / Export-Logs / Finalisten
+    db.session.execute(db.delete(LiveUpdate).where(LiveUpdate.event_id == event_id))
+    db.session.execute(db.delete(ExchangeExportLog).where(ExchangeExportLog.event_id == event_id))
+    db.session.execute(db.delete(EventFinalist).where(EventFinalist.event_id == event_id))
+
+    # Cup-Verknüpfungen (nur die Verknüpfung entfernen, nicht den Cup selbst)
+    db.session.execute(db.delete(CupQualifiedTeam).where(CupQualifiedTeam.qual_run_id.in_(qr_ids)))
+    db.session.execute(db.delete(CupQualificationRun).where(CupQualificationRun.event_id == event_id))
+    db.session.execute(db.delete(CupEvent).where(CupEvent.event_id == event_id))
+
+    # Startnummern -> Anmeldungen -> Zeitplan
+    db.session.execute(db.delete(StartNumber).where(StartNumber.event_id == event_id))
+    db.session.execute(db.delete(Registration).where(Registration.event_id == event_id))
+    db.session.execute(db.delete(ScheduleBlock).where(ScheduleBlock.event_id == event_id))
+
     name = event.name
     db.session.delete(event)   # cascaded: EventRun, EventJudge
     db.session.commit()
