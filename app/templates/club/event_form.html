@@ -139,7 +139,7 @@ async function tkamo_load() {
   if (!ais) { status.textContent = '{{ _("Bitte AIS-Nummer eingeben.") }}'; return; }
   status.textContent = '{{ _("Lade…") }}';
   try {
-    const r = await fetch('https://admin.z-b.tech/api/tkamo/' + ais);
+    const r = await fetch('/club/tkamo/' + encodeURIComponent(ais));
     const d = await r.json();
     if (d.error) { status.textContent = '❌ ' + d.error; return; }
 

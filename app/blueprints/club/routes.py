@@ -591,6 +591,30 @@ def event_delete(event_id):
     return redirect(url_for("club.dashboard"))
 
 
+@club_bp.get("/tkamo/<ais>")
+@login_required
+def tkamo_proxy(ais):
+    """Server-seitiger Proxy zum TKAMO-Endpunkt des AdminPortals.
+
+    Der Browser darf admin.z-b.tech nicht direkt cross-origin abfragen (AdminPortal
+    sendet kein Access-Control-Allow-Origin), daher holt der Server die Daten
+    server-zu-server (kein CORS) und reicht die JSON-Antwort unverändert durch.
+    """
+    from flask import current_app
+    import requests
+    if not ais.isdigit():
+        return Response(_json.dumps({"error": "Ungültige AIS-Nummer"}),
+                        status=400, mimetype="application/json")
+    try:
+        r = requests.get(f"https://admin.z-b.tech/api/tkamo/{ais}", timeout=15)
+        return Response(r.content, status=r.status_code,
+                        mimetype=r.headers.get("Content-Type", "application/json"))
+    except requests.RequestException as e:
+        current_app.logger.warning("TKAMO-Proxy: AdminPortal nicht erreichbar: %s", e)
+        return Response(_json.dumps({"error": "AdminPortal nicht erreichbar"}),
+                        status=502, mimetype="application/json")
+
+
 @club_bp.get("/events/<int:event_id>/edit")
 @club_bp.post("/events/<int:event_id>/edit")
 @login_required
