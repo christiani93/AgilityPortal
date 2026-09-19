@@ -101,6 +101,19 @@
       <label class="form-label">Öffentliche Notizen</label>
       <textarea name="notes_public" class="form-control" rows="2">{{ tpl.notes_public or '' if tpl else '' }}</textarea>
     </div>
+
+    <div class="col-md-4">
+      <div class="form-check mt-4">
+        <input type="checkbox" name="registration_external" class="form-check-input" id="reg_ext"
+               {% if tpl and tpl.registration_external %}checked{% endif %}>
+        <label class="form-check-label" for="reg_ext">Anmeldung über externes Portal</label>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <label class="form-label">Link zum externen Anmeldeportal</label>
+      <input type="url" name="registration_url" class="form-control"
+             value="{{ tpl.registration_url or '' if tpl else '' }}" placeholder="https://...">
+    </div>
   </div>
 
   <hr class="my-4">
@@ -174,19 +187,33 @@
 </div>
 
 {% if tpl.runs %}
+<p class="text-muted"><small>Die Reihenfolge (⬆⬇) wird als Laufreihenfolge gespeichert. Die Zeitberechnung selbst erfolgt später pro Turniertag.</small></p>
 <div class="table-responsive mb-3">
   <table class="table table-sm table-hover align-middle">
     <thead class="table-light">
-      <tr><th>Disziplin</th><th>Kategorie</th><th>Klasse</th><th>Final</th><th></th></tr>
+      <tr><th style="width:3em;">#</th><th>Disziplin</th><th>Kategorie</th><th>Klasse</th><th>Final</th><th></th></tr>
     </thead>
     <tbody>
       {% for run in tpl.runs %}
       <tr>
+        <td class="text-muted">{{ loop.index }}</td>
         <td>{{ run.run_type }}</td>
         <td>{{ run.category }}</td>
         <td>{{ run.class_level }}</td>
         <td>{% if run.is_final %}✓{% endif %}</td>
-        <td class="text-end">
+        <td class="text-end text-nowrap">
+          {% if not loop.first %}
+          <form method="post" action="{{ url_for('templates_admin.template_run_move', tpl_id=tpl.id, run_id=run.id, key=admin_key) }}" class="d-inline">
+            <input type="hidden" name="direction" value="up">
+            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Nach oben">⬆</button>
+          </form>
+          {% endif %}
+          {% if not loop.last %}
+          <form method="post" action="{{ url_for('templates_admin.template_run_move', tpl_id=tpl.id, run_id=run.id, key=admin_key) }}" class="d-inline">
+            <input type="hidden" name="direction" value="down">
+            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Nach unten">⬇</button>
+          </form>
+          {% endif %}
           <form method="post" action="{{ url_for('templates_admin.template_run_delete', tpl_id=tpl.id, run_id=run.id, key=admin_key) }}" class="d-inline">
             <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
           </form>

@@ -86,6 +86,8 @@ def _template_from_form(tpl: EventTemplate) -> EventTemplate:
     tpl.option_special_eval = bool(request.form.get("option_special_eval"))
     tpl.option_website = bool(request.form.get("option_website"))
     tpl.option_event_support = bool(request.form.get("option_event_support"))
+    tpl.registration_external = bool(request.form.get("registration_external"))
+    tpl.registration_url = (request.form.get("registration_url") or "").strip() or None
     return tpl
 
 
@@ -176,13 +178,38 @@ def template_run_add(tpl_id):
                      and r.class_level == class_level and r.is_final == is_final
                      for r in tpl.runs)
         if not exists:
+            next_sort = max((r.sort_index for r in tpl.runs), default=0) + 1
             db.session.add(EventTemplateRun(
                 template_id=tpl.id, run_type=run_type, category=category,
-                class_level=class_level, is_final=is_final))
+                class_level=class_level, is_final=is_final, sort_index=next_sort))
             db.session.commit()
             flash("Lauf hinzugefügt.", "success")
         else:
             flash("Dieser Lauf existiert bereits.", "warning")
+    return redirect(url_for("templates_admin.template_edit", tpl_id=tpl.id, key=_admin_key()))
+
+
+@templates_admin_bp.post("/admin/templates/<int:tpl_id>/runs/<int:run_id>/move")
+@_require_admin_key
+def template_run_move(tpl_id, run_id):
+    """Verschiebt einen Lauf in der Reihenfolge (up/down) durch sort_index-Tausch."""
+    tpl = db.session.get(EventTemplate, tpl_id)
+    if not tpl:
+        abort(404)
+    run = db.session.get(EventTemplateRun, run_id)
+    if not run or run.template_id != tpl.id:
+        abort(404)
+    direction = request.form.get("direction")
+    ordered = list(tpl.runs)  # bereits nach sort_index sortiert
+    idx = ordered.index(run)
+    swap_with = None
+    if direction == "up" and idx > 0:
+        swap_with = ordered[idx - 1]
+    elif direction == "down" and idx < len(ordered) - 1:
+        swap_with = ordered[idx + 1]
+    if swap_with is not None:
+        run.sort_index, swap_with.sort_index = swap_with.sort_index, run.sort_index
+        db.session.commit()
     return redirect(url_for("templates_admin.template_edit", tpl_id=tpl.id, key=_admin_key()))
 
 
@@ -194,6 +221,7 @@ def template_runs_generate(tpl_id):
     if not tpl:
         abort(404)
     existing = {(r.run_type, r.category, r.class_level, r.is_final) for r in tpl.runs}
+    next_sort = max((r.sort_index for r in tpl.runs), default=0) + 1
     added = 0
     for discipline in _DISCIPLINES:
         for cat in _CATEGORIES:
@@ -202,7 +230,9 @@ def template_runs_generate(tpl_id):
                 if key not in existing:
                     db.session.add(EventTemplateRun(
                         template_id=tpl.id, run_type=discipline,
-                        category=cat, class_level=kl, is_final=False))
+                        category=cat, class_level=kl, is_final=False,
+                        sort_index=next_sort))
+                    next_sort += 1
                     added += 1
     db.session.commit()
     flash(f"{added} Standard-Läufe erzeugt.", "success")
@@ -277,6 +307,8 @@ def template_create_event(tpl_id):
             ring_count=tpl.ring_count,
             notes_public=tpl.notes_public,
             event_description_de=tpl.event_description_de,
+            registration_external=tpl.registration_external,
+            registration_url=tpl.registration_url,
             startnumber_schema=tpl.startnumber_schema,
             run_time_config=tpl.run_time_config,
             ring_start_times=tpl.ring_start_times,

@@ -439,6 +439,8 @@ def event_new():
             entry_fee=form.entry_fee.data or None,
             allows_bitches_in_season=form.allows_bitches_in_season.data,
             bitches_in_season_start_last=form.bitches_in_season_start_last.data,
+            registration_external=form.registration_external.data,
+            registration_url=form.registration_url.data.strip() if form.registration_url.data else None,
             notes_public=form.notes_public.data.strip() if form.notes_public.data else None,
             is_test=form.is_test.data,
             organiser_club_id=club_id,
@@ -659,6 +661,8 @@ def event_edit(event_id):
         event.entry_fee = form.entry_fee.data or None
         event.allows_bitches_in_season = form.allows_bitches_in_season.data
         event.bitches_in_season_start_last = form.bitches_in_season_start_last.data
+        event.registration_external = form.registration_external.data
+        event.registration_url = form.registration_url.data.strip() if form.registration_url.data else None
         event.notes_public = form.notes_public.data.strip() if form.notes_public.data else None
         event.is_test = form.is_test.data
         if current_user.is_superadmin:

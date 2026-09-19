@@ -316,6 +316,9 @@ class Event(db.Model):
     is_breed_restricted = db.Column(db.Boolean, default=False, nullable=False)
     registration_open_at = db.Column(db.DateTime, nullable=True)
     registration_close_at = db.Column(db.DateTime, nullable=True)
+    # Anmeldung läuft über ein externes Portal (Durchführung trotzdem mit eigener Software)
+    registration_external = db.Column(db.Boolean, default=False, nullable=False)
+    registration_url = db.Column(db.String(500), nullable=True)
     max_participants = db.Column(db.Integer, nullable=True)
     entry_fee = db.Column(db.Numeric(10, 2), nullable=True)
     notes_public = db.Column(db.Text, nullable=True)
@@ -526,13 +529,17 @@ class EventTemplate(db.Model):
     option_website = db.Column(db.Boolean, default=False, nullable=False)
     option_event_support = db.Column(db.Boolean, default=False, nullable=False)
 
+    # Anmeldung über externes Portal (Marker + Link, ins Event kopiert)
+    registration_external = db.Column(db.Boolean, default=False, nullable=False)
+    registration_url = db.Column(db.String(500), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     organiser_club = db.relationship("Club")
     runs = db.relationship(
         "EventTemplateRun",
         back_populates="template",
-        order_by="EventTemplateRun.run_type, EventTemplateRun.category, EventTemplateRun.class_level",
+        order_by="EventTemplateRun.sort_index, EventTemplateRun.run_type, EventTemplateRun.category, EventTemplateRun.class_level",
         cascade="all, delete-orphan",
     )
 
@@ -561,6 +568,7 @@ class EventTemplateRun(db.Model):
     category = db.Column(db.String(5), nullable=False)    # S / M / I / L
     class_level = db.Column(db.Integer, nullable=False)   # 1 / 2 / 3
     is_final = db.Column(db.Boolean, nullable=False, default=False)
+    sort_index = db.Column(db.Integer, default=0, nullable=False)  # Laufreihenfolge
 
     template = db.relationship("EventTemplate", back_populates="runs")
 

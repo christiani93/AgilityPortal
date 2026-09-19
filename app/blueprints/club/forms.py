@@ -48,6 +48,8 @@ class EventForm(FlaskForm):
     ends_at = DateField("Bis (Datum)", validators=[Optional()])
     registration_open_at = DateField("Meldebeginn", validators=[Optional()])
     registration_close_at = DateField("Nennschluss", validators=[Optional()])
+    registration_external = BooleanField("Anmeldung läuft über externes Portal")
+    registration_url = StringField("Link zum externen Anmeldeportal", validators=[Optional(), Length(max=500)])
     pruefungsleiter = StringField("Prüfungsleiter", validators=[Optional(), Length(max=255)])
     max_participants = IntegerField("Max. Starter", validators=[Optional(), NumberRange(min=1)])
     entry_fee = DecimalField("Startgeld (CHF)", validators=[Optional(), NumberRange(min=0)], places=2)

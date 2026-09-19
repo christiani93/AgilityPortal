@@ -79,6 +79,14 @@
       </span>
     {% endif %}
     <span class="badge bg-light text-dark border">{{ event.TYPE_LABELS.get(event.type, event.type) }}</span>
+    {% if event.registration_external %}
+      {% if event.registration_url %}
+        <a href="{{ event.registration_url }}" target="_blank" rel="noopener"
+           class="badge bg-info text-dark text-decoration-none">🔗 {{ _('Anmeldung über externes Portal') }}</a>
+      {% else %}
+        <span class="badge bg-info text-dark">{{ _('Anmeldung über externes Portal') }}</span>
+      {% endif %}
+    {% endif %}
 
     {# Aktions-Buttons je nach aktuellem Status #}
     <div class="ms-auto d-flex gap-2">

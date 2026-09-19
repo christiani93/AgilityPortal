@@ -82,6 +82,18 @@
         </div>
       </div>
 
+      <div class="mb-1">
+        <div class="form-check">
+          {{ form.registration_external(class="form-check-input") }}
+          {{ form.registration_external.label(class="form-check-label") }}
+        </div>
+      </div>
+      <div class="mb-3">
+        {{ form.registration_url.label(class="form-label") }}
+        {{ form.registration_url(class="form-control", placeholder="https://...") }}
+        <div class="form-text text-muted">{{ _('Nur nötig, wenn die Anmeldung über ein externes Portal läuft.') }}</div>
+      </div>
+
       <div class="mb-3">
         {{ form.pruefungsleiter.label(class="form-label") }}
         {{ form.pruefungsleiter(class="form-control") }}
