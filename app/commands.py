@@ -2,7 +2,7 @@
 Flask-CLI-Befehle für Entwicklung und Tests.
 """
 import click
-from datetime import datetime
+from datetime import datetime, date
 from flask.cli import with_appcontext
 from app.extensions import db
 
@@ -286,3 +286,144 @@ def create_test_event(name: str, club_id: int, count: int):
         f"{len(runs)} Läufe, {created} Anmeldungen."
     )
     click.echo(f"  → Direkt aufrufen: /club/events/{event.id}/view")
+
+
+# ---------------------------------------------------------------------------
+# Saison-Turniere (Kalender H2 2026 – Feb 2027) als echte Events anlegen.
+# Sichtbar (is_published=True), Anmeldung geschlossen (status="closed"), da
+# die Anmeldung noch nicht über das Portal, sondern über AOA läuft.
+# ---------------------------------------------------------------------------
+
+# organiser = Name-Fragment zum Suchen des Veranstalter-Vereins (Club.name ILIKE).
+_SEASON_EVENTS = [
+    {"ext": "SEASON_2627_halloween", "name": "Halloween Cup",
+     "start": date(2026, 10, 30), "end": date(2026, 11, 1),
+     "type": "regular", "ruleset": "halloween_cup", "organiser": "LiTyWee"},
+
+    {"ext": "SEASON_2627_wimesma_m1", "name": "WiMeSma 26/27 – Meeting 1",
+     "start": date(2026, 11, 15), "end": date(2026, 11, 15),
+     "type": "regular", "ruleset": None, "organiser": "Kiesen",
+     "location": "Münsingen"},
+
+    {"ext": "SEASON_2627_bccs_sm", "name": "BCCS-Schweizermeisterschaft",
+     "start": date(2026, 11, 21), "end": date(2026, 11, 22),
+     "type": "bccs_sm", "ruleset": None, "organiser": "Seeland"},
+
+    {"ext": "SEASON_2627_advent", "name": "Adventscup",
+     "start": date(2026, 11, 27), "end": date(2026, 11, 29),
+     "type": "regular", "ruleset": "advents_cup", "organiser": "LiTyWee"},
+
+    {"ext": "SEASON_2627_skbs_sm", "name": "SKBS-Schweizermeisterschaft",
+     "start": date(2026, 12, 5), "end": date(2026, 12, 6),
+     "type": "skbs_sm", "ruleset": None, "organiser": "Seeland",
+     "location": "Münsingen"},
+
+    {"ext": "SEASON_2627_fmbb_quali", "name": "FMBB-WM-Qualifikation",
+     "start": date(2026, 12, 5), "end": date(2026, 12, 6),
+     "type": "fmbb_quali", "ruleset": None, "organiser": "Seeland",
+     "location": "Münsingen"},
+
+    {"ext": "SEASON_2627_wimesma_m2", "name": "WiMeSma 26/27 – Meeting 2",
+     "start": date(2026, 12, 12), "end": date(2026, 12, 12),
+     "type": "regular", "ruleset": None, "organiser": "Kiesen",
+     "location": "Münsingen"},
+
+    {"ext": "SEASON_2627_edelweiss", "name": "Edelweiss Challenge",
+     "start": date(2027, 1, 8), "end": date(2027, 1, 10),
+     "type": "regular", "ruleset": "edelweiss_challenge", "organiser": "LiTyWee"},
+
+    {"ext": "SEASON_2627_wimesma_m3", "name": "WiMeSma 26/27 – Meeting 3",
+     "start": date(2027, 1, 17), "end": date(2027, 1, 17),
+     "type": "regular", "ruleset": None, "organiser": "Kiesen",
+     "location": "Münsingen"},
+
+    {"ext": "SEASON_2627_daenzer_jan", "name": "Turnier Dänzer (Januar)",
+     "start": date(2027, 1, 22), "end": date(2027, 1, 24),
+     "type": "regular", "ruleset": None, "organiser": "Seeland"},
+
+    {"ext": "SEASON_2627_wimesma_final", "name": "WiMeSma 26/27 – Meeting 4 + Finallauf",
+     "start": date(2027, 2, 13), "end": date(2027, 2, 13),
+     "type": "regular", "ruleset": None, "organiser": "Kiesen",
+     "location": "Münsingen"},
+
+    {"ext": "SEASON_2627_daenzer_feb", "name": "Turnier Dänzer (Februar)",
+     "start": date(2027, 2, 19), "end": date(2027, 2, 21),
+     "type": "regular", "ruleset": None, "organiser": "Seeland"},
+]
+
+
+@click.command("seed-season-events")
+@click.option("--dry-run", is_flag=True,
+              help="Nur anzeigen, was angelegt würde – ohne zu schreiben.")
+@with_appcontext
+def seed_season_events(dry_run: bool):
+    """
+    Legt die Saison-Turniere (Kalender H2 2026 – Feb 2027) als echte Events an.
+
+    Sichtbar (is_published=True), Anmeldung geschlossen (status="closed").
+    Idempotent über external_id: ein zweiter Aufruf legt nichts doppelt an.
+    Veranstalter werden per Namensfragment (Club.name ILIKE) zugeordnet.
+
+    Beispiel:
+      flask seed-season-events --dry-run
+      flask seed-season-events
+    """
+    from app.models import Event, Club
+
+    def combine(d: date) -> datetime:
+        return datetime.combine(d, datetime.min.time())
+
+    club_cache: dict = {}
+
+    def find_club(hint: str):
+        if hint not in club_cache:
+            club_cache[hint] = db.session.execute(
+                db.select(Club).where(Club.name.ilike(f"%{hint}%"))
+            ).scalars().first()
+        return club_cache[hint]
+
+    created = skipped = 0
+    warnings: list[str] = []
+
+    for spec in _SEASON_EVENTS:
+        existing = db.session.execute(
+            db.select(Event).filter_by(external_id=spec["ext"])
+        ).scalars().first()
+        if existing:
+            skipped += 1
+            click.echo(f"  = vorhanden: {spec['name']} (ID {existing.id})")
+            continue
+
+        club = find_club(spec["organiser"]) if spec.get("organiser") else None
+        if spec.get("organiser") and club is None:
+            warnings.append(
+                f"Veranstalter «{spec['organiser']}» für «{spec['name']}» "
+                f"nicht gefunden - ohne Verein angelegt."
+            )
+
+        event = Event(
+            external_id=spec["ext"],
+            name=spec["name"],
+            location=spec.get("location"),
+            starts_at=combine(spec["start"]),
+            ends_at=combine(spec["end"]),
+            type=spec["type"],
+            special_ruleset=spec.get("ruleset"),
+            status="closed",
+            is_published=True,
+            organiser_club_id=club.id if club else None,
+        )
+        db.session.add(event)
+        created += 1
+        club_label = club.name if club else "- (kein Verein)"
+        click.echo(f"  + {spec['start']} {spec['name']} -> {club_label}")
+
+    for w in warnings:
+        click.echo(f"  ! {w}", err=True)
+
+    if dry_run:
+        db.session.rollback()
+        click.echo(f"\n[DRY-RUN] {created} neu, {skipped} vorhanden - nichts geschrieben.")
+    else:
+        db.session.commit()
+        click.echo(f"\n[OK] {created} Turniere angelegt, {skipped} bereits vorhanden.")
