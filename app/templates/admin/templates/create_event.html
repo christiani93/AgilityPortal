@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Turnier aus Vorlage erzeugen{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>🎯 Turnier aus «{{ tpl.name }}» erzeugen</h2>
+  <a href="{{ url_for('templates_admin.template_list', key=admin_key) }}" class="btn btn-outline-secondary">← Zur Übersicht</a>
+</div>
+
+<p class="text-muted">
+  Typ <strong>{{ tpl.type_label }}</strong>{% if tpl.ruleset_label %},
+  Sonderregel <strong>{{ tpl.ruleset_label }}</strong>{% endif %},
+  {{ tpl.runs | length }} Läufe, {{ tpl.day_count }} Turniertag(e).
+  Das Turnier wird als <strong>Entwurf</strong> angelegt.
+</p>
+
+<form method="post" class="row g-3" style="max-width: 640px;">
+  <div class="col-12">
+    <label class="form-label">Turniername</label>
+    <input type="text" name="name" class="form-control"
+           value="{{ tpl.default_event_name or tpl.name }}">
+  </div>
+
+  <div class="col-md-6">
+    <label class="form-label">Startdatum *</label>
+    <input type="date" name="starts_at" class="form-control" required>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Enddatum</label>
+    <input type="date" name="ends_at" class="form-control">
+    <div class="form-text">leer = eintägig (= Startdatum)</div>
+  </div>
+
+  <div class="col-12">
+    <label class="form-label">AIS-Turniernummer{{ "n" if tpl.day_count > 1 else "" }}</label>
+    {% for day in day_range %}
+    <div class="input-group mb-2">
+      <span class="input-group-text" style="min-width: 90px;">Tag {{ day }}</span>
+      <input type="number" name="ais_{{ day }}" class="form-control"
+             placeholder="AIS-Nr. Tag {{ day }}">
+    </div>
+    {% endfor %}
+    <div class="form-text">
+      Jeder Turniertag hat eine eigene AIS-Nummer. Tag 1 = Haupt-Nummer,
+      Folgetage werden als Zusatz gespeichert. Leer lassen, wenn noch nicht bekannt.
+    </div>
+  </div>
+
+  <div class="col-12">
+    <hr>
+    <h5>Verknüpfungen (optional)</h5>
+    <div class="form-check">
+      <input type="checkbox" name="do_website" class="form-check-input" id="do_website">
+      <label class="form-check-label" for="do_website">
+        Webseiten-Eintrag auf z-b.tech direkt erstellen
+      </label>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" name="do_reservation" class="form-check-input" id="do_reservation">
+      <label class="form-check-label" for="do_reservation">
+        Reservationsanfrage direkt an AdminPortal senden
+      </label>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card bg-light">
+      <div class="card-body">
+        <h6 class="card-title text-muted">Kontakt für Reservationsanfrage</h6>
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">Name</label>
+            <input type="text" name="contact_name" class="form-control form-control-sm"
+                   value="{{ tpl.contact_name or '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">E-Mail</label>
+            <input type="email" name="contact_email" class="form-control form-control-sm"
+                   value="{{ tpl.contact_email or '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Telefon</label>
+            <input type="text" name="contact_phone" class="form-control form-control-sm"
+                   value="{{ tpl.contact_phone or '' }}">
+          </div>
+        </div>
+        <div class="form-text">Aus der Vorlage vorbefüllt — nur wirksam, wenn „Reservationsanfrage" oben angehakt ist.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <button type="submit" class="btn btn-success">🎯 Turnier erzeugen</button>
+  </div>
+</form>
+
+{% endblock %}

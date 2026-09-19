@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}{{ "Vorlage bearbeiten" if tpl else "Neue Vorlage" }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>{{ "📋 Vorlage bearbeiten" if tpl else "📋 Neue Vorlage" }}</h2>
+  <a href="{{ url_for('templates_admin.template_list', key=admin_key) }}" class="btn btn-outline-secondary">← Zur Übersicht</a>
+</div>
+
+<form method="post" class="mb-4">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Vorlagen-Name *</label>
+      <input type="text" name="name" class="form-control" required
+             value="{{ tpl.name if tpl else '' }}"
+             placeholder="z.B. Halloween Cup">
+      <div class="form-text">Interner Name in der Vorlagen-Bibliothek.</div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Turniername (beim Erzeugen)</label>
+      <input type="text" name="default_event_name" class="form-control"
+             value="{{ tpl.default_event_name if tpl else '' }}"
+             placeholder="leer = Vorlagen-Name verwenden">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Ort</label>
+      <input type="text" name="location" class="form-control"
+             value="{{ tpl.location or '' if tpl else '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Anzahl Turniertage *</label>
+      <input type="number" name="day_count" class="form-control" min="1" max="10"
+             value="{{ tpl.day_count if tpl else 1 }}">
+      <div class="form-text">= Anzahl abgefragter AIS-Nummern.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Ringe</label>
+      <input type="number" name="ring_count" class="form-control" min="1"
+             value="{{ tpl.ring_count if tpl else 1 }}">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Turnier-Typ</label>
+      <select name="type" class="form-select">
+        {% for value, label in type_labels.items() %}
+        <option value="{{ value }}" {% if tpl and tpl.type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Sonderregel (Cup)</label>
+      <select name="special_ruleset" class="form-select">
+        <option value="">— keine —</option>
+        {% for value, label in ruleset_labels.items() %}
+        <option value="{{ value }}" {% if tpl and tpl.special_ruleset == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Veranstalter (Verein)</label>
+      <select name="organiser_club_id" class="form-select">
+        <option value="">— kein —</option>
+        {% for club in clubs %}
+        <option value="{{ club.id }}" {% if tpl and tpl.organiser_club_id == club.id %}selected{% endif %}>{{ club.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Prüfungsleiter</label>
+      <input type="text" name="pruefungsleiter" class="form-control"
+             value="{{ tpl.pruefungsleiter or '' if tpl else '' }}">
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Startgeld (CHF)</label>
+      <input type="text" name="entry_fee" class="form-control"
+             value="{{ tpl.entry_fee if tpl and tpl.entry_fee is not none else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Max. Teilnehmer</label>
+      <input type="number" name="max_participants" class="form-control" min="1"
+             value="{{ tpl.max_participants if tpl and tpl.max_participants is not none else '' }}">
+    </div>
+
+    <div class="col-12">
+      <div class="form-check">
+        <input type="checkbox" name="allows_bitches_in_season" class="form-check-input" id="bitches"
+               {% if tpl and tpl.allows_bitches_in_season %}checked{% endif %}>
+        <label class="form-check-label" for="bitches">Läufige Hündinnen zugelassen</label>
+      </div>
+      <div class="form-check">
+        <input type="checkbox" name="bitches_in_season_start_last" class="form-check-input" id="bitches_last"
+               {% if tpl and tpl.bitches_in_season_start_last %}checked{% endif %}>
+        <label class="form-check-label" for="bitches_last">Läufige Hündinnen starten zuletzt</label>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <label class="form-label">Öffentliche Notizen</label>
+      <textarea name="notes_public" class="form-control" rows="2">{{ tpl.notes_public or '' if tpl else '' }}</textarea>
+    </div>
+  </div>
+
+  <hr class="my-4">
+  <h5>Webseite &amp; Reservation</h5>
+  <p class="text-muted">Diese Angaben werden beim Erzeugen für den Webseiten-Eintrag und die
+    Reservationsanfrage verwendet — ändern sich pro Jahr selten.</p>
+  <div class="row g-3">
+    <div class="col-12">
+      <label class="form-label">Webseiten-Beschreibung (Freitext)</label>
+      <textarea name="event_description_de" class="form-control" rows="3"
+                placeholder="Zusatztext für den Eintrag auf z-b.tech">{{ tpl.event_description_de or '' if tpl else '' }}</textarea>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Ansprechpartner (Name)</label>
+      <input type="text" name="contact_name" class="form-control"
+             value="{{ tpl.contact_name or '' if tpl else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Ansprechpartner (E-Mail)</label>
+      <input type="email" name="contact_email" class="form-control"
+             value="{{ tpl.contact_email or '' if tpl else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Ansprechpartner (Telefon)</label>
+      <input type="text" name="contact_phone" class="form-control"
+             value="{{ tpl.contact_phone or '' if tpl else '' }}">
+    </div>
+
+    <div class="col-12">
+      <label class="form-label">Reservations-Notizen</label>
+      <textarea name="reservation_notes" class="form-control" rows="2">{{ tpl.reservation_notes or '' if tpl else '' }}</textarea>
+    </div>
+
+    <div class="col-12">
+      <label class="form-label d-block">Reservations-Optionen</label>
+      <div class="form-check form-check-inline">
+        <input type="checkbox" name="option_special_eval" class="form-check-input" id="opt_special"
+               {% if tpl and tpl.option_special_eval %}checked{% endif %}>
+        <label class="form-check-label" for="opt_special">Sonderauswertung</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input type="checkbox" name="option_website" class="form-check-input" id="opt_web"
+               {% if tpl and tpl.option_website %}checked{% endif %}>
+        <label class="form-check-label" for="opt_web">Webseite</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input type="checkbox" name="option_event_support" class="form-check-input" id="opt_support"
+               {% if tpl and tpl.option_event_support %}checked{% endif %}>
+        <label class="form-check-label" for="opt_support">Event-Support</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button type="submit" class="btn btn-primary">{{ "Speichern" if tpl else "Vorlage anlegen" }}</button>
+  </div>
+</form>
+
+{% if tpl %}
+<hr>
+<h4>Läufe der Vorlage</h4>
+<p class="text-muted">Diese Läufe werden bei jedem erzeugten Turnier automatisch angelegt.</p>
+
+<div class="d-flex gap-2 mb-3">
+  <form method="post" action="{{ url_for('templates_admin.template_runs_generate', tpl_id=tpl.id, key=admin_key) }}">
+    <button type="submit" class="btn btn-outline-primary btn-sm">
+      ⚡ Standard-Läufe erzeugen (Agility + Jumping, alle Kat., Kl. 1–3)
+    </button>
+  </form>
+</div>
+
+{% if tpl.runs %}
+<div class="table-responsive mb-3">
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-light">
+      <tr><th>Disziplin</th><th>Kategorie</th><th>Klasse</th><th>Final</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for run in tpl.runs %}
+      <tr>
+        <td>{{ run.run_type }}</td>
+        <td>{{ run.category }}</td>
+        <td>{{ run.class_level }}</td>
+        <td>{% if run.is_final %}✓{% endif %}</td>
+        <td class="text-end">
+          <form method="post" action="{{ url_for('templates_admin.template_run_delete', tpl_id=tpl.id, run_id=run.id, key=admin_key) }}" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-secondary">Noch keine Läufe. Nutze „Standard-Läufe erzeugen" oder füge einzeln hinzu.</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('templates_admin.template_run_add', tpl_id=tpl.id, key=admin_key) }}"
+      class="row g-2 align-items-end">
+  <div class="col-auto">
+    <label class="form-label">Disziplin</label>
+    <select name="run_type" class="form-select form-select-sm">
+      <option value="agility">Agility</option>
+      <option value="jumping">Jumping</option>
+      <option value="open">Open</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Kategorie</label>
+    <select name="category" class="form-select form-select-sm">
+      <option value="L">Large</option>
+      <option value="I">Intermediate</option>
+      <option value="M">Medium</option>
+      <option value="S">Small</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Klasse</label>
+    <select name="class_level" class="form-select form-select-sm">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <div class="form-check">
+      <input type="checkbox" name="is_final" class="form-check-input" id="is_final">
+      <label class="form-check-label" for="is_final">Final</label>
+    </div>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-sm btn-outline-primary">+ Lauf</button>
+  </div>
+</form>
+{% endif %}
+
+{% endblock %}

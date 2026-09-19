@@ -476,6 +476,102 @@ class EventRun(db.Model):
 
 
 # ---------------------------------------------------------------------------
+# Turnier-Vorlagen (jährlich wiederkehrende Veranstaltungen)
+# ---------------------------------------------------------------------------
+
+class EventTemplate(db.Model):
+    """
+    Wiederverwendbare Vorlage für ein jährlich wiederkehrendes Turnier.
+
+    Speichert nur die STABILEN Felder (Name, Typ/Ruleset, Veranstalter, Läufe,
+    Config). Die jährlich wechselnden Felder (AIS-Nummern, Daten, Status) werden
+    erst beim Erzeugen eines konkreten Events abgefragt.
+
+    day_count: Anzahl Turniertage → so viele AIS-Nummern werden beim Erzeugen
+    abgefragt (ais_turniernummer = Tag 1, ais_turniernummer_extra = Folgetage).
+    """
+    __tablename__ = "event_templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)          # Vorlagen-Name (Bibliothek)
+    default_event_name = db.Column(db.String(200), nullable=True)  # Turniername beim Erzeugen
+    location = db.Column(db.String(200), nullable=True)
+    day_count = db.Column(db.Integer, default=1, nullable=False)
+
+    type = db.Column(db.String(20), default="regular", nullable=False)
+    special_ruleset = db.Column(db.String(50), nullable=True)
+    organiser_club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=True)
+    pruefungsleiter = db.Column(db.String(255), nullable=True)
+    entry_fee = db.Column(db.Numeric(10, 2), nullable=True)
+    max_participants = db.Column(db.Integer, nullable=True)
+    allows_bitches_in_season = db.Column(db.Boolean, default=False, nullable=False)
+    bitches_in_season_start_last = db.Column(db.Boolean, default=False, nullable=False)
+    ring_count = db.Column(db.Integer, default=1, nullable=False)
+    notes_public = db.Column(db.Text, nullable=True)
+
+    # Config-JSON (Spiegel von Event)
+    startnumber_schema = db.Column(db.Text, nullable=True)
+    run_time_config = db.Column(db.Text, nullable=True)
+    ring_start_times = db.Column(db.Text, nullable=True)
+
+    # Webseite (wird ins Event kopiert, dann via website_sync publiziert)
+    event_description_de = db.Column(db.Text, nullable=True)
+
+    # Reservationsanfrage (stabile Kontaktdaten → beim Erzeugen an reservation_sync)
+    contact_name = db.Column(db.String(255), nullable=True)
+    contact_email = db.Column(db.String(255), nullable=True)
+    contact_phone = db.Column(db.String(50), nullable=True)
+    reservation_notes = db.Column(db.Text, nullable=True)
+    option_special_eval = db.Column(db.Boolean, default=False, nullable=False)
+    option_website = db.Column(db.Boolean, default=False, nullable=False)
+    option_event_support = db.Column(db.Boolean, default=False, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    organiser_club = db.relationship("Club")
+    runs = db.relationship(
+        "EventTemplateRun",
+        back_populates="template",
+        order_by="EventTemplateRun.run_type, EventTemplateRun.category, EventTemplateRun.class_level",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def type_label(self):
+        return Event.TYPE_LABELS.get(self.type, self.type)
+
+    @property
+    def ruleset_label(self):
+        if not self.special_ruleset:
+            return None
+        return Event.SPECIAL_RULESET_LABELS.get(self.special_ruleset, self.special_ruleset)
+
+
+class EventTemplateRun(db.Model):
+    """Ein Lauf innerhalb einer Turnier-Vorlage (Spiegel von EventRun)."""
+    __tablename__ = "event_template_runs"
+    __table_args__ = (
+        db.UniqueConstraint("template_id", "run_type", "category", "class_level",
+                            "is_final", name="uq_event_template_run"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(db.Integer, db.ForeignKey("event_templates.id"), nullable=False)
+    run_type = db.Column(db.String(20), nullable=False)   # agility / jumping / open
+    category = db.Column(db.String(5), nullable=False)    # S / M / I / L
+    class_level = db.Column(db.Integer, nullable=False)   # 1 / 2 / 3
+    is_final = db.Column(db.Boolean, nullable=False, default=False)
+
+    template = db.relationship("EventTemplate", back_populates="runs")
+
+    @property
+    def label(self):
+        type_label = EventRun.RUN_TYPE_LABELS.get(self.run_type, self.run_type)
+        cat_label = EventRun.CATEGORY_LABELS.get(self.category, self.category)
+        return f"{type_label} – {cat_label} – Klasse {self.class_level}"
+
+
+# ---------------------------------------------------------------------------
 # Anwesende Richter eines Turniers
 # ---------------------------------------------------------------------------
 

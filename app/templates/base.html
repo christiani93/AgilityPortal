@@ -110,6 +110,11 @@
          class="{% if request.endpoint == 'cups_admin.cup_club_assignments' %}active{% endif %}">
         🔒 Vereins-Freigaben
       </a>
+      <div class="nav-section">Vorlagen</div>
+      <a href="{{ url_for('templates_admin.template_list') }}"
+         class="{% if request.endpoint and 'templates_admin' in request.endpoint %}active{% endif %}">
+        📋 Turnier-Vorlagen
+      </a>
       <div class="nav-section">Import</div>
       <a href="{{ url_for('aoa_import.aoa_import_home') }}"
          class="{% if 'aoa_import' in request.endpoint %}active{% endif %}">

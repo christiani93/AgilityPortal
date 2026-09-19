@@ -5,6 +5,53 @@
 
 Stand: 2026-08-16
 
+## Turnier-Vorlagen — ✅ UMGESETZT (2026-09-19)
+
+Umgesetzt als benannte **`EventTemplate`-Bibliothek** (nicht „Duplizieren") im Admin-Bereich
+(`/admin/templates`, nur Superadmin). Vorlage traegt stabile Felder + Laeufe + Config +
+Reservations-Kontakt/Optionen + Webseiten-Text; „Turnier erzeugen" fragt nur Datum + AIS
+(eine AIS-Nummer pro Turniertag via `day_count`) und kann Website-/Reservation-Sync optional
+direkt anstossen. Migrationen `33d169664153` + `febf1477c166`.
+
+> Historischer Handoff-Kontext (Brief aus AdminPortal-Session, 2026-09-19):
+
+**Ziel:** Jaehrlich wiederkehrende Turniere schneller anlegen, ohne AIS-Nummer,
+Veranstalter, Kontaktdaten, Laeufe & Config jedes Mal neu einzutippen.
+
+**Architektur-Entscheid (wichtig):** Das Feature gehoert INS AGILITYPORTAL, wo das
+Event die Quelle ist — NICHT ins AdminPortal via `anmeldung`-Bind cross-DB
+schreiben (umgeht Event-Erstelllogik/Laeufe/Config + die Sync-Services →
+fragil, doppeltes Schema). Reservation + Webseiten-Event entstehen bereits ueber
+die bestehenden Push-Syncs vom Event aus:
+- `app/services/website_sync.py` → `POST admin.z-b.tech/api/events/sync` → PublicEvent (z-b.tech), merkt `website_event_id`.
+- `app/services/reservation_sync.py` → `POST admin.z-b.tech/api/reservations` → Reservation im AdminPortal, merkt `reservation_id`.
+(Beide AdminPortal-Gegenstellen existieren: `reservation_create`, `event_sync`.)
+
+**Empfohlener Ansatz — „Turnier duplizieren" (minimal, kein neues Schema):**
+- [ ] Knopf „Als neues Turnier duplizieren" auf einem bestehenden Event.
+- [ ] Kopiert die STABILEN Felder inkl. **Laeufe (`EventRun`)** + Config
+      (`run_time_config`, `startnumber_schema`, Ring-Config, `entry_fee`,
+      `pruefungsleiter`, `organiser_club_id`, `max_participants`, Huendinnen-Flags,
+      `notes_public`, `type`). Das Kopieren der Laeufe/Config ist der groesste
+      Zeitgewinn.
+- [ ] Laesst die JAEHRLICH wechselnden Felder LEER: `ais_turniernummer` (+`_extra`),
+      `starts_at`/`ends_at`, `registration_open_at`/`_close_at`. Status = `draft`.
+      `external_id`, `website_event_id`, `reservation_id`, `*_synced_at`, Ergebnisse
+      NICHT mitkopieren.
+- [ ] Danach fuellt der User nur AIS + Daten, dann die bestehenden Sync-Knoepfe
+      (→ Webseite, → Reservation).
+
+**Relevante Stellen:** `app/models.py` Event (ab Z.265), `app/blueprints/club/routes.py`
+`event_new` (ab Z.402) als Feld-Referenz, `services/website_sync.py`,
+`services/reservation_sync.py` (Reservation braucht Kontakt Name/E-Mail/Verein +
+`option_*` — bei benannter Vorlagen-Bibliothek muesste die Vorlage die tragen).
+
+**Offene Entscheidungen (User-Empfehlung war):**
+1. Duplizieren (empfohlen) vs. benannte `EventTemplate`-Tabelle. Duplizieren
+   deckt den Bedarf, kein Migrations-/UI-Overhead.
+2. „Veroeffentlichen"-Knopf die 2 Syncs verketten ODER getrennt lassen
+   (mehr Kontrolle pro Turnier). User tendiert noch nicht festgelegt.
+
 ## WiMeSma-Cup (Deadline 15.11.2026 — 1. von 4 Meetings)
 
 - [ ] Reglement klären: Cup-Punkte pro Klasse getrennt oder Small/Medium kombiniert werten (`split_by_class`)?
