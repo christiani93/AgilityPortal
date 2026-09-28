@@ -779,7 +779,10 @@ class LiveUpdate(db.Model):
     source_version = db.Column(db.String(50))
     source_device = db.Column(db.String(100), index=True, nullable=False)
     sent_at = db.Column(db.DateTime)
-    sequence_no = db.Column(db.Integer, nullable=False)
+    # BigInteger: die AgilitySoftware erzeugt sequence_no aus einem ms-Epoch
+    # (~13-stellig), was den 32-Bit-INT-Bereich sprengt -> MySQL kappte still auf
+    # 2147483647, wodurch jeder zweite Live-Update den UNIQUE-Constraint verletzte.
+    sequence_no = db.Column(db.BigInteger, nullable=False)
     payload_json = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

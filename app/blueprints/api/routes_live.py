@@ -1,5 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
+from sqlalchemy.exc import IntegrityError
 
+from app.extensions import db
 from app.services.exchange_service import store_live_update
 
 
@@ -18,5 +20,13 @@ def live_update():
     payload = request.get_json(silent=True)
     if not payload:
         return jsonify({"error": "invalid payload"}), 400
-    created, record = store_live_update(payload)
+    try:
+        created, record = store_live_update(payload)
+    except ValueError as exc:
+        # Ungueltiges Schema / fehlende Pflichtfelder -> 400 statt unbehandeltem 500
+        return jsonify({"error": str(exc)}), 400
+    except IntegrityError:
+        # Duplikat (gleiche event/device/sequence, z.B. Race) -> idempotent, kein 500
+        db.session.rollback()
+        return jsonify({"status": "ok", "stored": False, "duplicate": True})
     return jsonify({"status": "ok", "stored": created, "id": record.id})
