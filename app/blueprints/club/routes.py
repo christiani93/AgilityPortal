@@ -1810,10 +1810,21 @@ def event_schedule(event_id):
     ).scalars().all()
 
     # Teilnehmerzahlen pro Kategorie+Klasse
+    # Richter werden pro EventRun zugewiesen (Event-Detail) — für den Zeitplan
+    # den passenden Lauf-Richter als Default übernehmen (block.judge als Override).
+    run_by_key = {
+        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level): r
+        for r in event.runs
+    }
+
     counts = _participant_counts_for_event(event_id)
     for block in all_blocks:
         block._participant_count = counts.get((block.category_code, block.class_level), 0)
         block._is_group_leader = False
+        block._run = run_by_key.get(
+            ((block.discipline or "").lower(), block.category_code, block.class_level)
+        ) if block.block_type == "run" else None
+        block._effective_judge = (block._run.judge if block._run else None) or block.judge
         if not block.title:
             block._display_title = auto_title(block.discipline, block.category_code, block.class_level)
         else:
@@ -2031,6 +2042,35 @@ def schedule_block_toggle(event_id, block_id):
         block.skip_briefing = not block.skip_briefing
     else:
         abort(400)
+    db.session.commit()
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/blocks/<int:block_id>/judge")
+@login_required
+def schedule_block_set_judge(event_id, block_id):
+    """Richter eines Lauf-Blocks setzen — synchron zum passenden EventRun."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    block = db.session.get(ScheduleBlock, block_id)
+    if not block or block.event_id != event_id:
+        abort(404)
+
+    judge_id = request.form.get("judge_id", type=int)
+    judge_id = judge_id if judge_id and judge_id != 0 else None
+    block.judge_id = judge_id
+
+    # Kanonische Zuweisung am passenden EventRun mitführen
+    if block.block_type == "run":
+        bkey = ((block.discipline or "").lower(), block.category_code, block.class_level)
+        for r in event.runs:
+            if ((r.run_type or "").lower(),
+                _CATEGORY_CODE_MAP.get(r.category, r.category),
+                r.class_level) == bkey:
+                r.judge_id = judge_id
+                break
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))
 

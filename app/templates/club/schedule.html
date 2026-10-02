@@ -192,8 +192,28 @@
             {% endif %}
           </td>
           <td class="text-muted small">
-            {% if block.block_type == 'rank_announcement' %}—
-            {% else %}{{ block.judge.full_name if block.judge else "—" }}{% endif %}
+            {% if block.block_type == 'rank_announcement' %}
+              —
+            {% elif event_judges %}
+              <form method="post"
+                    action="{{ url_for('club.schedule_block_set_judge', event_id=event.id, block_id=block.id) }}"
+                    class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="judge_id" onchange="this.form.submit()"
+                        class="form-select form-select-sm d-inline-block"
+                        style="width:auto; min-width:150px; font-size:.78rem;">
+                  <option value="0">— {{ _('kein') }} —</option>
+                  {% for judge in event_judges %}
+                  <option value="{{ judge.id }}"
+                    {% if block._effective_judge and block._effective_judge.id == judge.id %}selected{% endif %}>
+                    {{ judge.full_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </form>
+            {% else %}
+              {{ block._effective_judge.full_name if block._effective_judge else "—" }}
+            {% endif %}
           </td>
           <td class="text-end text-muted small">
             {% if block.block_type == 'rank_announcement' %}—
@@ -462,7 +482,7 @@
               {% endif %}
             </td>
             <td class="text-muted small">
-              {% if not is_rank %}{{ item.block.judge.full_name if item.block.judge else "—" }}{% else %}—{% endif %}
+              {% if not is_rank %}{{ item.block._effective_judge.full_name if item.block._effective_judge else "—" }}{% else %}—{% endif %}
             </td>
             <td class="text-end">{% if not is_rank %}{{ item.participants }}{% else %}—{% endif %}</td>
             <td class="text-end text-muted small">
