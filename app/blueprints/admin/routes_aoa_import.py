@@ -202,6 +202,7 @@ def aoa_import_preview():
         email = (row.get(col_email) or "").strip() if col_email else ""
         phone = (row.get(col_phone) or "").strip() if col_phone else ""
         club_name = (row.get(col_club) or "").strip() if col_club else ""
+        club_no = (row.get(col_club_no) or "").strip() if col_club_no else ""
 
         # Prüfen ob bereits registriert
         existing_dog = Dog.query.filter_by(license_no=license_no).first()
@@ -223,6 +224,7 @@ def aoa_import_preview():
             "email": email,
             "phone": phone,
             "club_name": club_name,
+            "club_no": club_no,
             "existing_dog": existing_dog is not None,
             "already_registered": existing_reg is not None,
         })
@@ -279,6 +281,8 @@ def aoa_import_execute():
     col_last_name = _find_column(headers, "Nachname", "LastName", "Lname", "Name")
     col_email = _find_column(headers, "Email", "E-Mail", "EMail")
     col_phone = _find_column(headers, "Telefon", "Phone", "Tel", "Mobile")
+    col_club = _find_column(headers, "Verein", "Club", "ClubName", "HF Verein")
+    col_club_no = _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr", "HF Vereinnr")
     # col_breed nicht verwendet – Dog-Modell hat kein breed-Feld
 
     created = 0
@@ -302,6 +306,11 @@ def aoa_import_execute():
         last_name = (row.get(col_last_name) or "").strip() if col_last_name else ""
         email = (row.get(col_email) or "").strip() if col_email else None
         phone = (row.get(col_phone) or "").strip() if col_phone else None
+        # Vereinsnummer bevorzugt (für TKAMO-Lizenzcheck-Export benötigt),
+        # sonst Klartext-Vereinsname als Fallback
+        club_no = (row.get(col_club_no) or "").strip() if col_club_no else ""
+        club_name_raw = (row.get(col_club) or "").strip() if col_club else ""
+        club_value = club_no or club_name_raw
 
         try:
             # 1. Hund finden oder anlegen
@@ -362,6 +371,8 @@ def aoa_import_execute():
                 existing_reg.category_code = category
                 existing_reg.class_level = class_level
                 existing_reg.handler_id = person.id if person else existing_reg.handler_id
+                if club_value:
+                    existing_reg.club_name = club_value
                 created += 1
                 continue
 
@@ -374,6 +385,7 @@ def aoa_import_execute():
                 class_level=class_level,
                 status=RegistrationStatus.CONFIRMED,
                 tka_event_check_status=TkaEventCheckStatus.PENDING,
+                club_name=club_value or None,
             )
             db.session.add(reg)
             created += 1

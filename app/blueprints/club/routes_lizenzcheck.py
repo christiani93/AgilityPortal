@@ -85,10 +85,16 @@ def event_lizenzcheck_csv(event_id):
         if dog.license_kind == LicenseKind.FOREIGN:
             continue
 
-        user = db.session.execute(
-            db.select(User).filter_by(person_id=handler.id)
-        ).scalar_one_or_none()
-        vereinsnummer = (user.club.vereinsnummer if user and user.club else "") or ""
+        # Vereinsnummer: primär aus dem AOA/SportyDog-Import (reg.club_name,
+        # befüllt mit der dortigen "Vereinsnummer"-Spalte) — die meisten
+        # Teilnehmer sind Gäste ohne Portal-Login und haben keinen User-Account.
+        # Fallback: eigene Portal-Mitglieder über User → Club.
+        vereinsnummer = (reg.club_name or "").strip()
+        if not vereinsnummer:
+            user = db.session.execute(
+                db.select(User).filter_by(person_id=handler.id)
+            ).scalar_one_or_none()
+            vereinsnummer = (user.club.vereinsnummer if user and user.club else "") or ""
 
         cat_csv = _CAT_LABEL.get(
             reg.category_code[:1].upper() if reg.category_code else "", reg.category_code or ""
@@ -104,9 +110,13 @@ def event_lizenzcheck_csv(event_id):
             handler.email or "",
         ])
 
+    # TKAMO liest die Datei als Windows-1252 (nicht UTF-8) ein — bei UTF-8-Encoding
+    # entstehen Mojibake-Artefakte bei Umlauten/Akzenten (z.B. "Taïgan" → "TaÃ¯gan").
+    # errors="replace" verhindert einen Crash bei Zeichen ausserhalb von cp1252
+    # (z.B. seltene Sonderzeichen in Hundenamen).
     return Response(
-        output.getvalue().encode("utf-8"),
-        content_type="text/csv; charset=utf-8",
+        output.getvalue().encode("cp1252", errors="replace"),
+        content_type="text/csv; charset=windows-1252",
         headers={"Content-Disposition": f'attachment; filename="lizenzcheck_{event_id}.csv"'},
     )
 
