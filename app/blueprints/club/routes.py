@@ -1769,13 +1769,17 @@ def request_reject(req_id):
 # ---------------------------------------------------------------------------
 
 def _participant_counts_for_event(event_id):
-    """Gibt {(category_code, class_level): count} für PENDING/CONFIRMED-Anmeldungen zurück."""
+    """Gibt {(category_code, class_level): count} für PENDING/SUBMITTED/CONFIRMED-Anmeldungen zurück."""
     from sqlalchemy import func
     rows = db.session.execute(
         db.select(Registration.category_code, Registration.class_level, func.count())
         .filter(
             Registration.event_id == event_id,
-            Registration.status.in_([RegistrationStatus.PENDING, RegistrationStatus.CONFIRMED])
+            Registration.status.in_([
+                RegistrationStatus.PENDING,
+                RegistrationStatus.SUBMITTED,
+                RegistrationStatus.CONFIRMED,
+            ])
         )
         .group_by(Registration.category_code, Registration.class_level)
     ).all()
@@ -1829,12 +1833,14 @@ def event_schedule(event_id):
                                 run_time_config=run_time_cfg)
 
     # Noch nicht eingeplante EventRuns — sortiert nach L→I→M→S, dann Klasse
+    # discipline-Vergleich case-insensitiv (EventRun.run_type ist lowercase,
+    # ScheduleBlock.discipline kann je nach Anlage-Weg anders geschrieben sein)
     scheduled_keys = {
-        (b.discipline, b.category_code, b.class_level) for b in all_blocks
+        ((b.discipline or "").lower(), b.category_code, b.class_level) for b in all_blocks
     }
     unscheduled_runs = sorted(
         [r for r in event.runs
-         if (r.run_type, _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level)
+         if ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level)
          not in scheduled_keys],
         key=lambda r: (r.run_type, _CATEGORY_SORT.get(r.category, 9), r.class_level)
     )
