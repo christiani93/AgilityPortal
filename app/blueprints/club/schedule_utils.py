@@ -361,18 +361,16 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                     })
 
         # ── Briefing-Fenster: end_time = Start des ersten Laufs der Gruppe ──
-        # (gilt auch wenn eine Preppause dazwischen liegt)
-        for j, idx in enumerate(briefing_item_indices):
-            if j + 1 < len(briefing_item_indices):
-                # Bis zum Start des nächsten Briefings
-                items[idx]["end_time"] = items[briefing_item_indices[j + 1]]["start_time"]
-            else:
-                # Letztes Briefing: bis zum Start des ersten Laufs dieser Gruppe
-                first_run = next(
-                    (it for it in items[idx + 1:] if it["segment"] == "run"), None
-                )
-                if first_run:
-                    items[idx]["end_time"] = first_run["start_time"]
+        # (gilt auch wenn eine Preppause dazwischen liegt). Zwischen einem
+        # Briefing-Item und dem ersten 'run' seiner eigenen Gruppe steht
+        # höchstens eine Preppause — nie ein fremdes Briefing/Umbau/Rang —
+        # daher gehört der erste nachfolgende 'run' immer zur selben Gruppe.
+        for idx in briefing_item_indices:
+            first_run = next(
+                (it for it in items[idx + 1:] if it["segment"] == "run"), None
+            )
+            if first_run:
+                items[idx]["end_time"] = first_run["start_time"]
 
         segments_by_ring[ring] = items
     return segments_by_ring

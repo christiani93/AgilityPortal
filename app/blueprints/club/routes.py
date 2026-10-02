@@ -2266,7 +2266,8 @@ def event_live_json(event_id):
         else datetime.utcnow().strftime("%Y-%m-%d")
     )
     _timeline = compute_detailed_segments(
-        _sched_by_ring, _start_times, _event_date, round_minutes=5)
+        _sched_by_ring, _start_times, _event_date, round_minutes=5,
+        run_time_config=_get_run_time_config(event))
 
     # Serialisieren (Block-Objekte → plain dicts)
     schedule_json: dict = {}
