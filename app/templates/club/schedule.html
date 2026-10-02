@@ -125,6 +125,9 @@
 </div>
 
 {# ── 3. RINGE MIT BLOCKS ──────────────────────────────────────────────────── #}
+<p class="text-muted small mb-2">
+  {{ _('Tipp: Beim ersten Lauf jeder Gruppe kannst du mit den Schaltern Umbau / Briefing festlegen, ob diese für die Gruppe eingerechnet werden (grün = eingerechnet). So lässt sich z. B. vor dem Open der Klasse 1 der Umbau und das Briefing weglassen.') }}
+</p>
 {% for ring in rings %}
 {% set ring_blocks = blocks_by_ring.get(ring, []) | sort(attribute='sort_index') %}
 <div class="card mb-3">
@@ -166,6 +169,26 @@
                 {{ block.discipline | capitalize }}
               </span>
               {{ block._display_title }}
+              {% if block._is_group_leader %}
+              <div class="mt-1 d-flex gap-1">
+                {% for field, label, on in [
+                    ('changeover', _('Umbau'), not block.skip_changeover),
+                    ('briefing', _('Briefing'), not block.skip_briefing)] %}
+                <form method="post"
+                      action="{{ url_for('club.schedule_block_toggle', event_id=event.id, block_id=block.id) }}"
+                      class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="field" value="{{ field }}">
+                  <button type="submit"
+                          class="btn btn-xs px-1 py-0 {% if on %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                          style="font-size:.62rem;"
+                          title="{{ _('Für diese Gruppe ein-/ausrechnen') }}">
+                    {% if on %}✓{% else %}✕{% endif %} {{ label }}
+                  </button>
+                </form>
+                {% endfor %}
+              </div>
+              {% endif %}
             {% endif %}
           </td>
           <td class="text-muted small">

@@ -902,6 +902,11 @@ class ScheduleBlock(db.Model):
     category_code = db.Column(db.String(20), nullable=True)   # nur bei run
     class_level = db.Column(db.Integer, nullable=True)        # nur bei run
     duration_minutes = db.Column(db.Integer, nullable=True)   # nur bei rank_announcement (default 5)
+    # Gruppen-Overrides: Umbau/Briefing dieser Gruppe aus der Zeitberechnung nehmen.
+    # Wirken auf der ganzen Gruppe (gleiche Disziplin+Klasse), gesteuert über den
+    # ersten Block der Gruppe. Default: beide eingerechnet.
+    skip_changeover = db.Column(db.Boolean, default=False, nullable=False)
+    skip_briefing   = db.Column(db.Boolean, default=False, nullable=False)
     judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     title = db.Column(db.String(200), nullable=True)
     notes = db.Column(db.Text)

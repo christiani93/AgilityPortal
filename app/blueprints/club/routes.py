@@ -1790,7 +1790,8 @@ def _participant_counts_for_event(event_id):
 @login_required
 def event_schedule(event_id):
     import json as _json
-    from .schedule_utils import compute_timeline, parse_ring_start_times, ring_names, auto_title
+    from .schedule_utils import (compute_timeline, parse_ring_start_times,
+                                  ring_names, auto_title, _split_into_groups)
 
     event = db.session.get(Event, event_id)
     if not event:
@@ -1812,6 +1813,7 @@ def event_schedule(event_id):
     counts = _participant_counts_for_event(event_id)
     for block in all_blocks:
         block._participant_count = counts.get((block.category_code, block.class_level), 0)
+        block._is_group_leader = False
         if not block.title:
             block._display_title = auto_title(block.discipline, block.category_code, block.class_level)
         else:
@@ -1822,6 +1824,13 @@ def event_schedule(event_id):
     for block in all_blocks:
         if block.ring in blocks_by_ring:
             blocks_by_ring[block.ring].append(block)
+
+    # Ersten Block jeder Lauf-Gruppe markieren — dort steuert der User, ob Umbau
+    # und Briefing dieser Gruppe eingerechnet werden (gilt für die ganze Gruppe).
+    for ring_blocks in blocks_by_ring.values():
+        for gtype, content in _split_into_groups(sorted(ring_blocks, key=lambda b: b.sort_index)):
+            if gtype == "run_group" and content:
+                content[0]._is_group_leader = True
 
     # Event-Konfiguration laden
     run_time_cfg   = _get_run_time_config(event)
@@ -2002,6 +2011,26 @@ def schedule_block_delete(event_id, block_id):
         abort(404)
     _assert_event_access(db.session.get(Event, event_id))
     db.session.delete(block)
+    db.session.commit()
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/blocks/<int:block_id>/toggle")
+@login_required
+def schedule_block_toggle(event_id, block_id):
+    """Umbau bzw. Briefing einer Lauf-Gruppe ein-/ausrechnen (auf dem Gruppen-Leader)."""
+    block = db.session.get(ScheduleBlock, block_id)
+    if not block or block.event_id != event_id:
+        abort(404)
+    _assert_event_access(db.session.get(Event, event_id))
+
+    field = request.form.get("field")
+    if field == "changeover":
+        block.skip_changeover = not block.skip_changeover
+    elif field == "briefing":
+        block.skip_briefing = not block.skip_briefing
+    else:
+        abort(400)
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))
 

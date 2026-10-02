@@ -185,13 +185,20 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                 })
             else:
                 run_group    = content
+                leader       = run_group[0]
                 total_count  = sum(getattr(b, "_participant_count", 0) for b in run_group)
-                brief_s      = _briefing_seconds(total_count)
-                prep_s       = _prep_pause_seconds(total_count)
+                # Gruppen-Overrides (gesteuert über den ersten Block der Gruppe)
+                changeover_s = 0 if getattr(leader, "skip_changeover", False) else CHANGEOVER_SECONDS
+                if getattr(leader, "skip_briefing", False):
+                    brief_s = 0
+                    prep_s  = 0
+                else:
+                    brief_s = _briefing_seconds(total_count)
+                    prep_s  = _prep_pause_seconds(total_count)
 
                 # Umbau (einmalig für die Gruppe)
                 co_start = _round_to_minutes(current, round_minutes) if round_minutes else current
-                current  = co_start + timedelta(seconds=CHANGEOVER_SECONDS)
+                current  = co_start + timedelta(seconds=changeover_s)
                 if round_minutes:
                     current = _round_to_minutes(current, round_minutes)
 
@@ -224,12 +231,12 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                         "start_time":      co_start.strftime("%H:%M") if first else briefing_end_str,
                         "end_time":        r_end,
                         "participants":    count,
-                        "changeover_min":  CHANGEOVER_SECONDS // 60 if first else 0,
+                        "changeover_min":  changeover_s // 60 if first else 0,
                         "briefing_min":    brief_s // 60 if first else 0,
                         "prep_pause_min":  prep_s  // 60 if first else 0,
                         "run_min":         run_s // 60,
                         "total_min":       (
-                            (CHANGEOVER_SECONDS + brief_s + prep_s if first else 0) + run_s
+                            (changeover_s + brief_s + prep_s if first else 0) + run_s
                         ) // 60,
                     })
                     first = False
@@ -289,32 +296,41 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
 
             else:
                 run_group   = content
+                leader      = run_group[0]
                 total_count = sum(getattr(b, "_participant_count", 0) for b in run_group)
-                brief_s     = _briefing_seconds(total_count)
-                prep_s      = _prep_pause_seconds(total_count)
+                # Gruppen-Overrides (gesteuert über den ersten Block der Gruppe)
+                changeover_s = 0 if getattr(leader, "skip_changeover", False) else CHANGEOVER_SECONDS
+                if getattr(leader, "skip_briefing", False):
+                    brief_s = 0
+                    prep_s  = 0
+                else:
+                    brief_s = _briefing_seconds(total_count)
+                    prep_s  = _prep_pause_seconds(total_count)
 
                 # ── Umbau ─────────────────────────────────────────────────
-                s, e, current = _advance(current, CHANGEOVER_SECONDS, round_minutes)
-                items.append({
-                    "segment":      "changeover",
-                    "label":        "Umbau",
-                    "block":        run_group[0],
-                    "start_time":   s,
-                    "end_time":     e,
-                    "participants": 0,
-                })
+                if changeover_s:
+                    s, e, current = _advance(current, changeover_s, round_minutes)
+                    items.append({
+                        "segment":      "changeover",
+                        "label":        "Umbau",
+                        "block":        run_group[0],
+                        "start_time":   s,
+                        "end_time":     e,
+                        "participants": 0,
+                    })
 
                 # ── Gemeinsames Briefing für die Gruppe ───────────────────
-                s, e, current = _advance(current, brief_s, round_minutes)
-                briefing_item_indices.append(len(items))
-                items.append({
-                    "segment":      "briefing",
-                    "label":        _briefing_label(run_group),
-                    "block":        run_group[0],
-                    "start_time":   s,
-                    "end_time":     e,   # wird unten auf Lauf-Start ausgedehnt
-                    "participants": total_count,
-                })
+                if brief_s:
+                    s, e, current = _advance(current, brief_s, round_minutes)
+                    briefing_item_indices.append(len(items))
+                    items.append({
+                        "segment":      "briefing",
+                        "label":        _briefing_label(run_group),
+                        "block":        run_group[0],
+                        "start_time":   s,
+                        "end_time":     e,   # wird unten auf Lauf-Start ausgedehnt
+                        "participants": total_count,
+                    })
 
                 # ── Preppause (nur bei kleinen Gruppen) ───────────────────
                 if prep_s:

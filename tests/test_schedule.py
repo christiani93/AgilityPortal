@@ -13,6 +13,63 @@ from app.services.schedule_service import (
     list_blocks,
     update_block,
 )
+from app.blueprints.club.schedule_utils import (
+    compute_detailed_segments,
+    compute_timeline,
+)
+
+
+class _StubBlock:
+    """Leichtgewichtiger ScheduleBlock-Ersatz für die reinen Timeline-Funktionen."""
+
+    def __init__(self, id, discipline, class_level, count, sort_index,
+                 skip_changeover=False, skip_briefing=False):
+        self.id = id
+        self.discipline = discipline
+        self.class_level = class_level
+        self.category_code = "Large"
+        self.block_type = "run"
+        self.sort_index = sort_index
+        self.title = None
+        self.judge = None
+        self._participant_count = count
+        self._display_title = f"{discipline} Large Kl. {class_level}"
+        self.skip_changeover = skip_changeover
+        self.skip_briefing = skip_briefing
+
+
+def _two_group_blocks():
+    # Gruppe 1 (agility) normal, Gruppe 2 (open) ohne Umbau/Briefing
+    return {
+        "Ring 1": [
+            _StubBlock(1, "agility", 1, 10, 0),
+            _StubBlock(2, "open", 1, 10, 10,
+                       skip_changeover=True, skip_briefing=True),
+        ]
+    }
+
+
+def test_timeline_skip_removes_changeover_and_briefing():
+    tl = compute_timeline(_two_group_blocks(), {"Ring 1": "08:00"}, "2026-05-10")
+    first, second = tl["Ring 1"]
+    # Erste Gruppe rechnet Umbau + Briefing ein
+    assert first["changeover_min"] > 0
+    assert first["briefing_min"] > 0
+    # Zweite Gruppe (Open) weder Umbau noch Briefing
+    assert second["changeover_min"] == 0
+    assert second["briefing_min"] == 0
+    # Lückenlos: Open startet, wenn Agility endet (kein Umbau-/Briefing-Loch)
+    assert second["start_time"] == first["end_time"]
+
+
+def test_detailed_segments_skip_omits_umbau_briefing():
+    segs = compute_detailed_segments(_two_group_blocks(), {"Ring 1": "08:00"}, "2026-05-10")
+    seg_types = {(s["segment"], s["block"].discipline) for s in segs["Ring 1"]}
+    assert ("changeover", "agility") in seg_types
+    assert ("briefing", "agility") in seg_types
+    assert ("changeover", "open") not in seg_types
+    assert ("briefing", "open") not in seg_types
+    assert ("run", "open") in seg_types
 
 
 def test_add_update_delete_block(app):
