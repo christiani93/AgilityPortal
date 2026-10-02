@@ -1336,7 +1336,7 @@ def registration_confirm(reg_id):
     if not reg:
         abort(404)
     _assert_event_access(reg.event)
-    if reg.status == RegistrationStatus.PENDING:
+    if reg.status in (RegistrationStatus.PENDING, RegistrationStatus.SUBMITTED):
         reg.status = RegistrationStatus.CONFIRMED
         db.session.commit()
         flash(_("Anmeldung bestätigt."), "success")
@@ -1365,7 +1365,11 @@ def event_confirm_all(event_id):
         abort(404)
     _assert_event_access(event)
     pending = db.session.execute(
-        db.select(Registration).filter_by(event_id=event_id, status=RegistrationStatus.PENDING)
+        db.select(Registration).filter_by(event_id=event_id)
+        .filter(Registration.status.in_([
+            RegistrationStatus.PENDING,
+            RegistrationStatus.SUBMITTED,
+        ]))
     ).scalars().all()
     for reg in pending:
         reg.status = RegistrationStatus.CONFIRMED

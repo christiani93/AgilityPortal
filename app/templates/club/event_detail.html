@@ -752,16 +752,18 @@
 {# ── 4. ANMELDUNGEN ───────────────────────────────────────────────────────── #}
 {% if registrations is defined %}
 {% set pending_count = registrations | selectattr('status.value', 'equalto', 'PENDING') | list | length %}
+{% set submitted_count = registrations | selectattr('status.value', 'equalto', 'SUBMITTED') | list | length %}
 {% set confirmed_count = registrations | selectattr('status.value', 'equalto', 'CONFIRMED') | list | length %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span>
       {{ _('Anmeldungen') }}
       <span class="badge bg-warning text-dark ms-1">{{ pending_count }} {{ _('ausstehend') }}</span>
+      <span class="badge bg-primary ms-1">{{ submitted_count }} {{ _('eingereicht') }}</span>
       <span class="badge bg-success ms-1">{{ confirmed_count }} {{ _('bestätigt') }}</span>
     </span>
     <div class="d-flex gap-2 flex-wrap">
-      {% if pending_count > 0 %}
+      {% if pending_count > 0 or submitted_count > 0 %}
       <form method="post" action="{{ url_for('club.event_confirm_all', event_id=event.id) }}">
         {{ run_form.hidden_tag() }}
         <button class="btn btn-sm btn-success">✓ {{ _('Alle bestätigen') }}</button>
@@ -841,13 +843,13 @@
             {% endif %}
           </td>
           <td class="text-end">
-            {% if reg.status.value == 'PENDING' %}
+            {% if reg.status.value in ('PENDING', 'SUBMITTED') %}
             <form method="post" action="{{ url_for('club.registration_confirm', reg_id=reg.id) }}" class="d-inline">
               {{ run_form.hidden_tag() }}
               <button class="btn btn-sm btn-outline-success">✓</button>
             </form>
             {% endif %}
-            {% if reg.status.value in ('PENDING', 'CONFIRMED') %}
+            {% if reg.status.value in ('PENDING', 'SUBMITTED', 'CONFIRMED') %}
             <form method="post" action="{{ url_for('club.registration_reject', reg_id=reg.id) }}" class="d-inline"
                   onsubmit="return confirm('{{ _('Anmeldung wirklich ablehnen?') }}')">
               {{ run_form.hidden_tag() }}
