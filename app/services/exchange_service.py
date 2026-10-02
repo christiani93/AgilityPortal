@@ -177,14 +177,25 @@ def _build_start_numbers_payload(event, registrations):
     }
 
 
+_CATEGORY_CODE_MAP = {"L": "Large", "I": "Intermediate", "M": "Medium", "S": "Small"}
+
+
 def _build_schedule_payload(event):
     blocks = (
         ScheduleBlock.query.filter_by(event_id=event.id)
         .order_by(ScheduleBlock.sort_index, ScheduleBlock.start_at)
         .all()
     )
+    run_by_key = {
+        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level): r
+        for r in event.runs
+    }
     payload_blocks = []
     for block in blocks:
+        run = run_by_key.get(
+            ((block.discipline or "").lower(), block.category_code, block.class_level)
+        )
+        effective_judge = (run.judge if run else None) or block.judge
         payload_blocks.append(
             {
                 "ring": block.ring,
@@ -193,6 +204,8 @@ def _build_schedule_payload(event):
                 "category_code": block.category_code,
                 "class_level": block.class_level,
                 "notes": block.notes or "",
+                "judge_ais_id": effective_judge.ais_judge_id if effective_judge else None,
+                "judge_name": effective_judge.full_name if effective_judge else None,
             }
         )
     return {
