@@ -181,7 +181,7 @@
         <td>{{ r.handler_name or '' }}</td>
         <td class="cent">{{ r.start_no or '—' }}</td>
         <td class="num">
-          {% if r.time_s %}{{ "%.2f"|format(r.time_s) }}{% else %}—{% endif %}
+          {% if r.time_s and not elim %}{{ "%.2f"|format(r.time_s) }}{% else %}—{% endif %}
         </td>
         <td class="cent">{% if r.faults is not none %}{{ r.faults }}{% else %}—{% endif %}</td>
         <td class="cent">{% if r.refusals is not none %}{{ r.refusals }}{% else %}—{% endif %}</td>

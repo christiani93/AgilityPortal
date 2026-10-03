@@ -242,7 +242,8 @@
       </thead>
       <tbody>
         {% for row in cls.results %}
-        <tr class="{% if row.eliminated or row.status in ('DIS','ABR','DNS') %}table-light text-muted{% elif row.rank == 1 %}table-warning{% endif %}">
+        {% set elim = row.eliminated or row.status in ('DIS','ABR','DNS') %}
+        <tr class="{% if elim %}table-light text-muted{% elif row.rank == 1 %}table-warning{% endif %}">
           <td class="text-center fw-semibold">
             {% if row.rank %}{{ row.rank }}.{% else %}—{% endif %}
           </td>
@@ -252,7 +253,7 @@
           </td>
           <td class="text-center text-muted small">{{ row.start_no or '—' }}</td>
           <td class="text-end font-monospace small">
-            {% if row.time_s %}
+            {% if row.time_s and not elim %}
               {{ "%.2f"|format(row.time_s) }}s
             {% else %}—{% endif %}
           </td>

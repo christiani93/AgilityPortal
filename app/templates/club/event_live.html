@@ -275,7 +275,8 @@ function renderResults(resultClasses, updated, isFinal, pdfs) {
             <tbody>`;
 
     cls.results.forEach(r => {
-      const rowClass = (r.eliminated || ['DIS','ABR','DNS'].includes(r.status))
+      const elim = r.eliminated || ['DIS','ABR','DNS'].includes(r.status);
+      const rowClass = elim
         ? 'table-light text-muted'
         : (r.rank === 1 ? 'table-warning' : '');
       html += `
@@ -286,7 +287,7 @@ function renderResults(resultClasses, updated, isFinal, pdfs) {
                   <div class="text-muted small">${r.handler_name || ''}</div>
                 </td>
                 <td class="text-center text-muted small">${r.start_no || '—'}</td>
-                <td class="text-end font-monospace small">${r.time_s ? r.time_s.toFixed(2) + 's' : '—'}</td>
+                <td class="text-end font-monospace small">${(r.time_s && !elim) ? r.time_s.toFixed(2) + 's' : '—'}</td>
                 <td class="text-center small">${(r.faults != null) ? r.faults + ' / ' + r.refusals : '—'}</td>
               </tr>`;
     });
