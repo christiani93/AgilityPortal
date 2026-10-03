@@ -325,6 +325,10 @@ def aoa_import_execute():
                 )
                 db.session.add(dog)
                 db.session.flush()
+            elif dog_name and dog.name != dog_name:
+                # Dedup per Lizenz: Namen auf die maßgebliche Startliste aktualisieren,
+                # sonst bleiben veraltete Seed-/Platzhalternamen stehen.
+                dog.name = dog_name
 
             # 2. Person (Hundeführer) finden oder anlegen
             person = None
