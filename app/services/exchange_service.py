@@ -187,13 +187,13 @@ def _build_schedule_payload(event):
         .all()
     )
     run_by_key = {
-        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level): r
+        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), str(r.class_level)): r
         for r in event.runs
     }
     payload_blocks = []
     for block in blocks:
         run = run_by_key.get(
-            ((block.discipline or "").lower(), block.category_code, block.class_level)
+            ((block.discipline or "").lower(), block.category_code, str(block.class_level))
         )
         effective_judge = (run.judge if run else None) or block.judge
         payload_blocks.append(

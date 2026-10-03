@@ -1817,7 +1817,7 @@ def event_schedule(event_id):
     # Richter werden pro EventRun zugewiesen (Event-Detail) — für den Zeitplan
     # den passenden Lauf-Richter als Default übernehmen (block.judge als Override).
     run_by_key = {
-        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level): r
+        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), str(r.class_level)): r
         for r in event.runs
     }
 
@@ -1826,7 +1826,7 @@ def event_schedule(event_id):
         block._participant_count = counts.get((block.category_code, block.class_level), 0)
         block._is_group_leader = False
         block._run = run_by_key.get(
-            ((block.discipline or "").lower(), block.category_code, block.class_level)
+            ((block.discipline or "").lower(), block.category_code, str(block.class_level))
         ) if block.block_type == "run" else None
         block._effective_judge = (block._run.judge if block._run else None) or block.judge
         if not block.title:
@@ -1860,11 +1860,11 @@ def event_schedule(event_id):
     # discipline-Vergleich case-insensitiv (EventRun.run_type ist lowercase,
     # ScheduleBlock.discipline kann je nach Anlage-Weg anders geschrieben sein)
     scheduled_keys = {
-        ((b.discipline or "").lower(), b.category_code, b.class_level) for b in all_blocks
+        ((b.discipline or "").lower(), b.category_code, str(b.class_level)) for b in all_blocks
     }
     unscheduled_runs = sorted(
         [r for r in event.runs
-         if ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), r.class_level)
+         if ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), str(r.class_level))
          not in scheduled_keys],
         key=lambda r: (r.run_type, _CATEGORY_SORT.get(r.category, 9), r.class_level)
     )
@@ -2068,11 +2068,11 @@ def schedule_block_set_judge(event_id, block_id):
 
     # Kanonische Zuweisung am passenden EventRun mitführen
     if block.block_type == "run":
-        bkey = ((block.discipline or "").lower(), block.category_code, block.class_level)
+        bkey = ((block.discipline or "").lower(), block.category_code, str(block.class_level))
         for r in event.runs:
             if ((r.run_type or "").lower(),
                 _CATEGORY_CODE_MAP.get(r.category, r.category),
-                r.class_level) == bkey:
+                str(r.class_level)) == bkey:
                 r.judge_id = judge_id
                 break
     db.session.commit()

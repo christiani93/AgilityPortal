@@ -4,7 +4,17 @@ import json
 import zipfile
 
 from app.extensions import db
-from app.models import Dog, Event, LicenseKind, Person, Registration, RegistrationStatus, ScheduleBlock
+from app.models import (
+    Dog,
+    Event,
+    EventRun,
+    Judge,
+    LicenseKind,
+    Person,
+    Registration,
+    RegistrationStatus,
+    ScheduleBlock,
+)
 from app.services.exchange_service import build_event_export_zip
 from app.services.schedule_service import (
     add_block,
@@ -152,3 +162,44 @@ def test_export_includes_schedule_json(app):
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zip_file:
             payload = json.loads(zip_file.read("schedule.json"))
         assert payload["blocks"]
+
+
+def test_export_block_carries_judge_from_run(app):
+    with app.app_context():
+        event = Event(name="Schedule Judge Export")
+        judge = Judge(ais_judge_id=4711, first_name="Philippe", last_name="Cottet")
+        db.session.add_all([event, judge])
+        db.session.commit()
+
+        # Richter ist am Lauf zugewiesen (nicht direkt am Block).
+        run = EventRun(
+            event_id=event.id,
+            run_type="agility",
+            category="L",
+            class_level=1,
+            judge_id=judge.id,
+        )
+        db.session.add(run)
+        db.session.commit()
+
+        # Passender Block: discipline/category_code/class_level müssen zum Lauf
+        # matchen, damit der Export den Lauf-Richter übernimmt.
+        add_block(
+            event.id,
+            {
+                "ring": "Ring 1",
+                "start_at": datetime(2026, 5, 10, 8, 0),
+                "discipline": "Agility",
+                "category_code": "Large",
+                "class_level": 1,
+                "notes": "",
+            },
+        )
+
+        zip_bytes, _, _ = build_event_export_zip(event.id)
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zip_file:
+            payload = json.loads(zip_file.read("schedule.json"))
+
+        block = payload["blocks"][0]
+        assert block["judge_ais_id"] == 4711
+        assert block["judge_name"] == "Philippe Cottet"
