@@ -1609,6 +1609,14 @@ def event_export_zip(event_id):
         .order_by(ScheduleBlock.ring, ScheduleBlock.sort_index)
     ).scalars().all()
 
+    # Richter werden pro EventRun zugewiesen — passenden Lauf-Richter als Default
+    # übernehmen (block.judge als Override). class_level str-normalisieren, da
+    # ScheduleBlock.class_level als String, EventRun.class_level als Int vorliegt.
+    run_by_key = {
+        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), str(r.class_level)): r
+        for r in event.runs
+    }
+
     schedule_blocks_out = []
     for b in sched_blocks:
         # Ring-Nummer aus "Ring 1", "Ring 2" extrahieren
@@ -1625,10 +1633,16 @@ def event_export_zip(event_id):
             "notes":      b.notes or "",
         }
         if b.block_type == "run":
+            run = run_by_key.get(
+                ((b.discipline or "").lower(), b.category_code, str(b.class_level))
+            )
+            effective_judge = (run.judge if run else None) or b.judge
             blk.update({
                 "discipline":    b.discipline    or "",
                 "category_code": b.category_code or "",
                 "class_level":   str(b.class_level) if b.class_level else "",
+                "judge_ais_id":  effective_judge.ais_judge_id if effective_judge else None,
+                "judge_name":    effective_judge.full_name if effective_judge else None,
             })
         else:  # rank_announcement
             blk.update({
