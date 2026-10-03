@@ -258,7 +258,7 @@
             {% else %}—{% endif %}
           </td>
           <td class="text-center small">
-            {% if row.faults is not none or row.refusals is not none %}
+            {% if (row.faults is not none or row.refusals is not none) and not elim %}
               {{ row.faults or 0 }} / {{ row.refusals or 0 }}
             {% else %}—{% endif %}
           </td>

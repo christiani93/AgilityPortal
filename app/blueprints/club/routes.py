@@ -296,6 +296,18 @@ def _assert_event_access(event):
         abort(403)
 
 
+def _result_is_eliminated(r) -> bool:
+    """DIS/ABR/DNS oder explizit eliminiert → Lauf ist nicht gewertet."""
+    status = (getattr(r, "status", None) or "")
+    return bool(getattr(r, "eliminated", False)) or status in ("DIS", "ABR", "DNS")
+
+
+def _result_sort_key(r):
+    """Gewertete Läufe nach Rang zuerst, eliminierte ans Listenende."""
+    rank = r.rank if getattr(r, "rank", None) is not None else 10 ** 9
+    return (1 if _result_is_eliminated(r) else 0, rank)
+
+
 def _fill_club_choices(form):
     """Befüllt form.club_id.choices für Superadmin."""
     clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
@@ -1050,7 +1062,7 @@ def event_info(event_id):
             return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
         for key, group in groupby(results_rows, key=_class_key):
             ring, disc, cat, cls = key
-            rows = list(group)
+            rows = sorted(group, key=_result_sort_key)
             result_classes.append({
                 "ring": ring,
                 "discipline": disc,
@@ -2241,7 +2253,7 @@ def event_live_json(event_id):
                         "status":       r.status or "",
                         "eliminated":   r.eliminated,
                     }
-                    for r in grp
+                    for r in sorted(grp, key=_result_sort_key)
                 ],
             })
         # Timestamp in Zurich-Zeit
@@ -2381,7 +2393,7 @@ def event_results_print(event_id):
         result_classes.append({
             "ring": ring, "discipline": disc,
             "category_code": cat, "class_level": cls,
-            "results": list(grp),
+            "results": sorted(grp, key=_result_sort_key),
         })
 
     zurich = ZoneInfo("Europe/Zurich")

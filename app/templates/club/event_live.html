@@ -288,7 +288,7 @@ function renderResults(resultClasses, updated, isFinal, pdfs) {
                 </td>
                 <td class="text-center text-muted small">${r.start_no || '—'}</td>
                 <td class="text-end font-monospace small">${(r.time_s && !elim) ? r.time_s.toFixed(2) + 's' : '—'}</td>
-                <td class="text-center small">${(r.faults != null) ? r.faults + ' / ' + r.refusals : '—'}</td>
+                <td class="text-center small">${(r.faults != null && !elim) ? r.faults + ' / ' + r.refusals : '—'}</td>
               </tr>`;
     });
 
