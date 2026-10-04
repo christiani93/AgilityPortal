@@ -48,7 +48,7 @@
     <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
     {% if current_user.is_superadmin %}
     <form method="post" action="{{ url_for('club.event_delete', event_id=event.id) }}"
-          onsubmit="return confirm('Turnier «{{ event.name }}» wirklich löschen? Alle Anmeldungen und Zeitpläne werden unwiderruflich gelöscht.')">
+          onsubmit='return confirm({{ _("Turnier «%(name)s» wirklich löschen? Alle Anmeldungen und Zeitpläne werden unwiderruflich gelöscht.", name=event.name) | tojson }})'>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-sm btn-outline-danger">🗑 {{ _('Löschen') }}</button>
     </form>

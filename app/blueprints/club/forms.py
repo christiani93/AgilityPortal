@@ -1,38 +1,39 @@
+from flask_babel import lazy_gettext as _
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField, IntegerField, TextAreaField, BooleanField, DecimalField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional, NumberRange
 
 
 class AddUserForm(FlaskForm):
-    first_name = StringField("Vorname", validators=[DataRequired(), Length(max=100)])
-    last_name = StringField("Nachname", validators=[DataRequired(), Length(max=100)])
-    email = StringField("E-Mail", validators=[DataRequired(), Email(), Length(max=255)])
+    first_name = StringField(_("Vorname"), validators=[DataRequired(), Length(max=100)])
+    last_name = StringField(_("Nachname"), validators=[DataRequired(), Length(max=100)])
+    email = StringField(_("E-Mail"), validators=[DataRequired(), Email(), Length(max=255)])
     role = SelectField(
-        "Rolle",
-        choices=[("handler", "Mitglied / Hundeführer")],
+        _("Rolle"),
+        choices=[("handler", _("Mitglied / Hundeführer"))],
         default="handler",
     )
     password = PasswordField(
-        "Passwort",
-        validators=[DataRequired(), Length(min=8, message="Mindestens 8 Zeichen.")],
+        _("Passwort"),
+        validators=[DataRequired(), Length(min=8, message=_("Mindestens 8 Zeichen."))],
     )
     password2 = PasswordField(
-        "Passwort bestätigen",
-        validators=[DataRequired(), EqualTo("password", message="Passwörter stimmen nicht überein.")],
+        _("Passwort bestätigen"),
+        validators=[DataRequired(), EqualTo("password", message=_("Passwörter stimmen nicht überein."))],
     )
-    submit = SubmitField("Benutzer erstellen")
+    submit = SubmitField(_("Benutzer erstellen"))
 
 
 class ChangePasswordForm(FlaskForm):
     password = PasswordField(
-        "Neues Passwort",
-        validators=[DataRequired(), Length(min=8, message="Mindestens 8 Zeichen.")],
+        _("Neues Passwort"),
+        validators=[DataRequired(), Length(min=8, message=_("Mindestens 8 Zeichen."))],
     )
     password2 = PasswordField(
-        "Passwort bestätigen",
-        validators=[DataRequired(), EqualTo("password", message="Passwörter stimmen nicht überein.")],
+        _("Passwort bestätigen"),
+        validators=[DataRequired(), EqualTo("password", message=_("Passwörter stimmen nicht überein."))],
     )
-    submit = SubmitField("Passwort ändern")
+    submit = SubmitField(_("Passwort ändern"))
 
 
 # ---------------------------------------------------------------------------
@@ -40,52 +41,52 @@ class ChangePasswordForm(FlaskForm):
 # ---------------------------------------------------------------------------
 
 class EventForm(FlaskForm):
-    ais_turniernummer       = IntegerField("Turnier-ID (AIS)", validators=[Optional()])
-    ais_turniernummer_extra = StringField("Weitere AIS-Nummern (Mehrtage-Event)", validators=[Optional(), Length(max=255)])
-    name = StringField("Turniername", validators=[DataRequired(), Length(max=200)])
-    location = StringField("Ort / Adresse", validators=[Optional(), Length(max=200)])
-    starts_at = DateField("Von (Datum)", validators=[DataRequired()])
-    ends_at = DateField("Bis (Datum)", validators=[Optional()])
-    registration_open_at = DateField("Meldebeginn", validators=[Optional()])
-    registration_close_at = DateField("Nennschluss", validators=[Optional()])
-    registration_external = BooleanField("Anmeldung läuft über externes Portal")
-    registration_url = StringField("Link zum externen Anmeldeportal", validators=[Optional(), Length(max=500)])
-    pruefungsleiter = StringField("Prüfungsleiter", validators=[Optional(), Length(max=255)])
-    max_participants = IntegerField("Max. Starter", validators=[Optional(), NumberRange(min=1)])
-    entry_fee = DecimalField("Startgeld (CHF)", validators=[Optional(), NumberRange(min=0)], places=2)
-    allows_bitches_in_season = BooleanField("Läufige Hündinnen erlaubt")
-    bitches_in_season_start_last = BooleanField("Läufige Hündinnen starten am Schluss der Kategorie")
-    notes_public = TextAreaField("Bemerkungen (öffentlich)", validators=[Optional()])
-    is_test = BooleanField("Testveranstaltung (nicht öffentlich sichtbar)")
+    ais_turniernummer       = IntegerField(_("Turnier-ID (AIS)"), validators=[Optional()])
+    ais_turniernummer_extra = StringField(_("Weitere AIS-Nummern (Mehrtage-Event)"), validators=[Optional(), Length(max=255)])
+    name = StringField(_("Turniername"), validators=[DataRequired(), Length(max=200)])
+    location = StringField(_("Ort / Adresse"), validators=[Optional(), Length(max=200)])
+    starts_at = DateField(_("Von (Datum)"), validators=[DataRequired()])
+    ends_at = DateField(_("Bis (Datum)"), validators=[Optional()])
+    registration_open_at = DateField(_("Meldebeginn"), validators=[Optional()])
+    registration_close_at = DateField(_("Nennschluss"), validators=[Optional()])
+    registration_external = BooleanField(_("Anmeldung läuft über externes Portal"))
+    registration_url = StringField(_("Link zum externen Anmeldeportal"), validators=[Optional(), Length(max=500)])
+    pruefungsleiter = StringField(_("Prüfungsleiter"), validators=[Optional(), Length(max=255)])
+    max_participants = IntegerField(_("Max. Starter"), validators=[Optional(), NumberRange(min=1)])
+    entry_fee = DecimalField(_("Startgeld (CHF)"), validators=[Optional(), NumberRange(min=0)], places=2)
+    allows_bitches_in_season = BooleanField(_("Läufige Hündinnen erlaubt"))
+    bitches_in_season_start_last = BooleanField(_("Läufige Hündinnen starten am Schluss der Kategorie"))
+    notes_public = TextAreaField(_("Bemerkungen (öffentlich)"), validators=[Optional()])
+    is_test = BooleanField(_("Testveranstaltung (nicht öffentlich sichtbar)"))
     # Nur für Superadmin befüllt — choices werden in der Route gesetzt
-    club_id = SelectField("Verein", coerce=int, validators=[Optional()])
-    submit = SubmitField("Speichern")
+    club_id = SelectField(_("Verein"), coerce=int, validators=[Optional()])
+    submit = SubmitField(_("Speichern"))
 
 
 class EventRunForm(FlaskForm):
     run_type = SelectField(
-        "Typ",
+        _("Typ"),
         choices=[
-            ("agility", "Agility"),
-            ("jumping", "Jumping"),
-            ("open", "Open"),
+            ("agility", _("Agility")),
+            ("jumping", _("Jumping")),
+            ("open", _("Open")),
         ],
     )
     category = SelectField(
-        "Kategorie",
+        _("Kategorie"),
         choices=[
-            ("L", "Large (L)"),
-            ("I", "Intermediate (I)"),
-            ("M", "Medium (M)"),
-            ("S", "Small (S)"),
+            ("L", _("Large (L)")),
+            ("I", _("Intermediate (I)")),
+            ("M", _("Medium (M)")),
+            ("S", _("Small (S)")),
         ],
     )
     class_level = SelectField(
-        "Klasse",
-        choices=[("1", "Klasse 1"), ("2", "Klasse 2"), ("3", "Klasse 3")],
+        _("Klasse"),
+        choices=[("1", _("Klasse 1")), ("2", _("Klasse 2")), ("3", _("Klasse 3"))],
         coerce=int,
     )
-    submit = SubmitField("Lauf hinzufügen")
+    submit = SubmitField(_("Lauf hinzufügen"))
 
 
 # ---------------------------------------------------------------------------
@@ -93,18 +94,18 @@ class EventRunForm(FlaskForm):
 # ---------------------------------------------------------------------------
 
 class JudgeRequestForm(FlaskForm):
-    judge_ais_id = IntegerField("AIS-Nr. (falls bekannt)", validators=[Optional()])
-    judge_first_name = StringField("Vorname", validators=[DataRequired(), Length(max=100)])
-    judge_last_name = StringField("Nachname", validators=[DataRequired(), Length(max=100)])
-    note = TextAreaField("Bemerkung", validators=[Optional()])
-    submit = SubmitField("Anfrage senden")
+    judge_ais_id = IntegerField(_("AIS-Nr. (falls bekannt)"), validators=[Optional()])
+    judge_first_name = StringField(_("Vorname"), validators=[DataRequired(), Length(max=100)])
+    judge_last_name = StringField(_("Nachname"), validators=[DataRequired(), Length(max=100)])
+    note = TextAreaField(_("Bemerkung"), validators=[Optional()])
+    submit = SubmitField(_("Anfrage senden"))
 
 
 class ClubRequestForm(FlaskForm):
-    club_vereinsnummer = StringField("SKG-Vereinsnummer", validators=[DataRequired(), Length(max=20)])
-    club_name = StringField("Vereinsname", validators=[DataRequired(), Length(max=255)])
-    note = TextAreaField("Bemerkung", validators=[Optional()])
-    submit = SubmitField("Anfrage senden")
+    club_vereinsnummer = StringField(_("SKG-Vereinsnummer"), validators=[DataRequired(), Length(max=20)])
+    club_name = StringField(_("Vereinsname"), validators=[DataRequired(), Length(max=255)])
+    note = TextAreaField(_("Bemerkung"), validators=[Optional()])
+    submit = SubmitField(_("Anfrage senden"))
 
 
 # ---------------------------------------------------------------------------
@@ -112,27 +113,27 @@ class ClubRequestForm(FlaskForm):
 # ---------------------------------------------------------------------------
 
 class DogForm(FlaskForm):
-    name = StringField("Hundename", validators=[DataRequired(), Length(max=120)])
-    license_kind = SelectField("Lizenz-Typ", choices=[("CH", "Schweiz (CH)"), ("FOREIGN", "Ausland (FOREIGN)")])
-    license_no = StringField("Lizenznummer", validators=[DataRequired(), Length(max=50)])
-    submit = SubmitField("Hund speichern")
+    name = StringField(_("Hundename"), validators=[DataRequired(), Length(max=120)])
+    license_kind = SelectField(_("Lizenz-Typ"), choices=[("CH", _("Schweiz (CH)")), ("FOREIGN", _("Ausland (FOREIGN)"))])
+    license_no = StringField(_("Lizenznummer"), validators=[DataRequired(), Length(max=50)])
+    submit = SubmitField(_("Hund speichern"))
 
 
 class DogClassForm(FlaskForm):
     category = SelectField(
-        "Kategorie",
-        choices=[("L", "Large (L)"), ("I", "Intermediate (I)"), ("M", "Medium (M)"), ("S", "Small (S)")],
+        _("Kategorie"),
+        choices=[("L", _("Large (L)")), ("I", _("Intermediate (I)")), ("M", _("Medium (M)")), ("S", _("Small (S)"))],
     )
     class_level = SelectField(
-        "Klasse",
-        choices=[("1", "Klasse 1"), ("2", "Klasse 2"), ("3", "Klasse 3")],
+        _("Klasse"),
+        choices=[("1", _("Klasse 1")), ("2", _("Klasse 2")), ("3", _("Klasse 3"))],
         coerce=int,
     )
-    submit = SubmitField("Speichern")
+    submit = SubmitField(_("Speichern"))
 
 
 class EventRegistrationForm(FlaskForm):
-    dog_id = SelectField("Hund", coerce=int)
-    class_level = SelectField("Klasse", choices=[("1", "Klasse 1"), ("2", "Klasse 2"), ("3", "Klasse 3")], coerce=int)
-    is_in_season = BooleanField("Hündin ist läufig")
-    submit = SubmitField("Anmelden")
+    dog_id = SelectField(_("Hund"), coerce=int)
+    class_level = SelectField(_("Klasse"), choices=[("1", _("Klasse 1")), ("2", _("Klasse 2")), ("3", _("Klasse 3"))], coerce=int)
+    is_in_season = BooleanField(_("Hündin ist läufig"))
+    submit = SubmitField(_("Anmelden"))
