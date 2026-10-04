@@ -95,6 +95,17 @@ def _detect_license_kind(license_no: str) -> LicenseKind:
     return LicenseKind.FOREIGN
 
 
+def _unescape(text: str) -> str:
+    """
+    Entfernt Backslash-Escaping aus dem SportyDog/AOA-Export (DBISAM-Eigenart:
+    Apostrophe/Anführungszeichen werden als \\' bzw. \\" exportiert).
+    Betrifft Hundenamen, Personennamen und Vereinsnamen (z.B. "Cypat\\'Agil").
+    """
+    if not text:
+        return text
+    return text.replace("\\'", "'").replace('\\"', '"')
+
+
 def _find_column(headers: list[str], *candidates: str) -> str | None:
     """Sucht eine Spalte anhand mehrerer möglicher Namen (case-insensitive)."""
     lower = {h.lower().strip(): h for h in headers}
@@ -189,7 +200,7 @@ def aoa_import_preview():
         license_no = _normalize_license((row.get(col_license) or "").strip())
         if not license_no:
             continue
-        dog_name = (row.get(col_dog_name) or "").strip()
+        dog_name = _unescape((row.get(col_dog_name) or "").strip())
         cat_raw = (row.get(col_category) or "").strip()
         category = CATEGORY_MAP.get(cat_raw.lower(), cat_raw)
         try:
@@ -197,11 +208,11 @@ def aoa_import_preview():
         except ValueError:
             class_level = 1
 
-        first_name = (row.get(col_first_name) or "").strip() if col_first_name else ""
-        last_name = (row.get(col_last_name) or "").strip() if col_last_name else ""
+        first_name = _unescape((row.get(col_first_name) or "").strip()) if col_first_name else ""
+        last_name = _unescape((row.get(col_last_name) or "").strip()) if col_last_name else ""
         email = (row.get(col_email) or "").strip() if col_email else ""
         phone = (row.get(col_phone) or "").strip() if col_phone else ""
-        club_name = (row.get(col_club) or "").strip() if col_club else ""
+        club_name = _unescape((row.get(col_club) or "").strip()) if col_club else ""
         club_no = (row.get(col_club_no) or "").strip() if col_club_no else ""
 
         # Prüfen ob bereits registriert
@@ -294,7 +305,7 @@ def aoa_import_execute():
         if not license_no:
             continue
 
-        dog_name = (row.get(col_dog_name) or "").strip()
+        dog_name = _unescape((row.get(col_dog_name) or "").strip())
         cat_raw = (row.get(col_category) or "").strip()
         category = CATEGORY_MAP.get(cat_raw.lower(), cat_raw)
         try:
@@ -302,14 +313,14 @@ def aoa_import_execute():
         except ValueError:
             class_level = 1
 
-        first_name = (row.get(col_first_name) or "").strip() if col_first_name else ""
-        last_name = (row.get(col_last_name) or "").strip() if col_last_name else ""
+        first_name = _unescape((row.get(col_first_name) or "").strip()) if col_first_name else ""
+        last_name = _unescape((row.get(col_last_name) or "").strip()) if col_last_name else ""
         email = (row.get(col_email) or "").strip() if col_email else None
         phone = (row.get(col_phone) or "").strip() if col_phone else None
         # Vereinsnummer bevorzugt (für TKAMO-Lizenzcheck-Export benötigt),
         # sonst Klartext-Vereinsname als Fallback
         club_no = (row.get(col_club_no) or "").strip() if col_club_no else ""
-        club_name_raw = (row.get(col_club) or "").strip() if col_club else ""
+        club_name_raw = _unescape((row.get(col_club) or "").strip()) if col_club else ""
         club_value = club_no or club_name_raw
 
         try:

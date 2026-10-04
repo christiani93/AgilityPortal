@@ -69,7 +69,7 @@ def event_lizenzcheck_csv(event_id):
             RegistrationStatus.CONFIRMED,
             RegistrationStatus.SUBMITTED,
         ]))
-        .order_by(Registration.category_code, Registration.class_level)
+        .order_by(Registration.category_code, Registration.class_level, Registration.id)
     ).scalars().all()
 
     output = io.StringIO()
@@ -143,7 +143,7 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
             RegistrationStatus.CONFIRMED,
             RegistrationStatus.SUBMITTED,
         ]))
-        .order_by(Registration.category_code, Registration.class_level)
+        .order_by(Registration.category_code, Registration.class_level, Registration.id)
     ).scalars().all()
 
     # Nur CH-Lizenzen zählen — identische Reihenfolge wie CSV-Export
@@ -169,8 +169,12 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
         if not line:
             continue
 
-        # ── "Verein stimmt nicht überein" → ignorieren (keine Aktion) ────────
-        if re.search(r'Verein stimmt', line, re.IGNORECASE):
+        # ── "Verein <Name> / ... / stimmt auf Zeile N nicht mit Hundeführer
+        #    überein" → ignorieren (keine Aktion). Reiner Vereins-Mismatch,
+        #    da unsere CSV i.d.R. einen Vereinsnamen statt einer Vereinsnummer
+        #    liefert (fehlende Vereinsnummer im Quell-Export) — betrifft nicht
+        #    die Startberechtigung.
+        if re.search(r'nicht mit Hundeführer überein', line, re.IGNORECASE):
             continue
 
         # ── Warnung (z.B. Oldie) → als Info in class_emails ──────────────────

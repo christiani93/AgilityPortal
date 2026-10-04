@@ -2,7 +2,7 @@
 
 Kein App-Context nötig — testet nur die Hilfsfunktionen.
 """
-from app.blueprints.admin.routes_aoa_import import _find_column, _parse_csv
+from app.blueprints.admin.routes_aoa_import import _find_column, _parse_csv, _unescape
 
 
 # AOA-Original-Header (kein Präfix)
@@ -71,3 +71,17 @@ def test_tkamo_csv_parses_with_real_format():
     assert row[cols["class"]] == "1"
     assert row[cols["first_name"]] == "Mary"
     assert row[cols["last_name"]] == "Diserens"
+
+
+def test_unescape_removes_dbisam_backslash_escaping():
+    # SportyDog/AOA-Export escaped Apostrophe/Anführungszeichen (DBISAM-Eigenart)
+    assert _unescape("Cypat\\'Agil") == "Cypat'Agil"
+    assert _unescape("Les Cabot\\'ins") == "Les Cabot'ins"
+    assert _unescape("Djinn\\' Tomic Folly") == "Djinn' Tomic Folly"
+    assert _unescape('Les "Cabot\\"ins"') == 'Les "Cabot"ins"'
+
+
+def test_unescape_leaves_plain_text_unchanged():
+    assert _unescape("Rocky") == "Rocky"
+    assert _unescape("") == ""
+    assert _unescape(None) is None
