@@ -1203,7 +1203,7 @@ def event_view(event_id):
     ).scalars().all()
     counts = _participant_counts_for_event(event_id)
     for b in sched_blocks:
-        b._participant_count = counts.get((b.category_code, b.class_level), 0)
+        b._participant_count = _effective_participant_count(b, counts)
         b._display_title = b.title or auto_title(b.discipline, b.category_code, b.class_level)
     rings = _ring_names(event.ring_count or 1)
     start_times = parse_ring_start_times(event.ring_start_times)
@@ -1798,6 +1798,15 @@ def request_reject(req_id):
 # Zeitplan
 # ---------------------------------------------------------------------------
 
+def _effective_participant_count(block, counts):
+    """Teilnehmerzahl für die Zeitplan-Berechnung: manueller Override am Block
+    hat Vorrang vor der aus Registration gezählten Zahl (z.B. extern organisierte
+    Events ohne Online-Anmeldung im Portal)."""
+    if block.participant_count_override is not None:
+        return block.participant_count_override
+    return counts.get((block.category_code, block.class_level), 0)
+
+
 def _participant_counts_for_event(event_id):
     """Gibt {(category_code, class_level): count} für PENDING/SUBMITTED/CONFIRMED-Anmeldungen zurück."""
     from sqlalchemy import func
@@ -1849,7 +1858,7 @@ def event_schedule(event_id):
 
     counts = _participant_counts_for_event(event_id)
     for block in all_blocks:
-        block._participant_count = counts.get((block.category_code, block.class_level), 0)
+        block._participant_count = _effective_participant_count(block, counts)
         block._is_group_leader = False
         block._run = run_by_key.get(
             ((block.discipline or "").lower(), block.category_code, str(block.class_level))
@@ -2070,6 +2079,8 @@ def schedule_block_toggle(event_id, block_id):
         block.skip_changeover = not block.skip_changeover
     elif field == "briefing":
         block.skip_briefing = not block.skip_briefing
+    elif field == "new_group":
+        block.force_new_group = not block.force_new_group
     else:
         abort(400)
     db.session.commit()
@@ -2101,6 +2112,25 @@ def schedule_block_set_judge(event_id, block_id):
                 str(r.class_level)) == bkey:
                 r.judge_id = judge_id
                 break
+    db.session.commit()
+    return redirect(url_for("club.event_schedule", event_id=event_id))
+
+
+@club_bp.post("/events/<int:event_id>/schedule/blocks/<int:block_id>/participants")
+@login_required
+def schedule_block_set_participants(event_id, block_id):
+    """Manuelle Teilnehmerzahl für die Zeitplan-Berechnung setzen (Override).
+    Leer = zurück auf automatische Zählung aus Registration."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    block = db.session.get(ScheduleBlock, block_id)
+    if not block or block.event_id != event_id:
+        abort(404)
+
+    raw = (request.form.get("participant_count_override") or "").strip()
+    block.participant_count_override = int(raw) if raw else None
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))
 
@@ -2274,7 +2304,7 @@ def event_live_json(event_id):
     )
     sched_counts = _participant_counts_for_event(event_id)
     for _sb in sched_blocks:
-        _sb._participant_count = sched_counts.get((_sb.category_code, _sb.class_level), 0)
+        _sb._participant_count = _effective_participant_count(_sb, sched_counts)
         _sb._display_title     = _sb.title or _auto_title_live(
             _sb.discipline, _sb.category_code, _sb.class_level)
 

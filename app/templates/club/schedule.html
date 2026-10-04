@@ -188,6 +188,21 @@
                 </form>
                 {% endfor %}
               </div>
+              {% else %}
+              <div class="mt-1 d-flex gap-1">
+                <form method="post"
+                      action="{{ url_for('club.schedule_block_toggle', event_id=event.id, block_id=block.id) }}"
+                      class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="field" value="new_group">
+                  <button type="submit"
+                          class="btn btn-xs px-1 py-0 {% if block.force_new_group %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                          style="font-size:.62rem;"
+                          title="{{ _('Hier eigenen Umbau/Briefing erzwingen (z.B. getrennte Gruppe innerhalb der Klasse)') }}">
+                    {% if block.force_new_group %}✓{% else %}✕{% endif %} {{ _('Split') }}
+                  </button>
+                </form>
+              </div>
               {% endif %}
             {% endif %}
           </td>
@@ -217,7 +232,20 @@
           </td>
           <td class="text-end text-muted small">
             {% if block.block_type == 'rank_announcement' %}—
-            {% else %}{{ block._participant_count }}{% endif %}
+            {% else %}
+              <form method="post"
+                    action="{{ url_for('club.schedule_block_set_participants', event_id=event.id, block_id=block.id) }}"
+                    class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="number" min="0" name="participant_count_override"
+                       value="{{ block.participant_count_override if block.participant_count_override is not none else '' }}"
+                       placeholder="{{ block._participant_count }}"
+                       onchange="this.form.submit()"
+                       class="form-control form-control-sm d-inline-block text-end"
+                       style="width:70px; font-size:.78rem;"
+                       title="{{ _('Manuelle Teilnehmerzahl (überschreibt Online-Anmeldungen). Leer = automatisch.') }}">
+              </form>
+            {% endif %}
           </td>
           <td class="text-end text-muted small">
             {% if block.block_type == 'rank_announcement' %}

@@ -907,6 +907,14 @@ class ScheduleBlock(db.Model):
     # ersten Block der Gruppe. Default: beide eingerechnet.
     skip_changeover = db.Column(db.Boolean, default=False, nullable=False)
     skip_briefing   = db.Column(db.Boolean, default=False, nullable=False)
+    # Erzwingt eine neue Umbau-/Briefing-Gruppe an diesem Block, auch wenn
+    # Disziplin+Klasse mit dem Vorgänger übereinstimmen (z.B. Klasse 3 mit
+    # getrennten Briefings für Large/Intermediate und Medium/Small).
+    force_new_group = db.Column(db.Boolean, default=False, nullable=False)
+    # Manuelle Teilnehmerzahl für die Zeitplanung, falls noch keine (oder keine
+    # vollständigen) Online-Anmeldungen im Portal vorliegen (z.B. extern organisierte
+    # Events). Wenn gesetzt, hat sie Vorrang vor der aus Registration gezählten Zahl.
+    participant_count_override = db.Column(db.Integer, nullable=True)
     judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     title = db.Column(db.String(200), nullable=True)
     notes = db.Column(db.Text)

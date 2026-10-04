@@ -105,6 +105,9 @@ def _split_into_groups(sorted_blocks: list) -> list:
     Aufeinanderfolgende Lauf-Blöcke mit gleicher Disziplin UND gleicher Klasse
     bilden eine Gruppe (ein Umbau, ein gemeinsames Briefing, Läufe in Folge).
     Bei Disziplin- oder Klassenwechsel beginnt eine neue Gruppe (→ neuer Umbau).
+    Ein Block mit force_new_group=True erzwingt ebenfalls eine neue Gruppe, auch
+    wenn Disziplin+Klasse mit dem Vorgänger übereinstimmen (z.B. Klasse 3 mit
+    getrennten Briefings für Large/Intermediate und Medium/Small).
     Rangverkündigungen unterbrechen immer und stehen als Einzel-Element dazwischen.
 
     Rückgabe: Liste von (typ, inhalt)
@@ -124,8 +127,9 @@ def _split_into_groups(sorted_blocks: list) -> list:
             groups.append(("rank", block))
         else:
             key = _group_key(block)
-            if current_key is not None and key != current_key:
-                # Disziplin oder Klasse gewechselt → neue Gruppe
+            force_split = getattr(block, "force_new_group", False) and current_grp
+            if current_key is not None and (key != current_key or force_split):
+                # Disziplin/Klasse gewechselt oder Split erzwungen → neue Gruppe
                 groups.append(("run_group", current_grp))
                 current_grp = []
             current_grp.append(block)
