@@ -215,6 +215,26 @@ def _map_rows(rows: dict[str, str], url: str) -> dict:
 
 # ── Auf Event-Objekt anwenden ─────────────────────────────────────────────────
 
+def _prefill_present_judges(event, richter_text: str, changes: list[str]) -> None:
+    """Richter aus dem TKAMO-Freitext mit bestehenden Judge-Rows abgleichen
+    (exakt, case-insensitiv) und als anwesend (EventJudge) ergänzen."""
+    from app.models import Judge, EventJudge  # lazy: Zirkel-Import vermeiden
+
+    names = [n.strip() for n in re.split(r"[,;]", richter_text or "") if n.strip()]
+    if not names:
+        return
+    present_ids = {ej.judge_id for ej in event.event_judges}
+    for name in names:
+        judge = next(
+            (j for j in Judge.query.all() if j.full_name.lower() == name.lower()),
+            None,
+        )
+        if judge and judge.id not in present_ids:
+            event.event_judges.append(EventJudge(judge_id=judge.id))
+            present_ids.add(judge.id)
+            changes.append(f"Anwesend ergänzt: {judge.full_name}")
+
+
 def apply_to_event(event, data: dict) -> list[str]:
     """
     Schreibt die TKAMO-Daten in das Event-Objekt.
@@ -270,6 +290,10 @@ def apply_to_event(event, data: dict) -> list[str]:
     if data.get("richter"):
         event.tkamo_judges = data["richter"]
         changes.append(f"Richter: {data['richter']}")
+        # Best-effort: in der TKAMO-Liste genannte Richter, die lokal bereits als
+        # Judge existieren (exakter Namensabgleich), direkt als anwesend vorbefüllen
+        # (EventJudge). Kein Anlegen neuer Judge-Rows, kein Fuzzy-Match.
+        _prefill_present_judges(event, data["richter"], changes)
 
     if data.get("contact_email"):
         event.tkamo_contact_email = data["contact_email"]

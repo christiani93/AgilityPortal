@@ -186,16 +186,10 @@ def _build_schedule_payload(event):
         .order_by(ScheduleBlock.sort_index, ScheduleBlock.start_at)
         .all()
     )
-    run_by_key = {
-        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), str(r.class_level)): r
-        for r in event.runs
-    }
     payload_blocks = []
     for block in blocks:
-        run = run_by_key.get(
-            ((block.discipline or "").lower(), block.category_code, str(block.class_level))
-        )
-        effective_judge = (run.judge if run else None) or block.judge
+        # Richter ausschliesslich über den verknüpften Lauf (block.judge leitet ab).
+        effective_judge = block.judge
         payload_blocks.append(
             {
                 "ring": block.ring,
@@ -629,6 +623,13 @@ def import_event_package_zip(zip_bytes: bytes, is_test: bool = True) -> EventPac
             is_final=is_final,
         ))
         result.event_runs += 1
+
+    # Lauf-Blöcke mit den (neu angelegten) Läufen verknüpfen, damit der Richter
+    # über event_run abgeleitet werden kann (Blöcke stehen vor den Runs → jetzt).
+    db.session.flush()
+    from app.services.schedule_service import link_block_to_run
+    for blk in ScheduleBlock.query.filter_by(event_id=event.id).all():
+        link_block_to_run(blk)
 
     db.session.commit()
     return result

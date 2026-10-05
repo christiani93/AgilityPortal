@@ -307,8 +307,6 @@ class Event(db.Model):
     status = db.Column(db.String(20), default="draft", nullable=False)
     organiser_club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=True)
     pruefungsleiter = db.Column(db.String(255), nullable=True)
-    judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
-    judge2_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     allows_bitches_in_season = db.Column(db.Boolean, default=False, nullable=False)
     bitches_in_season_start_last = db.Column(db.Boolean, default=False, nullable=False)
     ring_count = db.Column(db.Integer, default=1, nullable=False)
@@ -382,8 +380,6 @@ class Event(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     organiser_club = db.relationship("Club", foreign_keys=[organiser_club_id])
-    judge = db.relationship("Judge", foreign_keys=[judge_id])
-    judge2 = db.relationship("Judge", foreign_keys=[judge2_id])
     event_judges = db.relationship(
         "EventJudge",
         back_populates="event",
@@ -915,14 +911,23 @@ class ScheduleBlock(db.Model):
     # vollständigen) Online-Anmeldungen im Portal vorliegen (z.B. extern organisierte
     # Events). Wenn gesetzt, hat sie Vorrang vor der aus Registration gezählten Zahl.
     participant_count_override = db.Column(db.Integer, nullable=True)
-    judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
+    # Verknüpfung zum fachlichen Lauf. Der Richter wird AUSSCHLIESSLICH am
+    # EventRun gehalten (event_run.judge); der Block leitet ihn daraus ab.
+    # Ersetzt den früheren fragilen Composite-Key-Match (discipline+category+
+    # class_level), der u.a. is_final nicht unterscheiden konnte.
+    event_run_id = db.Column(db.Integer, db.ForeignKey("event_runs.id", ondelete="SET NULL"), nullable=True, index=True)
     title = db.Column(db.String(200), nullable=True)
     notes = db.Column(db.Text)
     sort_index = db.Column(db.Integer, index=True, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    judge = db.relationship("Judge", foreign_keys=[judge_id])
+    event_run = db.relationship("EventRun")
+
+    @property
+    def judge(self):
+        """Richter dieses Blocks = Richter des verknüpften Laufs (abgeleitet)."""
+        return self.event_run.judge if self.event_run else None
 
 
 @event.listens_for(Dog, "before_insert")

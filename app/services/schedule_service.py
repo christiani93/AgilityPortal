@@ -3,7 +3,40 @@ from datetime import datetime, time
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import Event, Registration, RegistrationStatus, ScheduleBlock
+from app.models import Event, EventRun, Registration, RegistrationStatus, ScheduleBlock
+
+
+_CODE_MAP = {"L": "Large", "I": "Intermediate", "M": "Medium", "S": "Small"}
+_CODE_CATEGORY_MAP = {v: k for k, v in _CODE_MAP.items()}
+
+
+def link_block_to_run(block):
+    """Verknüpft einen Lauf-Block mit seinem fachlichen EventRun (find-or-create).
+
+    Der Richter wird kanonisch am EventRun gehalten; der Block leitet ihn über
+    event_run_id ab. Ersetzt den früheren Composite-Key-Match und hält Zeitplan
+    und Läufe-Liste konsistent. EventRun.run_type ist lowercase-kanonisch.
+    """
+    # block_type-Default ("run") wird erst beim Flush gesetzt → None hier als
+    # Lauf behandeln. Rank-Blöcke setzen block_type explizit und haben keine
+    # discipline, fallen also über die discipline-Prüfung raus.
+    if block.block_type not in (None, "run") or not block.discipline:
+        return None
+    run_type = (block.discipline or "").lower()
+    category = _CODE_CATEGORY_MAP.get(block.category_code, block.category_code)
+    run = EventRun.query.filter_by(
+        event_id=block.event_id, run_type=run_type,
+        category=category, class_level=block.class_level, is_final=False,
+    ).first()
+    if run is None:
+        run = EventRun(
+            event_id=block.event_id, run_type=run_type,
+            category=category, class_level=block.class_level, is_final=False,
+        )
+        db.session.add(run)
+        db.session.flush()   # id für event_run_id
+    block.event_run = run
+    return run
 
 
 def list_blocks(event_id):
@@ -38,6 +71,7 @@ def add_block(event_id, data):
         sort_index=next_sort,
     )
     db.session.add(block)
+    link_block_to_run(block)
     db.session.commit()
     return block
 
@@ -50,9 +84,15 @@ def update_block(block_id, data):
     if event and event.schedule_locked:
         raise ValueError("Schedule is locked")
 
+    relink_fields = {"discipline", "category_code", "class_level"}
+    changed_run_key = False
     for field in ["ring", "start_at", "discipline", "category_code", "class_level", "notes"]:
         if field in data:
+            if field in relink_fields and data[field] != getattr(block, field):
+                changed_run_key = True
             setattr(block, field, data[field])
+    if changed_run_key:
+        link_block_to_run(block)   # auf den jetzt passenden Lauf umhängen
     db.session.commit()
     return block
 
@@ -119,18 +159,18 @@ def auto_generate_blocks_from_registrations(event_id):
 
     sort_index = 1
     for discipline, category_code, class_level in sorted(combos):
-        db.session.add(
-            ScheduleBlock(
-                event_id=event_id,
-                ring="Ring 1",
-                start_at=default_start,
-                discipline=discipline,
-                category_code=category_code,
-                class_level=class_level,
-                notes="",
-                sort_index=sort_index,
-            )
+        block = ScheduleBlock(
+            event_id=event_id,
+            ring="Ring 1",
+            start_at=default_start,
+            discipline=discipline,
+            category_code=category_code,
+            class_level=class_level,
+            notes="",
+            sort_index=sort_index,
         )
+        db.session.add(block)
+        link_block_to_run(block)
         sort_index += 1
 
     db.session.commit()

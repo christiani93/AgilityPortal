@@ -1621,14 +1621,6 @@ def event_export_zip(event_id):
         .order_by(ScheduleBlock.ring, ScheduleBlock.sort_index)
     ).scalars().all()
 
-    # Richter werden pro EventRun zugewiesen — passenden Lauf-Richter als Default
-    # übernehmen (block.judge als Override). class_level str-normalisieren, da
-    # ScheduleBlock.class_level als String, EventRun.class_level als Int vorliegt.
-    run_by_key = {
-        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), str(r.class_level)): r
-        for r in event.runs
-    }
-
     schedule_blocks_out = []
     for b in sched_blocks:
         # Ring-Nummer aus "Ring 1", "Ring 2" extrahieren
@@ -1645,10 +1637,8 @@ def event_export_zip(event_id):
             "notes":      b.notes or "",
         }
         if b.block_type == "run":
-            run = run_by_key.get(
-                ((b.discipline or "").lower(), b.category_code, str(b.class_level))
-            )
-            effective_judge = (run.judge if run else None) or b.judge
+            # Richter wird am verknüpften EventRun gehalten (b.judge leitet ab).
+            effective_judge = b.judge
             blk.update({
                 "discipline":    b.discipline    or "",
                 "category_code": b.category_code or "",
@@ -1849,21 +1839,13 @@ def event_schedule(event_id):
     ).scalars().all()
 
     # Teilnehmerzahlen pro Kategorie+Klasse
-    # Richter werden pro EventRun zugewiesen (Event-Detail) — für den Zeitplan
-    # den passenden Lauf-Richter als Default übernehmen (block.judge als Override).
-    run_by_key = {
-        ((r.run_type or "").lower(), _CATEGORY_CODE_MAP.get(r.category, r.category), str(r.class_level)): r
-        for r in event.runs
-    }
-
+    # Richter werden pro EventRun zugewiesen (Event-Detail); der Zeitplan-Block
+    # leitet den Richter über seine EventRun-Verknüpfung ab (block.judge).
     counts = _participant_counts_for_event(event_id)
     for block in all_blocks:
         block._participant_count = _effective_participant_count(block, counts)
         block._is_group_leader = False
-        block._run = run_by_key.get(
-            ((block.discipline or "").lower(), block.category_code, str(block.class_level))
-        ) if block.block_type == "run" else None
-        block._effective_judge = (block._run.judge if block._run else None) or block.judge
+        block._effective_judge = block.judge
         if not block.title:
             block._display_title = auto_title(block.discipline, block.category_code, block.class_level)
         else:
@@ -2043,12 +2025,17 @@ def schedule_block_add(event_id):
             discipline=run_type,
             category_code=category_code,
             class_level=class_level,
-            judge_id=judge_id,
             title=title,
             sort_index=max_idx + 10,
         )
 
     db.session.add(block)
+    if block.block_type == "run":
+        # Block mit fachlichem Lauf verknüpfen; Richter (falls gewählt) am Lauf.
+        from app.services.schedule_service import link_block_to_run
+        run = link_block_to_run(block)
+        if run is not None and judge_id:
+            run.judge_id = judge_id
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))
 
@@ -2101,17 +2088,14 @@ def schedule_block_set_judge(event_id, block_id):
 
     judge_id = request.form.get("judge_id", type=int)
     judge_id = judge_id if judge_id and judge_id != 0 else None
-    block.judge_id = judge_id
 
-    # Kanonische Zuweisung am passenden EventRun mitführen
+    # Richter wird kanonisch am verknüpften EventRun gesetzt. Fehlt die
+    # Verknüpfung noch (Altbestand), wird der passende Lauf verknüpft/angelegt.
     if block.block_type == "run":
-        bkey = ((block.discipline or "").lower(), block.category_code, str(block.class_level))
-        for r in event.runs:
-            if ((r.run_type or "").lower(),
-                _CATEGORY_CODE_MAP.get(r.category, r.category),
-                str(r.class_level)) == bkey:
-                r.judge_id = judge_id
-                break
+        from app.services.schedule_service import link_block_to_run
+        run = block.event_run or link_block_to_run(block)
+        if run is not None:
+            run.judge_id = judge_id
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))
 
