@@ -279,17 +279,22 @@ Agility, dann das andere Jumping). Das bedeutet **verschränkte Startfolge**:
 
 ---
 
-## 10. Offene Fragen (für Rückfrage an LiTyWee)
+## 10. Reglement-Entscheide
 
-1. **DIS/Ausfall eines Mitglieds:** Zählt das Team mit dem anderen Lauf weiter (unvollständig,
-   ans Ende der Rangliste), oder ist das ganze Team disqualifiziert?
-   *Default-Annahme:* Mitglied-DIS → dieser Lauf trägt Sentinel-Fehler (wie intern 999) bei →
-   Team sortiert hinter allen vollständigen Teams; zwei DIS schlechter als eines.
-2. **„Fehlerpunkte" inkl. Zeitfehler?** Unsere interne `fehler_total` enthält Parcours- **und**
-   Zeitfehler. *Default-Annahme: ja* (fehler_total inkl. Zeitfehler), Zeit separat als Tiebreaker.
-   Bestätigen lassen.
-3. **SCT/Zeitberechnung:** Gilt pro Team-Lauf eine Standardzeit (Soll-Zeit) wie üblich? Vermutlich
-   ja (normale Lauf-Berechnung). Falls „reine Zeit ohne SCT-Zeitfehler" gewünscht → Anpassung.
+**Bestätigt durch Veranstalter (2026-10-05):**
+
+1. ✅ **DIS/Ausfall eines Mitglieds:** Team zählt mit dem anderen Lauf unvollständig weiter, wird
+   aber **hinter allen Teams ohne DIS** gewertet. Umsetzung: der betroffene Lauf trägt den
+   Sentinel-Fehler (intern 999) bei → Team sortiert hinter allen vollständigen Teams; zwei DIS
+   schlechter als eines. Kein automatischer Totalausschluss. *(Bereits so im Code.)*
+2. ✅ **„Fehlerpunkte" inkl. Zeitfehler:** Ja — Zeitfehler werden ganz normal eingerechnet
+   (`fehler_total` = Parcours- **und** Zeitfehler), Zeit separat als Tiebreaker. *(Bereits so im Code.)*
+3. ✅ **SCT/Zeitberechnung:** Normale Standardzeit pro Team-Lauf wie üblich. Hinweis Veranstalter:
+   die Standardzeit wird voraussichtlich so hoch angesetzt, dass praktisch keine Zeitfehler
+   anfallen — die Berechnung bleibt aber die reguläre.
+
+**Noch offen:**
+
 4. **Teamname Pflicht?** (Default: optional.)
 5. **Ungerade Teilnehmerzahl** (einer ohne Partner): zugelassen als unvollständiges Team, oder
    Pflicht-Paarung? (Default: nicht zugelassen, Admin muss paaren.)
@@ -323,5 +328,6 @@ aktualisieren (beide Repos, additiv, Datei-Existenz zur Laufzeit geprüft).
 > passt gut. Die **Teams erfasst ihr nicht im Anmelde-CSV**, sondern ich lege sie als Paarungen
 > im Portal an (je 2 bereits angemeldete Starter derselben Grösse, einer Agility / einer Jumping);
 > am Turniertag sind die Teams in der Software noch anpassbar.
-> Zur Feinabstimmung hätte ich ein paar Rückfragen (siehe §10): v.a. was passiert bei einer
-> Disqualifikation eines Mitglieds, und ob die „Fehlerpunkte" die Zeitfehler einschliessen.
+> Bei einer Disqualifikation eines Mitglieds wird das Team hinter allen Teams ohne DIS gewertet
+> (es zählt mit dem anderen Lauf weiter), und die Zeitfehler sind in den Fehlerpunkten ganz
+> normal enthalten — wie ihr bestätigt habt.
