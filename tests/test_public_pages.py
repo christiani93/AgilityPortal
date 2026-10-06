@@ -1,5 +1,6 @@
 from app.extensions import db
-from app.models import Event, ScheduleBlock
+from app.models import (Dog, Event, LicenseKind, Person, Registration,
+                        RegistrationStatus, ScheduleBlock)
 
 
 def test_schedule_page_returns_200_when_public(app):
@@ -33,4 +34,58 @@ def test_startlist_page_returns_200(app):
         client = app.test_client()
         response = client.get(f"/events/{event.id}/startlist")
         assert response.status_code == 200
-        assert b"Startliste" in response.data
+        # Ohne Startnummern rendert die Seite als Meldeliste.
+        assert b"Meldeliste" in response.data
+
+
+def test_overview_page_returns_200_when_published(app):
+    with app.app_context():
+        event = Event(name="Public Overview", is_published=True, location="Halle",
+                      startlist_public=True, schedule_public=True)
+        db.session.add(event)
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get(f"/events/{event.id}")
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert "Public Overview" in body
+        assert "Halle" in body
+        assert f"/events/{event.id}/startlist" in body
+        assert f"/events/{event.id}/schedule" in body
+
+
+def test_overview_page_404_when_unpublished(app):
+    with app.app_context():
+        event = Event(name="Entwurf", is_published=False)
+        db.session.add(event)
+        db.session.commit()
+
+        client = app.test_client()
+        assert client.get(f"/events/{event.id}").status_code == 404
+
+
+def test_startlist_shows_meldeliste_before_start_numbers(app):
+    with app.app_context():
+        event = Event(name="Vorlauf", is_published=True, startlist_public=True)
+        db.session.add(event)
+        db.session.flush()
+
+        dog = Dog(name="Rex", license_no="12345", license_kind=LicenseKind.CH)
+        handler = Person(first_name="Anna", last_name="Muster")
+        db.session.add_all([dog, handler])
+        db.session.flush()
+        db.session.add(Registration(
+            event_id=event.id, dog_id=dog.id, handler_id=handler.id,
+            class_level=1, category_code="Large",
+            status=RegistrationStatus.CONFIRMED,
+        ))
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get(f"/events/{event.id}/startlist")
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert "Meldeliste" in body
+        assert "Rex" in body
+        assert "Anna Muster" in body

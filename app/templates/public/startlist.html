@@ -1,16 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Startliste – {{ event.name }}{% endblock %}
+{% block title %}{% if has_numbers %}Startliste{% else %}Meldeliste{% endif %} – {{ event.name }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-  <h1 class="mb-3">{{ event.name }} – Startliste</h1>
+  <p class="mb-2"><a href="{{ url_for('public_events.public_overview', event_id=event.id) }}">&larr; Übersicht</a></p>
+  <h1 class="mb-3">{{ event.name }} – {% if has_numbers %}Startliste{% else %}Meldeliste{% endif %}</h1>
 
-  {% if has_numbers %}
+  {% if not has_numbers and rows %}
+  <p class="text-muted">Vorläufige Meldeliste – Startnummern sind noch nicht vergeben.</p>
+  {% endif %}
+
+  {% if rows %}
   <div class="table-responsive">
     <table class="table table-striped">
       <thead class="table-light">
         <tr>
-          <th>Startnummer</th>
+          {% if has_numbers %}<th>Startnummer</th>{% endif %}
           <th>Hund</th>
           <th>Führer/in</th>
           <th>Kategorie</th>
@@ -20,7 +25,7 @@
       <tbody>
         {% for row in rows %}
         <tr>
-          <td>{{ row.start_no }}</td>
+          {% if has_numbers %}<td>{{ row.start_no }}</td>{% endif %}
           <td>{{ row.dog_name }}</td>
           <td>{{ row.handler_name }}</td>
           <td>{{ row.category_code }}</td>
@@ -31,7 +36,7 @@
     </table>
   </div>
   {% else %}
-  <p class="text-muted">Noch keine Startnummern vergeben.</p>
+  <p class="text-muted">Noch keine Anmeldungen vorhanden.</p>
   {% endif %}
 </div>
 {% endblock %}

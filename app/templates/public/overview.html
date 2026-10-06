@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="mb-4">
+    <h1 class="mb-2">{{ event.name }}</h1>
+    <div class="mb-2">
+      {% if type_label %}<span class="badge bg-primary">{{ type_label }}</span>{% endif %}
+      {% if ruleset_label %}<span class="badge bg-info text-dark">{{ ruleset_label }}</span>{% endif %}
+    </div>
+    <ul class="list-unstyled text-muted mb-0">
+      {% if event.starts_at %}
+      <li>📅
+        {{ event.starts_at.strftime("%d.%m.%Y") }}
+        {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
+          – {{ event.ends_at.strftime("%d.%m.%Y") }}
+        {% endif %}
+      </li>
+      {% endif %}
+      {% if event.location %}<li>📍 {{ event.location }}</li>{% endif %}
+      {% if event.organiser_club %}<li>🏢 {{ event.organiser_club.name }}</li>{% endif %}
+    </ul>
+  </div>
+
+  {% if event.notes_public %}
+  <div class="alert alert-light border">{{ event.notes_public }}</div>
+  {% endif %}
+
+  {# ── Anmeldung ───────────────────────────────────────────── #}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <h2 class="h5 card-title">Anmeldung</h2>
+      {% if event.registration_external and event.registration_url %}
+        <p class="mb-2 text-muted">Die Anmeldung läuft über ein externes Portal.</p>
+        <a href="{{ event.registration_url }}" class="btn btn-primary" target="_blank" rel="noopener">
+          Zur Anmeldung
+        </a>
+      {% else %}
+        <ul class="list-unstyled mb-0">
+          {% if event.registration_open_at %}
+          <li>Anmeldestart: {{ event.registration_open_at.strftime("%d.%m.%Y") }}</li>
+          {% endif %}
+          {% if event.registration_close_at %}
+          <li>Meldeschluss: {{ event.registration_close_at.strftime("%d.%m.%Y") }}</li>
+          {% endif %}
+          {% if event.entry_fee %}<li>Startgeld: CHF {{ "%.2f"|format(event.entry_fee) }}</li>{% endif %}
+          {% if event.max_participants %}<li>Max. Teilnehmer: {{ event.max_participants }}</li>{% endif %}
+          {% if not event.registration_open_at and not event.registration_close_at %}
+          <li class="text-muted">Anmeldedetails folgen.</li>
+          {% endif %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Links zu Unterseiten ────────────────────────────────── #}
+  <div class="row g-3">
+    {% if event.startlist_public %}
+    <div class="col-md-4">
+      <a href="{{ url_for('public_events.public_startlist', event_id=event.id) }}"
+         class="card h-100 text-decoration-none shadow-sm">
+        <div class="card-body">
+          <h3 class="h6 card-title">{% if start_numbers_assigned %}Startliste{% else %}Meldeliste{% endif %}</h3>
+          <p class="card-text text-muted small mb-0">
+            {% if start_numbers_assigned %}Teilnehmer mit Startnummern{% else %}Angemeldete Teilnehmer{% endif %}
+          </p>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+
+    {% if event.schedule_public %}
+    <div class="col-md-4">
+      <a href="{{ url_for('public_events.public_schedule', event_id=event.id) }}"
+         class="card h-100 text-decoration-none shadow-sm">
+        <div class="card-body">
+          <h3 class="h6 card-title">Zeitplan</h3>
+          <p class="card-text text-muted small mb-0">Ringe, Läufe und Startzeiten</p>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+
+    {% if has_finalists %}
+    <div class="col-md-4">
+      <a href="{{ url_for('public_events.public_finalists', event_id=event.id) }}"
+         class="card h-100 text-decoration-none shadow-sm">
+        <div class="card-body">
+          <h3 class="h6 card-title">Finalisten</h3>
+          <p class="card-text text-muted small mb-0">Qualifizierte Teams</p>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
