@@ -91,7 +91,7 @@ einer Anfrage). Heute ist die Verknüpfung 1 Event : 1 Reservation
       Einzel-Format (abwärtskompatibel).
 - [x] Detailseite zeigt bei Mehr-Turnier-Reservation alle beteiligten Turniere.
 - [x] Tests: `tests/test_reservation_multi.py` (events-Array + Einzelfall).
-- [ ] **NOCH NICHT PROD-DEPLOYED** — keine Migration nötig (kein Schema-Change).
+- [x] **PROD-DEPLOYED 2026-10-06** (Commit `44bb7df`).
 
 **Vorlagen-gesteuerte geteilte Reservation — ✅ UMGESETZT (2026-10-06, Vorschlag 1):**
 - [x] `EventTemplate.reservation_shared` (Checkbox im Vorlagen-Formular): aus der
@@ -103,7 +103,7 @@ einer Anfrage). Heute ist die Verknüpfung 1 Event : 1 Reservation
       zuletzt erzeugten Turniers an, statt eine neue anzulegen (erstes Turnier = Anker).
 - [x] Migration `a9b0c1d2e3f4` (chained auf `f7a8b9c0d1e2`); MySQL-SQL geprüft (offline).
 - [x] Tests: `tests/test_template_shared_reservation.py` (shared vs. unshared).
-- [ ] **NOCH NICHT PROD-DEPLOYED** — Migration `a9b0c1d2e3f4` muss beim Deploy laufen.
+- [x] **PROD-DEPLOYED 2026-10-06** (Commit `44bb7df`, Migration `a9b0c1d2e3f4` gelaufen).
 
 **Relevante Stellen:** `app/services/reservation_sync.py` (Payload-Bau, erledigt),
 `routes_website_sync.py::event_reservation_join`, `event_detail.html` (Reservations-
