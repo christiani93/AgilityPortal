@@ -65,6 +65,7 @@ def build_event_export_zip(event_id: int):
                 "name": dog.name,
                 "license_no": dog.license_no,
                 "license_kind": dog.license_kind.value,
+                "breed": dog.breed,
             }
         if handler:
             if not handler.external_id:

@@ -192,6 +192,7 @@ class Dog(db.Model):
     tka_issue_message = db.Column(db.Text)
     category = db.Column(db.String(1), nullable=True)   # L / I / M / S
     class_level = db.Column(db.Integer, nullable=True)  # 1 / 2 / 3
+    breed = db.Column(db.String(120), nullable=True)    # Rasse (aus AOA-Import)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     owners = db.relationship("DogOwner", back_populates="dog", cascade="all, delete-orphan")

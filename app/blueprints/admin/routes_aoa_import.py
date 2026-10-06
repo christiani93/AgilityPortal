@@ -388,7 +388,7 @@ def aoa_import_execute():
     col_phone = cols["phone"]
     col_club = cols["club"]
     col_club_no = cols["club_no"]
-    # col_breed (cols["breed"]) erkannt, aber ungenutzt – Dog-Modell hat kein breed-Feld
+    col_breed = cols["breed"]
 
     created = 0
     skipped = 0
@@ -419,6 +419,7 @@ def aoa_import_execute():
             club_no = ""
         club_name_raw = _unescape((row.get(col_club) or "").strip()) if col_club else ""
         club_value = club_no or club_name_raw
+        breed = _unescape((row.get(col_breed) or "").strip()) if col_breed else ""
 
         try:
             # 1. Hund finden oder anlegen
@@ -430,13 +431,17 @@ def aoa_import_execute():
                     license_kind=_detect_license_kind(license_no),
                     category=category[0].upper() if category else None,  # L/I/M/S
                     class_level=class_level,
+                    breed=breed or None,
                 )
                 db.session.add(dog)
                 db.session.flush()
-            elif dog_name and dog.name != dog_name:
-                # Dedup per Lizenz: Namen auf die maßgebliche Startliste aktualisieren,
-                # sonst bleiben veraltete Seed-/Platzhalternamen stehen.
-                dog.name = dog_name
+            else:
+                # Dedup per Lizenz: Name/Rasse auf die maßgebliche Startliste
+                # aktualisieren, sonst bleiben veraltete Seed-/Platzhalterdaten stehen.
+                if dog_name and dog.name != dog_name:
+                    dog.name = dog_name
+                if breed and dog.breed != breed:
+                    dog.breed = breed
 
             # 2. Person (Hundeführer) finden oder anlegen
             person = None

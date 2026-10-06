@@ -62,7 +62,8 @@ def test_event_export_zip_contains_files(app):
     with app.app_context():
         event = Event(name="Test Event")
         person = Person(first_name="Max", last_name="Muster")
-        dog = Dog(name="Rex", license_no="12345", license_kind=LicenseKind.CH)
+        dog = Dog(name="Rex", license_no="12345", license_kind=LicenseKind.CH,
+                  breed="Border Collie")
         registration = Registration(
             event=event,
             dog=dog,
@@ -82,6 +83,7 @@ def test_event_export_zip_contains_files(app):
             names = set(zip_file.namelist())
             event_payload = json.loads(zip_file.read("event.json"))
             registrations_payload = json.loads(zip_file.read("registrations.json"))
+            entities_payload = json.loads(zip_file.read("entities.json"))
         assert {
             "manifest.json",
             "event.json",
@@ -93,6 +95,7 @@ def test_event_export_zip_contains_files(app):
         assert event_payload["billing_mode"] == "ORGANIZER"
         assert registrations_payload[0]["eligibility"]["payment_status"] == "NOT_MANAGED"
         assert registrations_payload[0]["club_name"] == "1234"
+        assert entities_payload["dogs"][0]["breed"] == "Border Collie"
 
 
 def test_liveupdate_idempotent(app):
