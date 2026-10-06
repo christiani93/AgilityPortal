@@ -90,18 +90,21 @@ function renderRings(rings) {
         <span class="ms-auto badge bg-secondary">Nächster</span>
       </div>` : '';
 
-    // Dritter Starter (rem[2] = index 2, da rem[0]=current, rem[1]=next)
-    const third = rem.length > 2 ? rem[2] : null;
-    const thirdHtml = third ? `
+    // Weitere anstehende Starter: rem[0]=current, rem[1]=next, ab rem[2] = wartend.
+    // Wartende auf max. 10 deckeln; der Rest erscheint als "+N weitere".
+    const upcoming = rem.slice(2, 12);
+    const upcomingHtml = upcoming.map(s => `
       <div class="d-flex align-items-center gap-2 py-1 border-bottom">
-        <span class="text-muted" style="white-space:nowrap;min-width:3rem;">#${third.start_no}</span>
+        <span class="text-muted" style="white-space:nowrap;min-width:3rem;">#${s.start_no}</span>
         <div>
-          <span>${third.dog_name}</span>
-          <span class="text-muted ms-1 small">${third.handler_name}</span>
+          <span>${s.dog_name}</span>
+          <span class="text-muted ms-1 small">${s.handler_name}</span>
         </div>
-      </div>` : '';
+      </div>`).join('');
 
-    const shownCount = (curr ? 1 : 0) + (nxt ? 1 : 0) + (third ? 1 : 0);
+    // Fallback, falls die Software eine gekürzte remaining-Liste geschickt hat
+    // (remaining_count ist die echte Gesamtzahl der noch ausstehenden Starter).
+    const shownCount = (curr ? 1 : 0) + (nxt ? 1 : 0) + upcoming.length;
     const moreCount  = (sl.remaining_count || 0) - shownCount;
     const moreHtml = moreCount > 0 ? `
       <div class="text-muted small mt-1">
@@ -119,7 +122,7 @@ function renderRings(rings) {
             <div class="fw-semibold text-muted small mb-2">${ring.run_name}</div>
             ${currHtml}
             ${nextHtml}
-            ${thirdHtml}
+            ${upcomingHtml}
             ${moreHtml}
           </div>
         </div>

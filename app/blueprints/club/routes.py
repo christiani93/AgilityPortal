@@ -308,6 +308,20 @@ def _result_sort_key(r):
     return (1 if _result_is_eliminated(r) else 0, rank)
 
 
+_CATEGORY_ORDER_FULL = {"Large": 0, "Intermediate": 1, "Medium": 2, "Small": 3}
+
+
+def _result_class_order_key(r):
+    """Reihenfolge der Ergebnis-Klassen-Gruppen: Ring, Disziplin, Kategorie
+    (L→I→M→S statt alphabetisch I-L-M-S), Klasse, Rang.
+
+    Result.category_code hält Vollnamen ("Large" …); Codes ("L") als Fallback."""
+    cat = r.category_code or ""
+    cat_rank = _CATEGORY_ORDER_FULL.get(cat, _CATEGORY_SORT.get(cat, 9))
+    rank = r.rank if getattr(r, "rank", None) is not None else 10 ** 9
+    return (r.ring or "", r.discipline or "", cat_rank, r.class_level or 0, rank)
+
+
 def _fill_club_choices(form):
     """Befüllt form.club_id.choices für Superadmin."""
     clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
@@ -1053,9 +1067,9 @@ def event_info(event_id):
             db.session.execute(
                 db.select(Result)
                 .filter_by(result_import_id=latest_import.id)
-                .order_by(Result.ring, Result.discipline, Result.category_code, Result.class_level, Result.rank)
             ).scalars().all()
         )
+        results_rows.sort(key=_result_class_order_key)
         # Gruppieren nach Ring / Disziplin / Kategorie / Klasse
         from itertools import groupby
         def _class_key(r):
@@ -2243,10 +2257,9 @@ def event_live_json(event_id):
             db.session.execute(
                 db.select(Result)
                 .filter_by(result_import_id=latest_import.id)
-                .order_by(Result.ring, Result.discipline,
-                          Result.category_code, Result.class_level, Result.rank)
             ).scalars().all()
         )
+        rows.sort(key=_result_class_order_key)
         from itertools import groupby
         def _ck(r):
             return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
@@ -2393,10 +2406,9 @@ def event_results_print(event_id):
         db.session.execute(
             db.select(Result)
             .filter_by(result_import_id=latest_import.id)
-            .order_by(Result.ring, Result.discipline,
-                      Result.category_code, Result.class_level, Result.rank)
         ).scalars().all()
     )
+    rows.sort(key=_result_class_order_key)
 
     def _ck(r):
         return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
