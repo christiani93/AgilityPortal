@@ -7,6 +7,7 @@ Erstellt oder aktualisiert eine Reservationsanfrage im AdminPortal.
 import requests
 from datetime import datetime
 from flask import current_app
+from sqlalchemy import case
 
 
 def _date_to(event):
@@ -37,7 +38,8 @@ def _reservation_events(reservation_id):
     from app.models import Event
     return (Event.query
             .filter(Event.reservation_id == reservation_id)
-            .order_by(Event.starts_at.asc().nullslast(), Event.id.asc())
+            .order_by(case((Event.starts_at.is_(None), 1), else_=0),
+                      Event.starts_at.asc(), Event.id.asc())
             .all())
 
 

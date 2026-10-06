@@ -8,6 +8,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, abort, request, Response
 from flask_login import login_required, current_user
 from flask_babel import _
+from sqlalchemy import case
 
 from app.extensions import db
 from flask_mail import Message
@@ -524,12 +525,13 @@ def event_detail(event_id):
     if event.reservation_id:
         reservation_group = db.session.execute(
             res_scope.filter(Event.reservation_id == event.reservation_id)
-            .order_by(Event.starts_at.asc().nullslast(), Event.id.asc())
+            .order_by(case((Event.starts_at.is_(None), 1), else_=0),
+                      Event.starts_at.asc(), Event.id.asc())
         ).scalars().all()
     else:
         reservation_candidates = db.session.execute(
             res_scope.filter(Event.reservation_id.isnot(None))
-            .order_by(Event.starts_at.desc().nullslast(), Event.id.desc())
+            .order_by(Event.starts_at.desc(), Event.id.desc())
         ).scalars().all()
     return render_template("club/event_detail.html", event=event, run_form=run_form,
                            sorted_runs=sorted_runs, available_judges=available_judges,
