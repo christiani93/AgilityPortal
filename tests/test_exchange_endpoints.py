@@ -70,6 +70,7 @@ def test_event_export_zip_contains_files(app):
             status=RegistrationStatus.SUBMITTED,
             class_level=1,
             category_code="Large",
+            club_name="1234",
         )
         db.session.add_all([event, person, dog, registration])
         db.session.commit()
@@ -91,6 +92,7 @@ def test_event_export_zip_contains_files(app):
         }.issubset(names)
         assert event_payload["billing_mode"] == "ORGANIZER"
         assert registrations_payload[0]["eligibility"]["payment_status"] == "NOT_MANAGED"
+        assert registrations_payload[0]["club_name"] == "1234"
 
 
 def test_liveupdate_idempotent(app):

@@ -115,6 +115,7 @@ def build_event_export_zip(event_id: int):
                 else None,
                 "category_code": registration.category_code,
                 "class_level": registration.class_level,
+                "club_name": registration.club_name,
                 "status": registration.status.value,
                 "tka_event_check_status": registration.tka_event_check_status.value,
                 "can_start": True,

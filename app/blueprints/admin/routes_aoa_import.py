@@ -106,14 +106,46 @@ def _unescape(text: str) -> str:
     return text.replace("\\'", "'").replace('\\"', '"')
 
 
+def _normalize_header(name: str) -> str:
+    """Normalisiert einen Spaltennamen für den Vergleich: case-insensitive und
+    ohne das AOA-/SportyDog-Suffix ' AOA' (echte Exporte haben z.B. 'H Lizenz AOA',
+    während die Alias-Liste nur 'H Lizenz' kennt)."""
+    s = (name or "").lower().strip()
+    if s.endswith(" aoa"):
+        s = s[:-4].strip()
+    return s
+
+
 def _find_column(headers: list[str], *candidates: str) -> str | None:
-    """Sucht eine Spalte anhand mehrerer möglicher Namen (case-insensitive)."""
-    lower = {h.lower().strip(): h for h in headers}
+    """Sucht eine Spalte anhand mehrerer möglicher Namen (case-insensitive,
+    ' AOA'-Suffix wird ignoriert)."""
+    lookup: dict[str, str] = {}
+    for h in headers:
+        lookup.setdefault(_normalize_header(h), h)
     for c in candidates:
-        match = lower.get(c.lower())
+        match = lookup.get(_normalize_header(c))
         if match:
             return match
     return None
+
+
+def _detect_columns(headers: list[str]) -> dict[str, str | None]:
+    """Zentrale Spaltenerkennung für Preview UND Import (vorher divergent).
+    Deckt AOA-/SportyDog-Original ('Lizenz'), TKAMO-Variante mit 'H '-/'HF '-
+    Präfixen sowie das reale AOA-Export-Format mit ' AOA'-Suffix ab."""
+    return {
+        "license": _find_column(headers, "Lizenz", "LicenseNo", "License", "Lizenznummer", "H Lizenz"),
+        "dog_name": _find_column(headers, "Hundename", "DogName", "Hund", "Name Hund", "H Name"),
+        "category": _find_column(headers, "Kategorie", "Category", "Kat", "H Kategorie"),
+        "class": _find_column(headers, "Klasse", "Class", "KL", "Kl", "H Kl Eingabe", "H Klasse"),
+        "first_name": _find_column(headers, "Vorname", "FirstName", "Fname", "HF Vorname"),
+        "last_name": _find_column(headers, "Nachname", "LastName", "Lname", "Name", "HF Name"),
+        "email": _find_column(headers, "Email", "E-Mail", "EMail", "HF Email"),
+        "phone": _find_column(headers, "Telefon", "Phone", "Tel", "Mobile", "HF Telefon"),
+        "club": _find_column(headers, "Verein", "Club", "ClubName", "HF Verein"),
+        "club_no": _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr", "HF Vereinnr"),
+        "breed": _find_column(headers, "Rasse", "Breed", "H Rasse"),
+    }
 
 
 def _parse_csv(file_content: str) -> tuple[list[dict], list[str]]:
@@ -170,19 +202,18 @@ def aoa_import_preview():
         flash(f"CSV konnte nicht gelesen werden: {e}", "danger")
         return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
 
-    # Spaltenmapping ermitteln
-    # Aliase decken AOA-/SportyDog-Original ("Lizenz") sowie TKAMO-Variante
-    # mit "H "-/"HF "-Präfixen (= gleicher Inhalt, andere Header-Namen) ab.
-    col_license = _find_column(headers, "Lizenz", "LicenseNo", "License", "Lizenznummer", "H Lizenz")
-    col_dog_name = _find_column(headers, "Hundename", "DogName", "Hund", "Name Hund", "H Name")
-    col_category = _find_column(headers, "Kategorie", "Category", "Kat", "H Kategorie")
-    col_class = _find_column(headers, "Klasse", "Class", "KL", "Kl", "H Kl Eingabe", "H Klasse")
-    col_first_name = _find_column(headers, "Vorname", "FirstName", "Fname", "HF Vorname")
-    col_last_name = _find_column(headers, "Nachname", "LastName", "Lname", "Name", "HF Name")
-    col_email = _find_column(headers, "Email", "E-Mail", "EMail", "HF Email")
-    col_phone = _find_column(headers, "Telefon", "Phone", "Tel", "Mobile", "HF Telefon")
-    col_club = _find_column(headers, "Verein", "Club", "ClubName", "HF Verein")
-    col_club_no = _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr", "HF Vereinnr")
+    # Spaltenmapping ermitteln (gemeinsam mit dem Import, s. _detect_columns)
+    cols = _detect_columns(headers)
+    col_license = cols["license"]
+    col_dog_name = cols["dog_name"]
+    col_category = cols["category"]
+    col_class = cols["class"]
+    col_first_name = cols["first_name"]
+    col_last_name = cols["last_name"]
+    col_email = cols["email"]
+    col_phone = cols["phone"]
+    col_club = cols["club"]
+    col_club_no = cols["club_no"]
 
     missing = [n for n, c in [
         ("Lizenz", col_license), ("Hundename", col_dog_name),
@@ -284,17 +315,18 @@ def aoa_import_execute():
         flash(f"CSV-Fehler: {e}", "danger")
         return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
 
-    col_license = _find_column(headers, "Lizenz", "LicenseNo", "License", "Lizenznummer")
-    col_dog_name = _find_column(headers, "Hundename", "DogName", "Hund", "Name Hund")
-    col_category = _find_column(headers, "Kategorie", "Category", "Kat")
-    col_class = _find_column(headers, "Klasse", "Class", "KL", "Kl")
-    col_first_name = _find_column(headers, "Vorname", "FirstName", "Fname")
-    col_last_name = _find_column(headers, "Nachname", "LastName", "Lname", "Name")
-    col_email = _find_column(headers, "Email", "E-Mail", "EMail")
-    col_phone = _find_column(headers, "Telefon", "Phone", "Tel", "Mobile")
-    col_club = _find_column(headers, "Verein", "Club", "ClubName", "HF Verein")
-    col_club_no = _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr", "HF Vereinnr")
-    # col_breed nicht verwendet – Dog-Modell hat kein breed-Feld
+    cols = _detect_columns(headers)
+    col_license = cols["license"]
+    col_dog_name = cols["dog_name"]
+    col_category = cols["category"]
+    col_class = cols["class"]
+    col_first_name = cols["first_name"]
+    col_last_name = cols["last_name"]
+    col_email = cols["email"]
+    col_phone = cols["phone"]
+    col_club = cols["club"]
+    col_club_no = cols["club_no"]
+    # col_breed (cols["breed"]) erkannt, aber ungenutzt – Dog-Modell hat kein breed-Feld
 
     created = 0
     skipped = 0
@@ -318,8 +350,11 @@ def aoa_import_execute():
         email = (row.get(col_email) or "").strip() if col_email else None
         phone = (row.get(col_phone) or "").strip() if col_phone else None
         # Vereinsnummer bevorzugt (für TKAMO-Lizenzcheck-Export benötigt),
-        # sonst Klartext-Vereinsname als Fallback
+        # sonst Klartext-Vereinsname als Fallback. "0" = Ausland/kein CH-Verein,
+        # dann lieber den Klartext-Namen (z.B. "--- AUSLAND ---") behalten.
         club_no = (row.get(col_club_no) or "").strip() if col_club_no else ""
+        if club_no == "0":
+            club_no = ""
         club_name_raw = _unescape((row.get(col_club) or "").strip()) if col_club else ""
         club_value = club_no or club_name_raw
 

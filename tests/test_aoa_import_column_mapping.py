@@ -2,7 +2,7 @@
 
 Kein App-Context nötig — testet nur die Hilfsfunktionen.
 """
-from app.blueprints.admin.routes_aoa_import import _find_column, _parse_csv, _unescape
+from app.blueprints.admin.routes_aoa_import import _detect_columns, _parse_csv, _unescape
 
 
 # AOA-Original-Header (kein Präfix)
@@ -19,25 +19,24 @@ TKAMO_HEADERS = [
     "H Lizenz", "H Kategorie", "H Kl Eingabe", "H Name", "H Rasse", "H SHSB", "H Chip",
 ]
 
+# Reales AOA-/SportyDog-Export-Format (mit " AOA"-Suffix, Stand 2026)
+REAL_AOA_HEADERS = [
+    "A Datum", "A ID Turnier", "HF Name AOA", "HF Vorname AOA", "HF Strasse AOA",
+    "HF PLZ AOA", "HF Ort AOA", "HF Land AOA", "HF Sprache AOA", "HF Telefon AOA",
+    "HF Email AOA", "HF Vereinnr AOA", "Hf Verein", "H Lizenz AOA", "H Kategorie AOA",
+    "H Klasse AOA", "H Name AOA", "H Rasse AOA", "H SHSB AOA", "H Chip",
+]
+
 
 def _resolve_cols(headers):
-    return {
-        "license":    _find_column(headers, "Lizenz", "LicenseNo", "License", "Lizenznummer", "H Lizenz"),
-        "dog_name":   _find_column(headers, "Hundename", "DogName", "Hund", "Name Hund", "H Name"),
-        "category":   _find_column(headers, "Kategorie", "Category", "Kat", "H Kategorie"),
-        "class":      _find_column(headers, "Klasse", "Class", "KL", "Kl", "H Kl Eingabe", "H Klasse"),
-        "first_name": _find_column(headers, "Vorname", "FirstName", "Fname", "HF Vorname"),
-        "last_name":  _find_column(headers, "Nachname", "LastName", "Lname", "Name", "HF Name"),
-        "email":      _find_column(headers, "Email", "E-Mail", "EMail", "HF Email"),
-        "phone":      _find_column(headers, "Telefon", "Phone", "Tel", "Mobile", "HF Telefon"),
-        "club":       _find_column(headers, "Verein", "Club", "ClubName", "HF Verein"),
-        "club_no":    _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr", "HF Vereinnr"),
-    }
+    return _detect_columns(headers)
 
 
 def test_aoa_original_headers_all_mapped():
     cols = _resolve_cols(AOA_HEADERS)
-    assert all(cols.values()), f"Unmapped: {[k for k,v in cols.items() if not v]}"
+    # breed ist optional (AOA-Original hat keine Rasse-Spalte)
+    required = {k: v for k, v in cols.items() if k != "breed"}
+    assert all(required.values()), f"Unmapped: {[k for k,v in required.items() if not v]}"
     assert cols["license"] == "Lizenz"
     assert cols["dog_name"] == "Hundename"
 
@@ -52,6 +51,23 @@ def test_tkamo_h_hf_prefix_headers_all_mapped():
     assert cols["first_name"] == "HF Vorname"
     assert cols["class"] == "H Kl Eingabe"
     assert cols["club_no"] == "HF Vereinnr"
+
+
+def test_real_aoa_export_headers_all_mapped():
+    """Reales AOA-Export-Format mit ' AOA'-Suffix (vorher gar nicht erkannt →
+    0 Importe). 'Hf Verein' hat kein Suffix, wird case-insensitiv gematcht."""
+    cols = _resolve_cols(REAL_AOA_HEADERS)
+    required = ["license", "dog_name", "category", "class",
+                "first_name", "last_name", "club", "club_no", "breed"]
+    assert all(cols[k] for k in required), \
+        f"Unmapped: {[k for k in required if not cols[k]]}"
+    assert cols["license"] == "H Lizenz AOA"
+    assert cols["dog_name"] == "H Name AOA"
+    assert cols["last_name"] == "HF Name AOA"
+    assert cols["first_name"] == "HF Vorname AOA"
+    assert cols["club"] == "Hf Verein"
+    assert cols["club_no"] == "HF Vereinnr AOA"
+    assert cols["breed"] == "H Rasse AOA"
 
 
 def test_tkamo_csv_parses_with_real_format():
