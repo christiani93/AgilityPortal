@@ -299,6 +299,15 @@
   </div>
   <div class="card-body">
 
+    {# ── Vorgabe: empfohlener Ablauf ──────────────────────────────────────── #}
+    {% if event.ais_turniernummer and not event.tkamo_imported_at %}
+    <div class="alert alert-warning small mb-3">
+      ⚠️ <strong>{{ _('Zuerst TKAMO-Import ausführen.') }}</strong>
+      {{ _('Der Inserat-Text übernimmt die TKAMO-Felder (Wettbewerbe, Kategorien, Richter). Ohne Import bleiben diese Zeilen auf Standardtexten.') }}
+      {{ _('Empfohlener Ablauf: 1. TKAMO-Import → 2. Website-Sync.') }}
+    </div>
+    {% endif %}
+
     {# ── Automatisch generiertes Markdown ────────────────────────────────── #}
     {% if event.starts_at %}
     <p class="small text-muted mb-1">

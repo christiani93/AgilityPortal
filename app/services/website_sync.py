@@ -30,87 +30,97 @@ def _fmt_date_long(dt) -> str:
     return f"{d.day}. {MONTHS_DE[d.month]} {d.year}"
 
 
-def _fmt_weekday(dt) -> str:
+def _as_date(dt):
+    """datetime/date → date (oder None)."""
     if dt is None:
-        return ""
-    d = dt.date() if hasattr(dt, "date") else dt
-    return WEEKDAYS_DE[d.weekday()]
+        return None
+    return dt.date() if hasattr(dt, "date") else dt
 
 
 def generate_body_md(event) -> str:
-    """Erstellt den body_md-Text für den PublicEvent auf z-b.tech."""
-    lines = []
+    """Erstellt den body_md-Text für den PublicEvent auf z-b.tech.
 
-    # ── Datum
-    if event.starts_at:
-        wd = _fmt_weekday(event.starts_at)
-        date_str = _fmt_date_long(event.starts_at)
-        if event.ends_at and event.ends_at.date() != event.starts_at.date():
-            date_end = _fmt_date_long(event.ends_at)
-            lines.append(f"🗓 **{wd}, {date_str} – {date_end}**")
+    Spiegelt bewusst den Generator der AdminPortal-Seite
+    (``_generate_event_body``), damit im AdminPortal erstellte und aus dem
+    Portal synchronisierte Events identisch lesen: ein Abschnitt pro
+    Turniertag mit Infozeilen + Fliesstext.
+
+    Wo vorhanden, füllen die TKAMO-Felder (Wettbewerbe, Kategorien, Richter)
+    die Infozeilen — sonst greifen die gleichen Standardtexte wie im
+    AdminPortal. Deshalb vor dem Sync den TKAMO-Import ausführen.
+    """
+    start = _as_date(event.starts_at)
+    if not start:
+        return ""
+    end = _as_date(event.ends_at) or start
+    if end < start:
+        end = start
+
+    days = []
+    d = start
+    while d <= end:
+        days.append(d)
+        d += timedelta(days=1)
+
+    title = event.name or "unserem Turnier"
+    venue = (event.location or "").strip() or "Indoor"
+    disciplines = (event.tkamo_disciplines or "").strip() or "Agility & Jumping"
+    categories = ((event.tkamo_categories or "").strip()
+                  or "gemäss offizieller Ausschreibung (S, M, I, L – 1–3)")
+    judges = (event.tkamo_judges or "").strip()
+    multi = len(days) > 1
+
+    sections = []
+    for i, day in enumerate(days):
+        wd = WEEKDAYS_DE[day.weekday()]
+        datum = day.strftime("%d.%m.%Y")
+        tag = f" – Turniertag {i + 1}" if multi else ""
+        sec = f"📅 {wd} {datum}{tag}\n\n"
+        sec += f"🐕 Disziplinen: {disciplines}\n"
+        sec += f"🏅 Kategorien: {categories}\n"
+        if judges:
+            sec += f"👩‍⚖️ Richter: {judges}\n"
+        sec += f"🏟 Austragung: {venue}\n"
+        sec += ("📋 Wertung: Offizielles TKAMO-Turnier\n" if i == 0
+                else "📋 Fortsetzung des offiziellen Turniers\n")
+        sec += ("🐾 Läufigkeit erlaubt\n" if event.allows_bitches_in_season
+                else "🐾 Läufige Hündinnen: nicht erlaubt\n")
+        sec += "\n**Eventbeschreibung**\n\n"
+        if i == 0:
+            sec += (
+                f"Der erste Turniertag von {title} steht ganz im Zeichen von sportlicher "
+                f"Präzision und Dynamik. Teams aus der ganzen Schweiz treffen sich in der {venue}, "
+                "um sich in anspruchsvollen Parcours zu messen.\n\n"
+                "Ob ambitioniertes Nachwuchsteam oder erfahrene Wettkämpfer – dieses Event bietet "
+                "optimale Bedingungen für fairen und hochklassigen Agility-Sport.\n"
+            )
         else:
-            lines.append(f"🗓 **{wd}, {date_str}**")
+            sec += (
+                f"Am {i + 1}. Tag von {title} geht das Turnier in die nächste Runde. "
+                "Noch einmal gilt es, Konzentration, Tempo und Teamwork perfekt aufeinander abzustimmen.\n\n"
+                "Mit professioneller Organisation und spannenden Läufen verspricht dieses Wochenende "
+                "ein echtes Highlight im Schweizer Agility-Kalender zu werden.\n"
+            )
+        sections.append(sec)
 
-    lines.append("")  # Leerzeile
+    body = "🇩🇪 Deutsch\n\n" + "\n".join(sections)
 
-    # ── Wettbewerbe / Disziplinen
-    if event.tkamo_disciplines:
-        lines.append(f"🥋 {event.tkamo_disciplines}")
-
-    # ── Kategorien
-    if event.tkamo_categories:
-        lines.append(f"🏆 {event.tkamo_categories}")
-
-    # ── Ringe
-    if event.ring_count:
-        lines.append(f"🏟 {event.ring_count} Ring(e)")
-
-    # ── Läufige Hündinnen
-    laeufig = "Ja" if event.allows_bitches_in_season else "Nein"
-    lines.append(f"🐩 Läufige Hündinnen: {laeufig}")
-
-    # ── Richter (falls vorhanden)
-    if event.tkamo_judges:
-        lines.append(f"👩‍⚖️ Richter: {event.tkamo_judges}")
-
-    # ── Prüfungsleiter
-    if event.pruefungsleiter:
-        lines.append(f"📌 Prüfungsleiter: {event.pruefungsleiter}")
-
-    # ── Freitext-Beschreibung
+    # ── Freitext-Beschreibung (optionaler Zusatz des Veranstalters)
     if event.event_description_de and event.event_description_de.strip():
-        lines.append("")
-        lines.append(event.event_description_de.strip())
+        body += "\n" + event.event_description_de.strip() + "\n"
 
-    lines.append("")  # Leerzeile vor Links
-
-    # ── Anmeldelink
+    # ── Anmelde-Footer (echte Portal-Daten statt Platzhalter)
     portal_url = current_app.config.get("PORTAL_PUBLIC_URL", "").rstrip("/")
     if portal_url:
-        reg_url = f"{portal_url}/events/{event.id}"
-        lines.append(f"📝 [Zur Anmeldung]({reg_url})")
-
-    # ── Meldeschluss
+        body += f"\n👉 [Anmeldung & Details]({portal_url}/events/{event.id})\n"
+    else:
+        body += "\n👉 Anmeldung & Details: über TKAMO\n"
     if event.registration_close_at:
-        lines.append(f"📅 Meldeschluss: {_fmt_date_long(event.registration_close_at)}")
+        body += f"📅 Meldeschluss: {_fmt_date_long(event.registration_close_at)}\n"
+    else:
+        body += "📅 Meldeschluss: gemäss offizieller Agenda\n"
 
-    # ── TKAMO-Links (primäre + allfällige weitere AIS-Nummern)
-    from app.services.tkamo_importer import tkamo_url_for
-    ais_all = []
-    if event.ais_turniernummer:
-        ais_all.append(str(event.ais_turniernummer))
-    if event.ais_turniernummer_extra:
-        for part in event.ais_turniernummer_extra.split(","):
-            p = part.strip()
-            if p:
-                ais_all.append(p)
-    if len(ais_all) == 1:
-        lines.append(f"📋 [TKAMO-Eintrag]({tkamo_url_for(ais_all[0])})")
-    elif len(ais_all) > 1:
-        for i, ais in enumerate(ais_all, 1):
-            lines.append(f"📋 [TKAMO-Eintrag Tag {i}]({tkamo_url_for(ais)})")
-
-    return "\n".join(lines)
+    return body
 
 
 def _make_slug(event) -> str:
