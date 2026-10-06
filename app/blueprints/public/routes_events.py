@@ -18,6 +18,31 @@ def _has_admin_key():
     return expected and provided == expected
 
 
+@public_events_bp.get("/events")
+def public_events_index():
+    """Öffentliche, login-freie Liste aller publizierten Veranstaltungen."""
+    from datetime import datetime
+
+    events = (
+        Event.query.filter_by(is_published=True, is_test=False)
+        .order_by(Event.starts_at.is_(None), Event.starts_at)
+        .all()
+    )
+    today = datetime.utcnow().date()
+    upcoming, past = [], []
+    for ev in events:
+        ref = ev.ends_at or ev.starts_at
+        if ref and ref.date() < today:
+            past.append(ev)
+        else:
+            upcoming.append(ev)
+    past.reverse()  # jüngste zuerst
+
+    return render_template(
+        "public/events_index.html", upcoming=upcoming, past=past,
+    )
+
+
 @public_events_bp.get("/events/<int:event_id>")
 def public_overview(event_id):
     """Öffentliche, login-freie Event-Landingpage (Ziel des Website-Sync-Links)."""

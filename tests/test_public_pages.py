@@ -38,6 +38,23 @@ def test_startlist_page_returns_200(app):
         assert b"Meldeliste" in response.data
 
 
+def test_events_index_lists_only_published_nontest(app):
+    with app.app_context():
+        pub = Event(name="Sichtbar", is_published=True)
+        draft = Event(name="Entwurf", is_published=False)
+        test_ev = Event(name="Testturnier", is_published=True, is_test=True)
+        db.session.add_all([pub, draft, test_ev])
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get("/events")
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert "Sichtbar" in body
+        assert "Entwurf" not in body
+        assert "Testturnier" not in body
+
+
 def test_overview_page_returns_200_when_published(app):
     with app.app_context():
         event = Event(name="Public Overview", is_published=True, location="Halle",
