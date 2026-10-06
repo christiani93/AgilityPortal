@@ -4,6 +4,7 @@ from .admin.routes_exchange import exchange_admin_bp
 from .admin.routes_schedule import schedule_admin_bp
 from .admin.routes_tka import tka_admin_bp
 from .admin.routes_cups import cups_admin_bp
+from .admin.routes_team_challenge import team_admin_bp
 from .admin.routes_templates import templates_admin_bp
 from .admin.routes_aoa_import import aoa_import_bp
 from .api.routes_live import live_api_bp
@@ -23,6 +24,7 @@ def register_blueprints(app):
     app.register_blueprint(results_export_admin_bp)
     app.register_blueprint(schedule_admin_bp)
     app.register_blueprint(cups_admin_bp)
+    app.register_blueprint(team_admin_bp)
     app.register_blueprint(templates_admin_bp)
     app.register_blueprint(aoa_import_bp)
     app.register_blueprint(live_api_bp)

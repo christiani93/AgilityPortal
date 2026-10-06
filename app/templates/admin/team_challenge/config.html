@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Team-Challenge – {{ event.name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">👥 Team-Challenge</h2>
+    <div class="text-muted">{{ event.name }}</div>
+  </div>
+</div>
+
+<p class="text-muted">
+  Teams werden aus je zwei bereits angemeldeten Startern derselben Grössenkategorie
+  gebildet – einer läuft <strong>Agility</strong>, der andere <strong>Jumping</strong>.
+  Das Level ergibt sich aus der Klasse: <strong>Soft</strong> = Kl. 1+2,
+  <strong>Expert</strong> = Kl. 3. Am Turniertag sind die Teams in der AgilitySoftware
+  noch anpassbar.
+</p>
+
+{# ── Team anlegen ─────────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header">Neues Team</div>
+  <div class="card-body">
+    <form method="post"
+          action="{{ url_for('team_admin.team_add', event_id=event.id, key=admin_key) }}">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+          <label class="form-label">Grösse</label>
+          <select name="category_code" id="tc-category" class="form-select" required>
+            {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Level</label>
+          <select name="level" id="tc-level" class="form-select" required>
+            {% for lvl in levels %}
+            <option value="{{ lvl }}">{{ level_labels[lvl] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Agility-Starter</label>
+          <select name="member_agility_registration_id" id="tc-agility"
+                  class="form-select" required></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Jumping-Starter</label>
+          <select name="member_jumping_registration_id" id="tc-jumping"
+                  class="form-select" required></select>
+        </div>
+      </div>
+      <div class="row g-2 mt-1">
+        <div class="col-md-6">
+          <label class="form-label">Teamname (optional)</label>
+          <input type="text" name="name" class="form-control" maxlength="200">
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary">+ Team hinzufügen</button>
+        </div>
+      </div>
+      <div id="tc-empty-hint" class="form-text text-warning mt-2 d-none">
+        Für diese Grösse/Level gibt es keine (freien) Starter mehr.
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Bestehende Teams, gruppiert nach Grösse × Level ──────────────────── #}
+{% for cat, lvl in ordered_groups %}
+  {% set rows = grouped.get((cat, lvl), []) %}
+  {% if rows %}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><strong>{{ cat }}</strong> – {{ level_labels[lvl] }}</span>
+      <span class="badge bg-secondary">{{ rows|length }} Team(s)</span>
+    </div>
+    <table class="table table-sm mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th>Agility</th>
+          <th>Jumping</th>
+          <th class="text-end"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for team in rows %}
+        <tr>
+          <td>{{ team.name or "–" }}</td>
+          <td>{{ registration_label(team.member_agility) }}</td>
+          <td>{{ registration_label(team.member_jumping) }}</td>
+          <td class="text-end">
+            <form method="post"
+                  action="{{ url_for('team_admin.team_delete', event_id=event.id, team_id=team.id, key=admin_key) }}"
+                  onsubmit="return confirm('Team wirklich entfernen?');">
+              <button type="submit" class="btn btn-sm btn-outline-danger">Entfernen</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+{% endfor %}
+
+{% if not teams %}
+<p class="text-muted">Noch keine Teams gebildet.</p>
+{% endif %}
+
+<script>
+  const TC_ELIGIBLE = {{ eligible_json|tojson }};
+
+  function tcRefreshMembers() {
+    const cat = document.getElementById('tc-category').value;
+    const lvl = document.getElementById('tc-level').value;
+    const options = TC_ELIGIBLE[cat + '|' + lvl] || [];
+    const agi = document.getElementById('tc-agility');
+    const jump = document.getElementById('tc-jumping');
+    const hint = document.getElementById('tc-empty-hint');
+
+    for (const sel of [agi, jump]) {
+      sel.innerHTML = '';
+      for (const opt of options) {
+        const o = document.createElement('option');
+        o.value = opt.id;
+        o.textContent = opt.label;
+        sel.appendChild(o);
+      }
+    }
+    // Jumping defaultmässig auf den zweiten Starter stellen, falls vorhanden.
+    if (options.length > 1) { jump.selectedIndex = 1; }
+    hint.classList.toggle('d-none', options.length > 0);
+  }
+
+  document.getElementById('tc-category').addEventListener('change', tcRefreshMembers);
+  document.getElementById('tc-level').addEventListener('change', tcRefreshMembers);
+  tcRefreshMembers();
+</script>
+
+{% endblock %}

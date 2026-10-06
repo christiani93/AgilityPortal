@@ -1,5 +1,6 @@
 import enum
 import re
+import uuid
 from datetime import datetime
 
 from sqlalchemy import CheckConstraint, event
@@ -1006,6 +1007,67 @@ class AsmvTeamMember(db.Model):
 
     def __repr__(self):
         return f"<AsmvTeamMember team={self.team_id} person={self.person_id}>"
+
+
+# ---------------------------------------------------------------------------
+# Team-Challenge (generisches 2er-Team-Sonderformat, Erst-Ausgabe Edelweiss 2027)
+# Konzept: KONZEPT_Team-Challenge.md
+# ---------------------------------------------------------------------------
+
+class Team(db.Model):
+    """
+    Ein 2er-Team im Team-Challenge-Format: zwei Registrations derselben
+    Grössenkategorie, eine läuft Agility, die andere Jumping.
+
+    level:          soft (Klasse 1+2) | expert (Klasse 3)
+    external_id:    stabiler Round-Trip-Schlüssel (UUID) für das Sync mit der
+                    AgilitySoftware (dort als team["external_id"]).
+    source:         portal | software — wer das Team angelegt hat.
+
+    Ein Hund/eine Registration darf pro Event nur in EINEM Team stecken; das
+    lässt sich nicht als einzelner DB-Constraint ausdrücken (zwei Member-Spalten)
+    und wird daher im Service (`routes_team_challenge._validate_team`) geprüft.
+    """
+    __tablename__ = "teams"
+    __table_args__ = (
+        CheckConstraint(
+            "category_code in ('Small','Medium','Intermediate','Large')",
+            name="ck_teams_category_code",
+        ),
+        CheckConstraint("level in ('soft','expert')", name="ck_teams_level"),
+    )
+
+    LEVELS = ["soft", "expert"]
+    LEVEL_LABELS = {"soft": "Soft (Kl. 1+2)", "expert": "Expert (Kl. 3)"}
+    CLASS_LEVELS_BY_LEVEL = {"soft": [1, 2], "expert": [3]}
+    CATEGORIES = ["Small", "Medium", "Intermediate", "Large"]
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    external_id = db.Column(db.String(64), unique=True, nullable=False,
+                            default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(200), nullable=True)
+    category_code = db.Column(db.String(20), nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    member_agility_registration_id = db.Column(
+        db.Integer, db.ForeignKey("registrations.id"), nullable=False)
+    member_jumping_registration_id = db.Column(
+        db.Integer, db.ForeignKey("registrations.id"), nullable=False)
+    source = db.Column(db.String(10), default="portal", nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    event = db.relationship("Event")
+    member_agility = db.relationship(
+        "Registration", foreign_keys=[member_agility_registration_id])
+    member_jumping = db.relationship(
+        "Registration", foreign_keys=[member_jumping_registration_id])
+
+    @property
+    def level_label(self):
+        return self.LEVEL_LABELS.get(self.level, self.level)
+
+    def __repr__(self):
+        return f"<Team {self.id} {self.category_code}/{self.level}>"
 
 
 # ---------------------------------------------------------------------------
