@@ -2,7 +2,11 @@
 
 Kein App-Context nötig — testet nur die Hilfsfunktionen.
 """
-from app.blueprints.admin.routes_aoa_import import _detect_columns, _parse_csv, _unescape
+import io
+
+from app.blueprints.admin.routes_aoa_import import (
+    _coerce_cell, _decode_text, _detect_columns, _parse_csv, _parse_xlsx,
+    _read_upload, _unescape)
 
 
 # AOA-Original-Header (kein Präfix)
@@ -101,3 +105,71 @@ def test_unescape_leaves_plain_text_unchanged():
     assert _unescape("Rocky") == "Rocky"
     assert _unescape("") == ""
     assert _unescape(None) is None
+
+
+# ── Upload-Lesen: xlsx + Encoding-Fallback ──────────────────────────────────
+
+class _FakeUpload:
+    def __init__(self, filename, data: bytes):
+        self.filename = filename
+        self._data = data
+
+    def read(self):
+        return self._data
+
+
+def _build_xlsx() -> bytes:
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["H Lizenz AOA", "H Name AOA", "H Kategorie AOA", "H Klasse AOA",
+               "HF Name AOA", "HF Vorname AOA", "Hf Verein", "H Rasse AOA"])
+    # Umlaute + ganzzahlige Zahlwerte (openpyxl liefert 1.0 → muss "1" werden)
+    ws.append([15333, "Mac", "Large", 1, "Brönnimann", "Christiane", "SKBS",
+               "Altdeutscher Schäferhund"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def test_coerce_cell_integer_float_and_none():
+    assert _coerce_cell(None) == ""
+    assert _coerce_cell(1.0) == "1"      # Klasse soll "1" bleiben, nicht "1.0"
+    assert _coerce_cell(15333) == "15333"
+    assert _coerce_cell("Mac") == "Mac"
+
+
+def test_parse_xlsx_preserves_umlauts_and_strings():
+    rows, headers = _parse_xlsx(_build_xlsx())
+    cols = _detect_columns(headers)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row[cols["license"]] == "15333"
+    assert row[cols["class"]] == "1"             # kein "1.0"
+    assert row[cols["last_name"]] == "Brönnimann"  # Umlaut intakt
+    assert row[cols["breed"]] == "Altdeutscher Schäferhund"
+
+
+def test_read_upload_dispatches_xlsx_by_extension_and_magic():
+    data = _build_xlsx()
+    rows, _ = _read_upload(_FakeUpload("export.xlsx", data))
+    assert len(rows) == 1
+    # Auch ohne passende Endung über ZIP-Magic ('PK') erkannt
+    rows2, _ = _read_upload(_FakeUpload("export.bin", data))
+    assert len(rows2) == 1
+
+
+def test_decode_text_falls_back_to_cp1252_for_excel_csv():
+    # Excel "Speichern als CSV" auf DE-Windows schreibt cp1252 (ö = 0xF6)
+    cp1252 = "Nachname;Vorname\r\nBrönnimann;Christiane\r\n".encode("cp1252")
+    text = _decode_text(cp1252)
+    assert "Brönnimann" in text  # kein � mehr
+    # UTF-8-Eingabe bleibt ebenfalls korrekt
+    assert _decode_text("Köniz".encode("utf-8")) == "Köniz"
+
+
+def test_read_upload_csv_cp1252_roundtrip():
+    cp1252 = "H Lizenz;H Name;H Kategorie;H Kl Eingabe\r\n13852;Füchsli;Large;1\r\n".encode("cp1252")
+    rows, headers = _read_upload(_FakeUpload("export.csv", cp1252))
+    cols = _detect_columns(headers)
+    assert rows[0][cols["dog_name"]] == "Füchsli"

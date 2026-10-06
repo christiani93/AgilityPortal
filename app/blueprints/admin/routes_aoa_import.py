@@ -8,6 +8,7 @@ Es werden keine E-Mails versendet.
 """
 import csv
 import io
+import json
 from functools import wraps
 
 from flask import (Blueprint, abort, current_app, flash, redirect,
@@ -163,6 +164,64 @@ def _parse_csv(file_content: str) -> tuple[list[dict], list[str]]:
     return rows, list(headers)
 
 
+def _coerce_cell(value) -> str:
+    """xlsx-Zellwerte (Zahl/Datum/None) zu Strings wie in einem CSV. Ganzzahlige
+    Floats (openpyxl liest 1 als 1.0) ohne '.0', damit z.B. die Klasse '1' bleibt."""
+    if value is None:
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _parse_xlsx(raw: bytes) -> tuple[list[dict], list[str]]:
+    """Liest die erste Tabelle eines echten .xlsx (OOXML). SportyDog exportiert
+    sauberes UTF-8 – anders als beim Umweg über 'Speichern als CSV' (cp1252,
+    Umlaute kaputt). Alle Werte werden wie beim CSV als Strings geliefert."""
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+    try:
+        ws = wb.active
+        it = ws.iter_rows(values_only=True)
+        try:
+            header_row = next(it)
+        except StopIteration:
+            return [], []
+        headers = [_coerce_cell(h).strip() for h in header_row]
+        rows = []
+        for r in it:
+            if r is None:
+                continue
+            row = {headers[i]: _coerce_cell(v) for i, v in enumerate(r) if i < len(headers)}
+            if any(val.strip() for val in row.values()):
+                rows.append(row)
+        return rows, headers
+    finally:
+        wb.close()
+
+
+def _decode_text(raw: bytes) -> str:
+    """Dekodiert eine hochgeladene Text-/CSV-Datei. Zuerst UTF-8 (mit/ohne BOM);
+    schlägt das fehl, ist es fast immer ein Excel-'Speichern als CSV' auf einem
+    DE-Windows → cp1252 (sonst würden Umlaute zu � zerstört)."""
+    for enc in ("utf-8-sig", "utf-8"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("cp1252", errors="replace")
+
+
+def _read_upload(file) -> tuple[list[dict], list[str]]:
+    """Liest den Upload als echtes .xlsx (openpyxl) ODER als CSV/Text.
+    xlsx-Erkennung über Endung oder ZIP-Magic ('PK')."""
+    raw = file.read()
+    name = (file.filename or "").lower()
+    if name.endswith((".xlsx", ".xlsm")) or raw[:4] == b"PK\x03\x04":
+        return _parse_xlsx(raw)
+    return _parse_csv(_decode_text(raw))
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @aoa_import_bp.get("/admin/aoa-import")
@@ -195,11 +254,10 @@ def aoa_import_preview():
         flash("Bitte eine CSV-Datei hochladen.", "danger")
         return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
 
-    content = file.read().decode("utf-8-sig", errors="replace")
     try:
-        rows, headers = _parse_csv(content)
+        rows, headers = _read_upload(file)
     except Exception as e:
-        flash(f"CSV konnte nicht gelesen werden: {e}", "danger")
+        flash(f"Datei konnte nicht gelesen werden: {e}", "danger")
         return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
 
     # Spaltenmapping ermitteln (gemeinsam mit dem Import, s. _detect_columns)
@@ -271,9 +329,12 @@ def aoa_import_preview():
             "already_registered": existing_reg is not None,
         })
 
-    # CSV-Inhalt für späteren Import als Hidden Field (base64)
+    # Eingelesene Daten (bereits normalisiert) für den Import als Hidden Field.
+    # JSON statt Roh-CSV: deterministisch, kein erneutes Delimiter-Sniffing und
+    # kein Format-/Encoding-Problem beim xlsx-Upload.
     import base64
-    csv_b64 = base64.b64encode(content.encode("utf-8")).decode()
+    payload = json.dumps({"headers": headers, "rows": rows})
+    csv_b64 = base64.b64encode(payload.encode("utf-8")).decode()
 
     return render_template(
         "admin/aoa_import/preview.html",
@@ -309,10 +370,11 @@ def aoa_import_execute():
         return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
 
     try:
-        content = base64.b64decode(csv_b64.encode()).decode("utf-8")
-        rows, headers = _parse_csv(content)
+        payload = json.loads(base64.b64decode(csv_b64.encode()).decode("utf-8"))
+        rows = payload["rows"]
+        headers = payload["headers"]
     except Exception as e:
-        flash(f"CSV-Fehler: {e}", "danger")
+        flash(f"Import-Daten fehlerhaft: {e}", "danger")
         return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
 
     cols = _detect_columns(headers)
