@@ -1403,6 +1403,202 @@ def registration_reject(reg_id):
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
 
+@club_bp.post("/registrations/<int:reg_id>/toggle-in-season-admin")
+@login_required
+def registration_toggle_in_season_admin(reg_id):
+    """Veranstalter markiert eine Hündin als läufig (oder hebt es auf).
+
+    Die Startnummer bleibt unverändert — die Läufig-Hündin startet lediglich
+    am Schluss ihres Laufes, sofern das Turnier so eingestellt ist.
+    """
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+    if not reg.event.allows_bitches_in_season:
+        flash(_("Dieses Turnier erlaubt keine läufigen Hündinnen."), "danger")
+        return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+    reg.is_in_season = not reg.is_in_season
+    db.session.commit()
+
+    if reg.is_in_season:
+        flash(_("%(dog)s als läufig markiert.", dog=reg.dog.name), "info")
+    else:
+        flash(_("Läufig-Markierung für %(dog)s aufgehoben.", dog=reg.dog.name), "info")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
+def _normalize_license_no(raw: str) -> str:
+    """Lizenznummer vereinheitlichen (CH = nur Ziffern, Ausland = AAA-Rest)."""
+    raw = (raw or "").strip()
+    if raw.isdigit():
+        return raw
+    if "-" in raw:
+        prefix, rest = raw.split("-", 1)
+        return f"{prefix.upper()}-{rest}"
+    return raw.upper()
+
+
+def _detect_license_kind(license_no: str) -> LicenseKind:
+    return LicenseKind.CH if (license_no or "").strip().isdigit() else LicenseKind.FOREIGN
+
+
+@club_bp.get("/events/<int:event_id>/registrations/lookup")
+@login_required
+def registration_lookup(event_id):
+    """LIZ-Abfrage für die Veranstalter-Teilnehmererfassung (JSON).
+
+    Prüft, ob ein Hund mit dieser Lizenznummer bereits in der DB existiert,
+    und ob er für dieses Turnier schon angemeldet ist.
+    """
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    license_no = _normalize_license_no(request.args.get("license_no", ""))
+    if not license_no:
+        return {"found": False}
+
+    dog = db.session.execute(
+        db.select(Dog).filter_by(license_no=license_no)
+    ).scalar_one_or_none()
+    if dog is None:
+        return {"found": False, "license_no": license_no}
+
+    already = db.session.execute(
+        db.select(Registration).filter_by(event_id=event_id, dog_id=dog.id)
+        .filter(Registration.status != RegistrationStatus.CANCELLED)
+    ).scalar_one_or_none() is not None
+
+    handler_name = ""
+    owner = db.session.execute(
+        db.select(DogOwner).filter_by(dog_id=dog.id)
+    ).scalars().first()
+    if owner and owner.person:
+        handler_name = f"{owner.person.first_name or ''} {owner.person.last_name or ''}".strip()
+
+    return {
+        "found": True,
+        "license_no": license_no,
+        "dog_name": dog.name or "",
+        "category": dog.category or "",
+        "class_level": dog.class_level or 1,
+        "handler_name": handler_name,
+        "already_registered": already,
+    }
+
+
+@club_bp.post("/events/<int:event_id>/registrations/add")
+@login_required
+def registration_add(event_id):
+    """Veranstalter fügt einen Teilnehmer manuell hinzu.
+
+    Hund wird per Lizenznummer in der DB gesucht; existiert er nicht, wird er
+    neu angelegt. Die Verknüpfung mit einem Benutzerkonto erfolgt erst, wenn
+    sich der Eigentümer später selbst anmeldet.
+    """
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    license_no = _normalize_license_no(request.form.get("license_no", ""))
+    dog_name   = (request.form.get("dog_name") or "").strip()
+    category   = (request.form.get("category") or "").strip().upper()   # L/I/M/S
+    class_raw  = (request.form.get("class_level") or "").strip()
+    first_name = (request.form.get("handler_first_name") or "").strip()
+    last_name  = (request.form.get("handler_last_name") or "").strip()
+    club_name  = (request.form.get("club_name") or "").strip()
+    is_in_season = bool(request.form.get("is_in_season"))
+
+    if not license_no:
+        flash(_("Bitte eine Lizenznummer angeben."), "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    try:
+        class_level = int(class_raw)
+    except (TypeError, ValueError):
+        class_level = 0
+    if class_level not in (1, 2, 3):
+        flash(_("Bitte eine gültige Klasse (1–3) wählen."), "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    category_full = _CATEGORY_CODE_MAP.get(category)
+    if not category_full:
+        flash(_("Bitte eine gültige Kategorie (S/M/I/L) wählen."), "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    # 1. Hund finden oder anlegen
+    dog = db.session.execute(
+        db.select(Dog).filter_by(license_no=license_no)
+    ).scalar_one_or_none()
+    if dog is None:
+        if not dog_name:
+            flash(_("Neuer Hund: bitte den Hundenamen angeben."), "danger")
+            return redirect(url_for("club.event_detail", event_id=event_id))
+        try:
+            dog = Dog(
+                name=dog_name,
+                license_no=license_no,
+                license_kind=_detect_license_kind(license_no),
+                category=category,
+                class_level=class_level,
+            )
+            db.session.add(dog)
+            db.session.flush()
+        except ValueError as exc:
+            db.session.rollback()
+            flash(_("Ungültige Lizenznummer: %(err)s", err=str(exc)), "danger")
+            return redirect(url_for("club.event_detail", event_id=event_id))
+    elif dog_name and dog.name != dog_name:
+        dog.name = dog_name
+
+    # 2. Schon für dieses Turnier angemeldet?
+    existing = db.session.execute(
+        db.select(Registration).filter_by(event_id=event_id, dog_id=dog.id)
+        .filter(Registration.status != RegistrationStatus.CANCELLED)
+    ).scalar_one_or_none()
+    if existing is not None:
+        flash(_("%(dog)s ist für dieses Turnier bereits angemeldet.", dog=dog.name), "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    # 3. Hundeführer (Person) finden oder anlegen
+    person = None
+    if first_name or last_name:
+        person = db.session.execute(
+            db.select(Person).filter_by(first_name=first_name, last_name=last_name)
+        ).scalars().first()
+        if person is None:
+            person = Person(first_name=first_name, last_name=last_name)
+            db.session.add(person)
+            db.session.flush()
+        exists_owner = db.session.execute(
+            db.select(DogOwner).filter_by(dog_id=dog.id, person_id=person.id)
+        ).scalar_one_or_none()
+        if exists_owner is None:
+            db.session.add(DogOwner(
+                dog_id=dog.id, person_id=person.id, role=DogOwnerRole.HANDLER,
+            ))
+
+    # 4. Registrierung anlegen — vom Veranstalter erfasst → direkt bestätigt
+    reg = Registration(
+        event_id=event_id,
+        dog_id=dog.id,
+        handler_id=person.id if person else None,
+        category_code=category_full,
+        class_level=class_level,
+        status=RegistrationStatus.CONFIRMED,
+        club_name=club_name or None,
+        is_in_season=is_in_season if event.allows_bitches_in_season else False,
+    )
+    db.session.add(reg)
+    db.session.commit()
+    flash(_("%(dog)s wurde hinzugefügt.", dog=dog.name), "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
 @club_bp.post("/events/<int:event_id>/confirm-all")
 @login_required
 def event_confirm_all(event_id):
@@ -1489,10 +1685,11 @@ def event_assign_startnumbers(event_id):
             if reg.handler_id:
                 handler_count[reg.handler_id] += 1
 
-        # Sortierung: läufige Hündinnen ans Ende, Mehrfach-Handler zuerst,
-        # dann handler_id für Stabilität
+        # Sortierung: läufige Hündinnen ans Ende (nur wenn im Turnier so
+        # eingestellt), Mehrfach-Handler zuerst, dann handler_id für Stabilität
+        start_last = event.bitches_in_season_start_last
         sorted_regs = sorted(regs, key=lambda r: (
-            r.is_in_season,
+            1 if (start_last and r.is_in_season) else 0,
             -(handler_count.get(r.handler_id, 1)),
             r.handler_id or 0,
             r.id,
@@ -1590,6 +1787,8 @@ def event_export_zip(event_id):
             "event_number":       event.ais_turniernummer or "",
             "location":           event.location or "",
             "lizenzcheck_done_at": event.lizenzcheck_done_at.isoformat() if event.lizenzcheck_done_at else None,
+            "allows_bitches_in_season":     event.allows_bitches_in_season,
+            "bitches_in_season_start_last": event.bitches_in_season_start_last,
         }
     }
 
@@ -1623,6 +1822,11 @@ def event_export_zip(event_id):
     # Eine Zeile pro (Anmeldung × Disziplin), damit AgilitySoftware
     # je einen Lauf pro (Disziplin, Kategorie, Klasse) anlegt.
     registrations = []
+    # Effektiver „am Schluss starten"-Status: nur wenn die Hündin läufig ist UND
+    # das Turnier läufige Hündinnen am Schluss starten lässt. Die AgilitySoftware
+    # setzt is_in_season-Starter direkt ans Ende des Laufes — die Startnummer
+    # bleibt dabei unverändert.
+    season_start_last = event.bitches_in_season_start_last
     for reg in confirmed:
         for disc in disciplines:
             registrations.append({
@@ -1634,7 +1838,7 @@ def event_export_zip(event_id):
                 "discipline":               disc.capitalize(),   # "Agility" / "Jumping"
                 "category_code":            reg.category_code or "",
                 "class_level":              str(reg.class_level),
-                "is_in_season":             reg.is_in_season,
+                "is_in_season":             bool(reg.is_in_season and season_start_last),
             })
 
     # ── start_numbers.json ────────────────────────────────────────────────────
@@ -1752,6 +1956,15 @@ def event_startlist(event_id):
     groups: dict = defaultdict(list)
     for reg in regs:
         groups[(reg.category_code, reg.class_level)].append(reg)
+
+    # Laufreihenfolge innerhalb der Gruppe: läufige Hündinnen starten am Schluss
+    # (nur wenn im Turnier so eingestellt) — die Startnummer bleibt unverändert.
+    start_last = event.bitches_in_season_start_last
+    for regs_in_group in groups.values():
+        regs_in_group.sort(key=lambda r: (
+            1 if (start_last and r.is_in_season) else 0,
+            r.start_number or 0,
+        ))
 
     sorted_groups = sorted(
         groups.items(),

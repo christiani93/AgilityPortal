@@ -60,22 +60,25 @@
     <table class="table table-sm table-hover table-striped mb-0 align-middle">
       <thead class="table-light">
         <tr>
-          <th style="width:80px;">Nr.</th>
+          <th style="width:70px;">Nr.</th>
+          <th>Name</th>
           <th>Hund</th>
-          <th>Hundeführer</th>
           <th>Verein</th>
         </tr>
       </thead>
       <tbody>
-        {% for reg in regs | sort(attribute='start_number') %}
-        <tr>
+        {% for reg in regs %}
+        <tr {% if event.bitches_in_season_start_last and reg.is_in_season %}class="table-warning"{% endif %}>
           <td class="fw-bold">{{ reg.start_number }}</td>
-          <td>{{ reg.dog.name if reg.dog else '—' }}</td>
-          <td class="text-muted">
+          <td>
             {% if reg.handler %}
               {{ reg.handler.first_name }} {{ reg.handler.last_name }}
             {% else %}—{% endif %}
+            {% if event.bitches_in_season_start_last and reg.is_in_season %}
+              <span class="badge bg-warning text-dark ms-1" title="Läufig — startet am Schluss">♀</span>
+            {% endif %}
           </td>
+          <td>{{ reg.dog.name if reg.dog else '—' }}</td>
           <td class="text-muted small">{{ reg.club_name or '—' }}</td>
         </tr>
         {% endfor %}

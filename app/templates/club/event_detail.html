@@ -836,6 +836,67 @@
       {% endif %}
     </div>
   </div>
+
+  {# ── Teilnehmer manuell hinzufügen (Veranstalter) ───────────────────────── #}
+  <div class="card-body border-bottom bg-light py-2">
+    <button class="btn btn-sm btn-outline-primary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#add-participant">
+      ➕ {{ _('Teilnehmer hinzufügen') }}
+    </button>
+    <div class="collapse mt-3" id="add-participant">
+      <form method="post" action="{{ url_for('club.registration_add', event_id=event.id) }}"
+            class="row g-2 align-items-end">
+        {{ run_form.hidden_tag() }}
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-0">{{ _('Lizenz-Nr.') }}</label>
+          <input type="text" name="license_no" id="ap-license"
+                 class="form-control form-control-sm" autocomplete="off" required>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">{{ _('Hund') }}</label>
+          <input type="text" name="dog_name" id="ap-dogname" class="form-control form-control-sm">
+        </div>
+        <div class="col-3 col-md-1">
+          <label class="form-label small mb-0">{{ _('Kat.') }}</label>
+          <select name="category" id="ap-category" class="form-select form-select-sm">
+            <option value="S">S</option><option value="M">M</option>
+            <option value="I">I</option><option value="L">L</option>
+          </select>
+        </div>
+        <div class="col-3 col-md-1">
+          <label class="form-label small mb-0">{{ _('Klasse') }}</label>
+          <select name="class_level" id="ap-class" class="form-select form-select-sm">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-0">{{ _('HF Vorname') }}</label>
+          <input type="text" name="handler_first_name" class="form-control form-control-sm">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-0">{{ _('HF Nachname') }}</label>
+          <input type="text" name="handler_last_name" class="form-control form-control-sm">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">{{ _('Verein') }}</label>
+          <input type="text" name="club_name" class="form-control form-control-sm">
+        </div>
+        {% if event.allows_bitches_in_season %}
+        <div class="col-6 col-md-2 d-flex align-items-center pt-3">
+          <div class="form-check">
+            <input type="checkbox" name="is_in_season" id="ap-season" class="form-check-input">
+            <label class="form-check-label small" for="ap-season">♀ {{ _('läufig') }}</label>
+          </div>
+        </div>
+        {% endif %}
+        <div class="col-6 col-md-2">
+          <button type="submit" class="btn btn-sm btn-primary w-100">{{ _('Hinzufügen') }}</button>
+        </div>
+      </form>
+      <div id="ap-hint" class="form-text mt-1"></div>
+    </div>
+  </div>
+
   {% if registrations %}
   <div class="table-responsive">
     <table class="table table-sm table-hover mb-0 align-middle">
@@ -863,7 +924,13 @@
               <button type="submit" class="btn btn-sm btn-outline-secondary">✓</button>
             </form>
           </td>
-          <td class="fw-semibold">{{ reg.dog.name }}</td>
+          <td class="fw-semibold">
+            {{ reg.dog.name }}
+            {% if reg.is_in_season %}
+              <span class="badge bg-warning text-dark ms-1"
+                    title="{{ _('Läufig') }}{% if event.bitches_in_season_start_last %} — {{ _('startet am Schluss') }}{% endif %}">♀ {{ _('läufig') }}</span>
+            {% endif %}
+          </td>
           <td>{{ reg.category_code }}</td>
           <td>{{ _('Klasse') }} {{ reg.class_level }}</td>
           <td class="text-muted small">
@@ -892,6 +959,13 @@
             {% endif %}
           </td>
           <td class="text-end">
+            {% if event.allows_bitches_in_season and reg.status.value != 'CANCELLED' %}
+            <form method="post" action="{{ url_for('club.registration_toggle_in_season_admin', reg_id=reg.id) }}" class="d-inline">
+              {{ run_form.hidden_tag() }}
+              <button class="btn btn-sm {{ 'btn-warning' if reg.is_in_season else 'btn-outline-warning' }}"
+                      title="{{ _('Läufig-Markierung aufheben') if reg.is_in_season else _('Als läufig markieren') }}">♀</button>
+            </form>
+            {% endif %}
             {% if reg.status.value in ('PENDING', 'SUBMITTED') %}
             <form method="post" action="{{ url_for('club.registration_confirm', reg_id=reg.id) }}" class="d-inline">
               {{ run_form.hidden_tag() }}
@@ -916,6 +990,39 @@
   {% endif %}
 </div>
 {% endif %}
+
+<script>
+// Veranstalter-Teilnehmererfassung: LIZ-Abfrage → Prefill + Hinweis
+(function () {
+  const lic = document.getElementById('ap-license');
+  if (!lic) return;
+  const hint = document.getElementById('ap-hint');
+  lic.addEventListener('change', function () {
+    const v = lic.value.trim();
+    if (!v) { hint.textContent = ''; return; }
+    fetch("{{ url_for('club.registration_lookup', event_id=event.id) }}?license_no=" + encodeURIComponent(v))
+      .then(r => r.json())
+      .then(d => {
+        if (d.found) {
+          if (d.dog_name) document.getElementById('ap-dogname').value = d.dog_name;
+          if (d.category) document.getElementById('ap-category').value = d.category;
+          if (d.class_level) document.getElementById('ap-class').value = d.class_level;
+          if (d.already_registered) {
+            hint.className = 'form-text mt-1 text-danger';
+            hint.textContent = "{{ _('Dieser Hund ist bereits für dieses Turnier angemeldet.') }}";
+          } else {
+            hint.className = 'form-text mt-1 text-success';
+            hint.textContent = "{{ _('Hund in der DB gefunden.') }}" + (d.handler_name ? ' · ' + d.handler_name : '');
+          }
+        } else {
+          hint.className = 'form-text mt-1 text-muted';
+          hint.textContent = "{{ _('Neuer Hund — bitte Angaben ausfüllen.') }}";
+        }
+      })
+      .catch(() => {});
+  });
+})();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <script>

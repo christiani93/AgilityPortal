@@ -3,7 +3,7 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-08-16
+Stand: 2026-10-06
 
 ## Turnier-Vorlagen — ✅ UMGESETZT (2026-09-19)
 
@@ -109,6 +109,38 @@ einer Anfrage). Heute ist die Verknüpfung 1 Event : 1 Reservation
 `routes_website_sync.py::event_reservation_join`, `event_detail.html` (Reservations-
 Karte), `admin/routes_templates.py::template_create_event` + `templates/admin/templates/form.html`.
 
+## Website-Sync-Text — ✅ UMGESETZT (2026-10-06)
+
+Inserat-Text wie AdminPortal-Prosa + TKAMO-zuerst-Hinweis live (Commit `4fc0957`,
+`website_sync.generate_body_md`). Keine Migration (Alembic-Head weiterhin `a9b0c1d2e3f4`).
+AdminPortal-seitiges PublicEvent-Dedup-Gegenstück bleibt als ToDo in AdminPortal/TODO.md offen.
+
+## Hotfix: NULLS LAST — ✅ BEHOBEN (2026-10-06)
+
+`.nullslast()` crashte MariaDB (1064) auf `/club/events/<id>` (Commit `47989b8`, durch
+portablen `case()`-Sort ersetzt). Behebt Crashes #99–104 aus dem Mehr-Turnier-Reservation-
+Deploy (`44bb7df`). SQLite-Tests hatten den Bug nicht gefangen (MySQL-only-Syntaxfehler).
+
+## Jump Into Fall (09.–11.10.2026) — Events 9/10/11, AIS 11338/11339/11340
+
+- [x] Publiziert, Richter pro Lauf zugeordnet + anwesend, Starterzahlen genullt
+- [x] Mit Reservation #42 verknüpft (ohne Sync)
+- [x] TKAMO-Import gemacht
+- [ ] Chris trägt Mi/Do (07./08.10.) Teilnehmer ein
+
+## Halloween Cup KO-System (30.10.–01.11.2026)
+
+Architektur entschieden (06.10.): **Variante B** — KO läuft offline in AgilitySoftware mit
+TIMY (siehe AgilitySoftware `TODO.md`, Branch `feature/ko-cup`). Portal-Rolle ist nur:
+
+- [ ] Read-only Live-Anzeige für den KO-Bracket (2 Ringserver-PCs speisen)
+- [ ] Finalisten-Empfang via `eventexport.v1` inkl. Startnummer (für Ring-Zuteilung)
+
+> Die bisherigen Portal-seitigen Punkte unten („Runde 2+ generieren", Halbfinale-Sonderregel,
+> `CupFinalResult`) sind durch diese Architekturentscheidung für den Halloween Cup
+> **gegenstandslos** — die Bracket-Logik liegt jetzt in AgilitySoftware. Bleiben relevant nur
+> falls Adventscup das 1:1 im Portal statt in der Software umsetzen soll (siehe unten, offen).
+
 ## WiMeSma-Cup (Deadline 15.11.2026 — 1. von 4 Meetings)
 
 - [ ] Reglement klären: Cup-Punkte pro Klasse getrennt oder Small/Medium kombiniert werten (`split_by_class`)?
@@ -120,7 +152,7 @@ Karte), `admin/routes_templates.py::template_create_event` + `templates/admin/te
 
 - [ ] Regelwerk klären: reicht das Halloween-Muster (KO-Bracket) 1:1, oder eigene Regel nötig?
 
-## KO-Final / „American"-Format (Cup-Finals allgemein, betrifft Halloween Cup + ggf. Adventscup)
+## KO-Final / „American"-Format (Portal-seitige Bracket-Logik — siehe Hinweis oben)
 
 - [ ] Runde 2+ (Viertelfinale/Halbfinale/Finale) automatisch aus den Vorrunden-Siegern generieren
       (aktuell generiert `cup_final_bracket_generate` nur Runde 1)
@@ -134,6 +166,15 @@ Karte), `admin/routes_templates.py::template_create_event` + `templates/admin/te
 ## Edelweiss Challenge (Deadline 08.–10.01.2027)
 
 - [ ] Reglement besorgen/klären (u.a.: ist Klasse 3 auch ein Quali-Lauf?)
+- [x] Team-Challenge (2er-Teams) Reglement bestätigt (DIS-Team hinter Nicht-DIS via Sentinel
+      999, Zeitfehler normal eingerechnet); Software P1+2 + Portal P5 fertig & getestet
+      (2026-10-06), Portal-Teil **noch nicht prod-deployed**; P3/P4/P6 (Sync, EventRuns,
+      Ranglisten) erst Januar — siehe AgilitySoftware `TODO.md`
+
+## AOA-Anmeldelink-Vorlage
+
+- [ ] `external_registration_link` als Vorlage bauen: URL-Muster
+      `…/Turnierdetails_view.php?editid1=<AIS>` — nur `editid1` (= `ais_turniernummer`) variiert
 
 ## BCCS-SM — ✅ ERLEDIGT (2026-08-16)
 

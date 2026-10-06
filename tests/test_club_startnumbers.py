@@ -16,7 +16,7 @@ from app.extensions import db
 from app import models as M
 
 
-def _seed_event_with_schema():
+def _seed_event_with_schema(start_last=True):
     club = M.Club(vereinsnummer="V1", name="Club")
     admin = M.User(email="admin@test.ch", role="superadmin")
     db.session.add_all([club, admin])
@@ -26,6 +26,8 @@ def _seed_event_with_schema():
         name="Startnummer-Test",
         organiser_club_id=club.id,
         startnumber_schema=json.dumps({"Large-1": 5000}),
+        allows_bitches_in_season=True,
+        bitches_in_season_start_last=start_last,
     )
     db.session.add(event)
     db.session.flush()
@@ -81,6 +83,55 @@ def test_assign_startnumbers_uses_saved_schema_and_skips_unconfirmed(app):
 
         # Unbestätigte Meldung bleibt unangetastet.
         assert reg_pending.start_number is None
+
+
+def test_assign_startnumbers_ignores_in_season_when_flag_off(app):
+    # Ohne bitches_in_season_start_last zählt is_in_season NICHT für die
+    # Reihenfolge — die läufige Hündin wird nicht ans Ende gezwungen.
+    with app.app_context():
+        event_id, admin_id, reg_a_id, reg_season_id, reg_c_id, reg_pending_id = \
+            _seed_event_with_schema(start_last=False)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/events/{event_id}/assign-startnumbers")
+        assert resp.status_code == 302
+
+        reg_a = db.session.get(M.Registration, reg_a_id)
+        reg_season = db.session.get(M.Registration, reg_season_id)
+        reg_c = db.session.get(M.Registration, reg_c_id)
+
+        # Stabile Reihenfolge nach handler_id (A, B=läufig, C) — nicht ans Ende.
+        assert reg_a.start_number == 5000
+        assert reg_season.start_number == 5001
+        assert reg_c.start_number == 5002
+
+
+def test_organiser_toggle_in_season_keeps_startnumber(app):
+    # Veranstalter markiert eine Hündin als läufig, NACHDEM Startnummern
+    # vergeben wurden — die Startnummer bleibt erhalten.
+    with app.app_context():
+        event_id, admin_id, reg_a_id, reg_season_id, reg_c_id, reg_pending_id = \
+            _seed_event_with_schema()
+        client = app.test_client()
+        _login(client, admin_id)
+        client.post(f"/club/events/{event_id}/assign-startnumbers")
+
+        reg_a = db.session.get(M.Registration, reg_a_id)
+        assert reg_a.start_number == 5000
+        assert reg_a.is_in_season is False
+
+        resp = client.post(f"/club/registrations/{reg_a_id}/toggle-in-season-admin")
+        assert resp.status_code == 302
+        reg_a = db.session.get(M.Registration, reg_a_id)
+        assert reg_a.is_in_season is True
+        assert reg_a.start_number == 5000   # Nummer unverändert
+
+        # Nochmal togglen hebt die Markierung wieder auf.
+        client.post(f"/club/registrations/{reg_a_id}/toggle-in-season-admin")
+        reg_a = db.session.get(M.Registration, reg_a_id)
+        assert reg_a.is_in_season is False
+        assert reg_a.start_number == 5000
 
 
 def test_export_zip_reflects_assigned_startnumbers(app):
