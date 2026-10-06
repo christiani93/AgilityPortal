@@ -60,6 +60,12 @@
       <label class="form-check-label" for="do_reservation">
         Reservationsanfrage direkt an AdminPortal senden
       </label>
+      {% if tpl.reservation_shared %}
+      <div class="form-text">
+        Vorlage „gemeinsame Reservation": Existiert bereits ein Turnier aus dieser Vorlage mit
+        Reservation, wird dieses Turnier dort angehängt statt eine neue Anfrage zu stellen.
+      </div>
+      {% endif %}
     </div>
   </div>
 

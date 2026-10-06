@@ -166,6 +166,21 @@
         <label class="form-check-label" for="opt_support">Event-Support</label>
       </div>
     </div>
+
+    <div class="col-12">
+      <div class="form-check">
+        <input type="checkbox" name="reservation_shared" class="form-check-input" id="opt_shared"
+               {% if tpl and tpl.reservation_shared %}checked{% endif %}>
+        <label class="form-check-label" for="opt_shared">
+          Gemeinsame Reservation für alle Turniere dieser Vorlage
+        </label>
+        <div class="form-text">
+          Bei mehrtägigen Serien: das 2./3. aus dieser Vorlage erzeugte Turnier hängt sich
+          automatisch an die Reservation des zuletzt erzeugten Turniers an, statt eine neue
+          Anfrage zu stellen (nur wenn beim Erzeugen „Reservationsanfrage" aktiviert ist).
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="mt-3">

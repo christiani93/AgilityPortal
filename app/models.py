@@ -341,6 +341,10 @@ class Event(db.Model):
     reservation_synced_at = db.Column(db.DateTime, nullable=True)
     results_submitted_at = db.Column(db.DateTime, nullable=True)
 
+    # Provenienz: aus welcher Vorlage wurde dieses Turnier erzeugt (für geteilte
+    # Reservationen bei Mehrtages-Serien, siehe EventTemplate.reservation_shared)
+    source_template_id = db.Column(db.Integer, db.ForeignKey("event_templates.id"), nullable=True)
+
     # Billing
     billing_mode = db.Column(
         db.Enum(BillingMode, name="billing_mode"),
@@ -525,6 +529,10 @@ class EventTemplate(db.Model):
     option_special_eval = db.Column(db.Boolean, default=False, nullable=False)
     option_website = db.Column(db.Boolean, default=False, nullable=False)
     option_event_support = db.Column(db.Boolean, default=False, nullable=False)
+    # Mehrtages-Serie: alle aus dieser Vorlage erzeugten Turniere teilen sich EINE
+    # Reservation (das 2./3. „Turnier aus Vorlage" hängt sich an die Reservation
+    # des zuletzt erzeugten Turniers an, statt eine neue anzulegen).
+    reservation_shared = db.Column(db.Boolean, default=False, nullable=False)
 
     # Anmeldung über externes Portal (Marker + Link, ins Event kopiert)
     registration_external = db.Column(db.Boolean, default=False, nullable=False)

@@ -144,6 +144,53 @@ def event_reservation_request(event_id):
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
+# ── Turnier einer bestehenden Reservation anhängen (Mehr-Turnier) ────────────
+
+@club_bp.route("/events/<int:event_id>/reservation-join", methods=["POST"])
+@login_required
+def event_reservation_join(event_id):
+    event = db.get_or_404(Event, event_id)
+
+    if not (current_user.is_superadmin or
+            (current_user.club_id and current_user.club_id == event.organiser_club_id)):
+        flash(_("Keine Berechtigung."), "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    if event.reservation_id:
+        flash(_("Dieses Turnier hängt bereits an einer Reservation."), "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    source_event_id = request.form.get("source_event_id", type=int)
+    source = db.session.get(Event, source_event_id) if source_event_id else None
+    if not source or not source.reservation_id:
+        flash(_("Zielturnier hat keine Reservation."), "warning")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    # Zugriff auf das Zielturnier prüfen (nicht fremde Reservationen anzapfen)
+    if not (current_user.is_superadmin or
+            (current_user.club_id and current_user.club_id == source.organiser_club_id)):
+        flash(_("Keine Berechtigung für das Zielturnier."), "danger")
+        return redirect(url_for("club.event_detail", event_id=event_id))
+
+    event.reservation_id = source.reservation_id
+    db.session.flush()
+    try:
+        from app.services.reservation_sync import update_reservation
+        ok, err = update_reservation(event)
+        if ok:
+            db.session.commit()
+            flash(_("Turnier zur Reservation #%(id)d hinzugefügt und synchronisiert.",
+                    id=event.reservation_id), "success")
+        else:
+            db.session.rollback()
+            flash(_("Hinzufügen fehlgeschlagen: %(error)s", error=err), "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(_("Fehler: %(error)s", error=str(e)), "danger")
+
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
 # ── Reservation mit aktuellen Event-Daten aktualisieren ──────────────────────
 
 @club_bp.route("/events/<int:event_id>/reservation-sync", methods=["POST"])

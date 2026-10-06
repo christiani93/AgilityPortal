@@ -515,9 +515,27 @@ def event_detail(event_id):
         body_md_preview = generate_body_md(event)
     except Exception:
         body_md_preview = ""
+    # Reservation-Gruppierung (Mehr-Turnier-Reservation)
+    reservation_group = []          # andere Turniere, die dieselbe Reservation teilen
+    reservation_candidates = []     # Turniere mit Reservation, denen man sich anhängen kann
+    res_scope = db.select(Event).filter(Event.id != event.id)
+    if not current_user.is_superadmin:
+        res_scope = res_scope.filter(Event.organiser_club_id == event.organiser_club_id)
+    if event.reservation_id:
+        reservation_group = db.session.execute(
+            res_scope.filter(Event.reservation_id == event.reservation_id)
+            .order_by(Event.starts_at.asc().nullslast(), Event.id.asc())
+        ).scalars().all()
+    else:
+        reservation_candidates = db.session.execute(
+            res_scope.filter(Event.reservation_id.isnot(None))
+            .order_by(Event.starts_at.desc().nullslast(), Event.id.desc())
+        ).scalars().all()
     return render_template("club/event_detail.html", event=event, run_form=run_form,
                            sorted_runs=sorted_runs, available_judges=available_judges,
-                           registrations=registrations, body_md_preview=body_md_preview)
+                           registrations=registrations, body_md_preview=body_md_preview,
+                           reservation_group=reservation_group,
+                           reservation_candidates=reservation_candidates)
 
 
 @club_bp.post("/events/<int:event_id>/judges/add")

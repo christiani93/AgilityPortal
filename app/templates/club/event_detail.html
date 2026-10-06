@@ -490,10 +490,50 @@
       </button>
     </form>
 
+    {% if reservation_candidates %}
+    {# ── Alternativ: an bestehende Reservation anhängen (Mehr-Turnier) ─────── #}
+    <hr class="my-3">
+    <p class="text-muted small mb-2">
+      {{ _('Oder dieses Turnier einer bestehenden Reservation anhängen (ein Veranstalter bucht mehrere Turniere in einer Anfrage).') }}
+    </p>
+    <form method="post" action="{{ url_for('club.event_reservation_join', event_id=event.id) }}"
+          class="d-flex gap-2 align-items-end flex-wrap">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="form-label small text-muted mb-1">{{ _('Bestehende Reservation') }}</label>
+        <select name="source_event_id" class="form-select form-select-sm" required>
+          <option value="">{{ _('— Turnier mit Reservation wählen —') }}</option>
+          {% for c in reservation_candidates %}
+          <option value="{{ c.id }}">
+            {{ _('Anfrage #%(id)d', id=c.reservation_id) }} · {{ c.name }}
+            {% if c.starts_at %}({{ c.starts_at.strftime('%d.%m.%Y') }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-sm btn-outline-primary">
+        ➕ {{ _('Anhängen') }}
+      </button>
+    </form>
+    {% endif %}
+
     {% else %}
     {# ── Bestehende Anfrage aktualisieren ─────────────────────────────────── #}
+    {% if reservation_group %}
+    <p class="small mb-2">
+      <strong>{{ _('Diese Reservation umfasst mehrere Turniere:') }}</strong>
+    </p>
+    <ul class="small mb-3">
+      <li>{{ event.name }}{% if event.starts_at %} ({{ event.starts_at.strftime('%d.%m.%Y') }}){% endif %}
+          <span class="badge bg-light text-dark border">{{ _('dieses Turnier') }}</span></li>
+      {% for g in reservation_group %}
+      <li><a href="{{ url_for('club.event_detail', event_id=g.id) }}">{{ g.name }}</a>{% if g.starts_at %} ({{ g.starts_at.strftime('%d.%m.%Y') }}){% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
     <p class="text-muted small mb-3">
       {{ _('Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die bestehende Anfrage.') }}
+      {% if reservation_group %}{{ _('Es werden alle Turniere dieser Reservation gemeinsam gesendet.') }}{% endif %}
     </p>
     <form method="post" action="{{ url_for('club.event_reservation_sync', event_id=event.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

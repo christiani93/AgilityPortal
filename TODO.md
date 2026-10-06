@@ -52,6 +52,63 @@ die bestehenden Push-Syncs vom Event aus:
 2. „Veroeffentlichen"-Knopf die 2 Syncs verketten ODER getrennt lassen
    (mehr Kontrolle pro Turnier). User tendiert noch nicht festgelegt.
 
+## Reservation mit mehreren Turnieren — ⏳ OFFEN (Handoff aus AdminPortal 2026-10-06)
+
+**Ziel:** Eine AdminPortal-Reservation kann **mehrere** AgilityPortal-Turniere
+umfassen (z.B. ein Veranstalter bucht die Zeitmessung für mehrere Turniere in
+einer Anfrage). Heute ist die Verknüpfung 1 Event : 1 Reservation
+(`event.reservation_id`), und `reservation_sync.py` schickt genau EIN
+`portal_event_id`.
+
+**AdminPortal-Seite — ✅ BEREITS ERLEDIGT (abwärtskompatibel):**
+- `POST /api/reservations` UND `PATCH /api/reservations/<id>` akzeptieren jetzt
+  zusätzlich ein Feld **`events`** (Liste):
+  ```json
+  "events": [
+    {"portal_event_id": 14, "ais_turniernummer": 12345, "event_name": "...", "date_from": "2027-05-01"},
+    {"portal_event_id": 15, "ais_turniernummer": 12346, "event_name": "...", "date_from": "2027-05-02"}
+  ]
+  ```
+- Das **erste** Listenelement gilt als Haupt-Turnier (füllt weiter die Einzel-
+  Spalten `portal_event_id`/`ais_turniernummer`, damit bestehende Links/Features
+  laufen). Alle Events landen zusätzlich in der neuen Kindtabelle
+  `reservation_event`; die Detailseite zeigt alle Turniere + TKAMO-Links.
+- **Alt-Format bleibt gültig:** einzelnes `portal_event_id` ohne `events` →
+  genau ein Turnier (wie bisher). Nichts bricht, solange AgilityPortal nichts ändert.
+- **Wichtig:** Wird `events` bei PATCH mitgeschickt, ersetzt AdminPortal die
+  **komplette** Turnier-Menge. AgilityPortal muss also immer ALLE Turniere einer
+  Reservation zusammen senden, nicht inkrementell.
+
+**AgilityPortal-Seite — ✅ Variante (a) UMGESETZT (2026-10-06):**
+- [x] UX-Entscheid: **Variante (a)** gewählt — auf einem Event „zu bestehender
+      Reservation hinzufügen" (Dropdown der Turniere mit Reservation, gleicher
+      Veranstalter / Superadmin). Setzt `event.reservation_id` auf die Reservation
+      des gewählten Turniers. Route `club.event_reservation_join`.
+- [x] `services/reservation_sync.py` → `update_reservation` sendet jetzt bei JEDER
+      Aktualisierung die **vollständige** `events`-Liste der Reservation
+      (Haupt-Turnier = frühestes Datum zuerst, füllt die Einzel-Spalten),
+      `estimated_participants` = Summe. Neu-Anfrage (`create_reservation`) bleibt
+      Einzel-Format (abwärtskompatibel).
+- [x] Detailseite zeigt bei Mehr-Turnier-Reservation alle beteiligten Turniere.
+- [x] Tests: `tests/test_reservation_multi.py` (events-Array + Einzelfall).
+- [ ] **NOCH NICHT PROD-DEPLOYED** — keine Migration nötig (kein Schema-Change).
+
+**Vorlagen-gesteuerte geteilte Reservation — ✅ UMGESETZT (2026-10-06, Vorschlag 1):**
+- [x] `EventTemplate.reservation_shared` (Checkbox im Vorlagen-Formular): aus der
+      Vorlage erzeugte Turniere teilen sich EINE Reservation.
+- [x] `Event.source_template_id` (Provenienz-FK) — merkt, aus welcher Vorlage ein
+      Turnier stammt (um die „zuletzt erzeugte" Reservation der Serie zu finden).
+- [x] `template_create_event`: bei aktivem `reservation_shared` + „Reservationsanfrage"
+      hängt sich das 2./3. Turnier via `update_reservation` an die Reservation des
+      zuletzt erzeugten Turniers an, statt eine neue anzulegen (erstes Turnier = Anker).
+- [x] Migration `a9b0c1d2e3f4` (chained auf `f7a8b9c0d1e2`); MySQL-SQL geprüft (offline).
+- [x] Tests: `tests/test_template_shared_reservation.py` (shared vs. unshared).
+- [ ] **NOCH NICHT PROD-DEPLOYED** — Migration `a9b0c1d2e3f4` muss beim Deploy laufen.
+
+**Relevante Stellen:** `app/services/reservation_sync.py` (Payload-Bau, erledigt),
+`routes_website_sync.py::event_reservation_join`, `event_detail.html` (Reservations-
+Karte), `admin/routes_templates.py::template_create_event` + `templates/admin/templates/form.html`.
+
 ## WiMeSma-Cup (Deadline 15.11.2026 — 1. von 4 Meetings)
 
 - [ ] Reglement klären: Cup-Punkte pro Klasse getrennt oder Small/Medium kombiniert werten (`split_by_class`)?

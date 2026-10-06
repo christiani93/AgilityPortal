@@ -86,6 +86,7 @@ def _template_from_form(tpl: EventTemplate) -> EventTemplate:
     tpl.option_special_eval = bool(request.form.get("option_special_eval"))
     tpl.option_website = bool(request.form.get("option_website"))
     tpl.option_event_support = bool(request.form.get("option_event_support"))
+    tpl.reservation_shared = bool(request.form.get("reservation_shared"))
     tpl.registration_external = bool(request.form.get("registration_external"))
     tpl.registration_url = (request.form.get("registration_url") or "").strip() or None
     return tpl
@@ -314,6 +315,7 @@ def template_create_event(tpl_id):
             ring_start_times=tpl.ring_start_times,
             ais_turniernummer=ais_haupt,
             ais_turniernummer_extra=ais_extra,
+            source_template_id=tpl.id,
         )
         db.session.add(event)
         db.session.flush()
@@ -341,28 +343,54 @@ def template_create_event(tpl_id):
                 flash(f"Webseiten-Sync fehlgeschlagen: {e}", "warning")
 
         if request.form.get("do_reservation"):
-            contact_name = (request.form.get("contact_name") or tpl.contact_name or "").strip()
-            contact_email = (request.form.get("contact_email") or tpl.contact_email or "").strip()
-            if not contact_name or not contact_email:
-                flash("Reservationsanfrage übersprungen: Kontakt-Name und E-Mail fehlen.", "warning")
-            else:
+            # Geteilte Reservation: an das zuletzt aus dieser Vorlage erzeugte
+            # Turnier mit Reservation anhängen, statt eine neue anzulegen.
+            prior = None
+            if tpl.reservation_shared:
+                prior = (Event.query
+                         .filter(Event.source_template_id == tpl.id,
+                                 Event.reservation_id.isnot(None),
+                                 Event.id != event.id)
+                         .order_by(Event.id.desc())
+                         .first())
+            if prior:
+                event.reservation_id = prior.reservation_id
+                db.session.flush()
                 try:
-                    from app.services.reservation_sync import create_reservation
-                    ok, err = create_reservation(
-                        event, contact_name, contact_email,
-                        (request.form.get("contact_phone") or tpl.contact_phone or "").strip(),
-                        tpl.organiser_club.name if tpl.organiser_club else "",
-                        tpl.reservation_notes or "",
-                        tpl.option_special_eval, tpl.option_website, tpl.option_event_support,
-                    )
+                    from app.services.reservation_sync import update_reservation
+                    ok, err = update_reservation(event)
                     if ok:
                         db.session.commit()
-                        flash("Reservationsanfrage gesendet.", "success")
+                        flash(f"An bestehende Reservation #{event.reservation_id} angehängt.", "success")
                     else:
-                        flash(f"Reservationsanfrage übersprungen: {err}", "warning")
+                        db.session.rollback()
+                        flash(f"Anhängen an Reservation übersprungen: {err}", "warning")
                 except Exception as e:
                     db.session.rollback()
-                    flash(f"Reservationsanfrage fehlgeschlagen: {e}", "warning")
+                    flash(f"Anhängen an Reservation fehlgeschlagen: {e}", "warning")
+            else:
+                contact_name = (request.form.get("contact_name") or tpl.contact_name or "").strip()
+                contact_email = (request.form.get("contact_email") or tpl.contact_email or "").strip()
+                if not contact_name or not contact_email:
+                    flash("Reservationsanfrage übersprungen: Kontakt-Name und E-Mail fehlen.", "warning")
+                else:
+                    try:
+                        from app.services.reservation_sync import create_reservation
+                        ok, err = create_reservation(
+                            event, contact_name, contact_email,
+                            (request.form.get("contact_phone") or tpl.contact_phone or "").strip(),
+                            tpl.organiser_club.name if tpl.organiser_club else "",
+                            tpl.reservation_notes or "",
+                            tpl.option_special_eval, tpl.option_website, tpl.option_event_support,
+                        )
+                        if ok:
+                            db.session.commit()
+                            flash("Reservationsanfrage gesendet.", "success")
+                        else:
+                            flash(f"Reservationsanfrage übersprungen: {err}", "warning")
+                    except Exception as e:
+                        db.session.rollback()
+                        flash(f"Reservationsanfrage fehlgeschlagen: {e}", "warning")
 
         return redirect(url_for("club.event_detail", event_id=event.id))
 
