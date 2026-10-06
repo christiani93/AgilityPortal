@@ -23,6 +23,41 @@ def test_schedule_page_returns_200_when_public(app):
         client = app.test_client()
         response = client.get(f"/events/{event.id}/schedule")
         assert response.status_code == 200
+        # Ohne Startnummern: Reihenfolge-Variante des Ablaufplans.
+        body = response.get_data(as_text=True)
+        assert "Ablaufplan" in body
+        assert "Reihenfolge" in body
+
+
+def test_schedule_page_shows_segment_timeline_with_start_numbers(app):
+    # Sobald Startnummern vergeben sind, zeigt die öffentliche Ansicht die
+    # gleiche Segment-Timeline (Umbau/Briefing/Starter) wie für eingeloggte Nutzer.
+    from datetime import datetime
+
+    with app.app_context():
+        event = Event(name="Mit Zeiten", is_published=True, schedule_public=True,
+                      ring_count=1, start_numbers_generated_at=datetime(2026, 10, 6, 8, 0))
+        db.session.add(event)
+        db.session.commit()
+        db.session.add(
+            ScheduleBlock(
+                event_id=event.id,
+                ring="Ring 1",
+                discipline="agility",
+                category_code="Large",
+                class_level=1,
+                sort_index=1,
+            )
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get(f"/events/{event.id}/schedule")
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert "Mit Zeiten" in body
+        assert "Segment" in body
+        assert "Umbau" in body
 
 
 def test_startlist_page_returns_200(app):
