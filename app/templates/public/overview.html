@@ -57,7 +57,6 @@
 
   {# ── Links zu Unterseiten ────────────────────────────────── #}
   <div class="row g-3">
-    {% if event.startlist_public %}
     <div class="col-md-4">
       <a href="{{ url_for('public_events.public_startlist', event_id=event.id) }}"
          class="card h-100 text-decoration-none shadow-sm">
@@ -69,7 +68,6 @@
         </div>
       </a>
     </div>
-    {% endif %}
 
     {% if event.schedule_public %}
     <div class="col-md-4">

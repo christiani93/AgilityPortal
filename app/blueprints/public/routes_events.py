@@ -122,8 +122,8 @@ def public_startlist(event_id):
     event = Event.query.get_or_404(event_id)
     if not event.is_published and not _has_admin_key():
         abort(404)
-    if not event.startlist_public and not _has_admin_key():
-        abort(403)
+    # Meldeliste/Startliste ist für publizierte Events öffentlich sichtbar –
+    # gleich wie für eingeloggte Nutzer (kein startlist_public-Gate mehr).
 
     numbers = (
         StartNumber.query.filter_by(event_id=event_id)

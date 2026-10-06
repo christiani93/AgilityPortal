@@ -38,6 +38,20 @@ def test_startlist_page_returns_200(app):
         assert b"Meldeliste" in response.data
 
 
+def test_startlist_page_visible_even_when_not_flagged_public(app):
+    # Meldeliste/Startliste ist für publizierte Events immer sichtbar –
+    # gleich wie für eingeloggte Nutzer (kein startlist_public-Gate mehr).
+    with app.app_context():
+        event = Event(name="Ohne Flag", is_published=True, startlist_public=False)
+        db.session.add(event)
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get(f"/events/{event.id}/startlist")
+        assert response.status_code == 200
+        assert b"Meldeliste" in response.data
+
+
 def test_events_index_lists_only_published_nontest(app):
     with app.app_context():
         pub = Event(name="Sichtbar", is_published=True)
