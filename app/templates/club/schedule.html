@@ -67,7 +67,7 @@
         <div class="col-12">
           <h6 class="mb-2">{{ _('Laufzeit pro Starter') }}</h6>
           <div class="d-flex flex-wrap gap-3">
-            {% for disc, label in [('agility','Agility'), ('jumping','Jumping'), ('open','Open')] %}
+            {% for disc, label in [('agility','Agility'), ('jumping','Jumping'), ('open','Open'), ('tunnel','Tunnellauf')] %}
             <div>
               <label class="form-label small mb-1">{{ label }}</label>
               <div class="input-group input-group-sm" style="width:130px;">
@@ -166,7 +166,7 @@
                 {% if block.discipline == 'agility' %}bg-primary
                 {% elif block.discipline == 'jumping' %}bg-success
                 {% else %}bg-warning text-dark{% endif %} me-1">
-                {{ block.discipline | capitalize }}
+                {{ block.discipline | discipline_label }}
               </span>
               {{ block._display_title }}
               {% if block._is_group_leader %}
@@ -251,7 +251,7 @@
             {% if block.block_type == 'rank_announcement' %}
               —
             {% elif block._participant_count > 0 %}
-              {% set secs = {"agility": 65, "jumping": 60, "open": 65} %}
+              {% set secs = {"agility": 65, "jumping": 60, "open": 65, "tunnel": 60} %}
               {% set run_s = block._participant_count * secs.get(block.discipline, 65) %}
               {% set brief_blocks = (block._participant_count // 50) + 1 %}
               {% set brief_s = brief_blocks * 8 * 60 %}
@@ -323,7 +323,7 @@
             {% if run.run_type == 'agility' %}bg-primary
             {% elif run.run_type == 'jumping' %}bg-success
             {% else %}bg-warning text-dark{% endif %} me-1">
-            {{ run.run_type | capitalize }}
+            {{ run.run_type | discipline_label }}
           </span>
           {{ run.CATEGORY_LABELS.get(run.category, run.category) }} · {{ _('Kl.') }} {{ run.class_level }}
           <span class="text-muted small ms-1">+ {{ rings[0] }}</span>
@@ -373,6 +373,7 @@
               <option value="agility">Agility</option>
               <option value="jumping">Jumping</option>
               <option value="open">Open</option>
+              <option value="tunnel">Tunnellauf</option>
             </select>
           </div>
           <div class="col-auto">
@@ -504,7 +505,7 @@
                   {% if item.block.discipline == 'agility' %}bg-primary
                   {% elif item.block.discipline == 'jumping' %}bg-success
                   {% else %}bg-warning text-dark{% endif %} me-1" style="font-size:.65rem;">
-                  {{ item.block.discipline | capitalize }}
+                  {{ item.block.discipline | discipline_label }}
                 </span>
                 {{ item.block._display_title }}
               {% endif %}

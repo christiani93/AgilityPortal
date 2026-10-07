@@ -1350,7 +1350,17 @@ _START_NUMBER_SCHEMA_DEFAULT = {
 }
 
 # Standard-Laufzeit in Sekunden pro Starter
-_RUN_TIME_CONFIG_DEFAULT = {"agility": 65, "jumping": 60, "open": 65}
+_RUN_TIME_CONFIG_DEFAULT = {"agility": 65, "jumping": 60, "open": 65, "tunnel": 60}
+
+# Export-Label pro Disziplin für die AgilitySoftware. Die Software matcht auf
+# exakte Literale ("Tunnellauf", nicht "Tunnel"), darum ein explizites Mapping
+# mit capitalize-Fallback für die regulären Disziplinen.
+_DISCIPLINE_EXPORT_LABELS = {"tunnel": "Tunnellauf"}
+
+
+def _export_discipline_label(run_type: str) -> str:
+    rt = (run_type or "").lower()
+    return _DISCIPLINE_EXPORT_LABELS.get(rt, rt.capitalize())
 
 
 def _get_startnumber_schema(event) -> dict:
@@ -1835,7 +1845,7 @@ def event_export_zip(event_id):
                 "dog_name":                 reg.dog.name       if reg.dog else "",
                 "handler_first_name":       reg.handler.first_name if reg.handler else "",
                 "handler_last_name":        reg.handler.last_name  if reg.handler else "",
-                "discipline":               disc.capitalize(),   # "Agility" / "Jumping"
+                "discipline":               _export_discipline_label(disc),  # "Agility" / "Tunnellauf"
                 "category_code":            reg.category_code or "",
                 "class_level":              str(reg.class_level),
                 "is_in_season":             bool(reg.is_in_season and season_start_last),
@@ -1878,7 +1888,7 @@ def event_export_zip(event_id):
             # Richter wird am verknüpften EventRun gehalten (b.judge leitet ab).
             effective_judge = b.judge
             blk.update({
-                "discipline":    b.discipline    or "",
+                "discipline":    _export_discipline_label(b.discipline),
                 "category_code": b.category_code or "",
                 "class_level":   str(b.class_level) if b.class_level else "",
                 "judge_ais_id":  effective_judge.ais_judge_id if effective_judge else None,
@@ -2205,7 +2215,7 @@ def schedule_save_settings(event_id):
 
     # ── Laufzeit pro Disziplin ─────────────────────────────────────────────
     run_cfg = {}
-    for disc in ("agility", "jumping", "open"):
+    for disc in ("agility", "jumping", "open", "tunnel"):
         val = request.form.get(f"rt_{disc}", type=int)
         default = _RUN_TIME_CONFIG_DEFAULT[disc]
         run_cfg[disc] = val if val and val > 0 else default

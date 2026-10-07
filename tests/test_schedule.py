@@ -72,6 +72,22 @@ def test_timeline_skip_removes_changeover_and_briefing():
     assert second["start_time"] == first["end_time"]
 
 
+def test_tunnellauf_export_label_and_timing():
+    """Tunnellauf: Export-Label muss 'Tunnellauf' sein (Software matcht darauf,
+    nicht auf 'Tunnel'), 60 s/Starter inkl. Ringwechsel."""
+    from app.blueprints.club.routes import _export_discipline_label
+    from app.services.exchange_service import (
+        _export_discipline_label as svc_export_label,
+    )
+    from app.blueprints.club.schedule_utils import _secs_per_starter
+
+    assert _export_discipline_label("tunnel") == "Tunnellauf"
+    assert _export_discipline_label("agility") == "Agility"
+    assert svc_export_label("tunnel") == "Tunnellauf"
+    assert svc_export_label("agility") == "Agility"
+    assert _secs_per_starter("tunnel", None) == 60
+
+
 def test_detailed_segments_skip_omits_umbau_briefing():
     segs = compute_detailed_segments(_two_group_blocks(), {"Ring 1": "08:00"}, "2026-05-10")
     seg_types = {(s["segment"], s["block"].discipline) for s in segs["Ring 1"]}

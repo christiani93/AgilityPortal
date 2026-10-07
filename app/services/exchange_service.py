@@ -181,6 +181,16 @@ def _build_start_numbers_payload(event, registrations):
 
 _CATEGORY_CODE_MAP = {"L": "Large", "I": "Intermediate", "M": "Medium", "S": "Small"}
 
+# Die AgilitySoftware matcht Laufarten auf exakte Literale ("Tunnellauf", nicht
+# "Tunnel"). Darum ein explizites Export-Mapping mit capitalize-Fallback für die
+# regulären Disziplinen (agility/jumping/open bleiben unverändert).
+_DISCIPLINE_EXPORT_LABELS = {"tunnel": "Tunnellauf"}
+
+
+def _export_discipline_label(discipline):
+    d = (discipline or "").lower()
+    return _DISCIPLINE_EXPORT_LABELS.get(d, (discipline or "").capitalize())
+
 
 def _build_schedule_payload(event):
     blocks = (
@@ -196,7 +206,7 @@ def _build_schedule_payload(event):
             {
                 "ring": block.ring,
                 "start_at": _format_schedule_datetime(block.start_at),
-                "discipline": block.discipline,
+                "discipline": _export_discipline_label(block.discipline),
                 "category_code": block.category_code,
                 "class_level": block.class_level,
                 "notes": block.notes or "",

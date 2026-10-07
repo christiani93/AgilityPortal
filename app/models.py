@@ -464,6 +464,7 @@ class EventRun(db.Model):
         "agility": "Agility",
         "jumping": "Jumping",
         "open": "Open",
+        "tunnel": "Tunnellauf",
     }
 
     CATEGORY_LABELS = {

@@ -65,7 +65,7 @@
                   {% elif item.block.discipline == 'jumping' %}bg-success
                   {% else %}bg-warning text-dark{% endif %}"
                   style="font-size:.65rem;">
-                  {{ item.block.discipline | capitalize if item.block.discipline else '' }}
+                  {{ item.block.discipline | discipline_label if item.block.discipline else '' }}
                 </span>
                 {{ item.label }}
               {% elif item.segment == 'prep_pause' %}
@@ -110,7 +110,7 @@
                   {% elif block.discipline == 'jumping' %}bg-success
                   {% else %}bg-warning text-dark{% endif %} me-1"
                   style="font-size:.6rem;">
-                  {{ block.discipline | capitalize }}
+                  {{ block.discipline | discipline_label }}
                 </span>
                 {{ block._display_title }}
                 {% if block.judge %}

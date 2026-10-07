@@ -104,6 +104,13 @@ def create_app():
         except (ValueError, TypeError):
             return []
 
+    @app.template_filter("discipline_label")
+    def discipline_label_filter(code):
+        """Anzeige-Label für eine Disziplin/Laufart (z.B. 'tunnel' → 'Tunnellauf')."""
+        from .models import EventRun
+        c = (code or "").lower()
+        return EventRun.RUN_TYPE_LABELS.get(c, (code or "").capitalize())
+
     @app.template_filter("localtime")
     def localtime_filter(dt, fmt="%d.%m. %H:%M"):
         """Konvertiert ein UTC-datetime in Schweizer Lokalzeit (Europe/Zurich)."""

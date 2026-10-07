@@ -12,6 +12,7 @@ SECONDS_PER_STARTER = {
     "agility": 65,
     "jumping": 60,
     "open":    65,
+    "tunnel":  60,   # inkl. Ringwechsel (Tunnellauf auf eigenem/wechselndem Ring)
 }
 CHANGEOVER_SECONDS      = 1200   # 20 Min Umbau pro Disziplin-/Klassenwechsel
 BRIEFING_MINUTES_PER_50 = 8      # 8 Min Briefing pro 50 Starter
@@ -25,6 +26,7 @@ DISCIPLINE_LABELS = {
     "agility": "Agility",
     "jumping": "Jumping",
     "open":    "Open",
+    "tunnel":  "Tunnellauf",
 }
 
 

@@ -70,6 +70,7 @@ class EventRunForm(FlaskForm):
             ("agility", _("Agility")),
             ("jumping", _("Jumping")),
             ("open", _("Open")),
+            ("tunnel", _("Tunnellauf")),
         ],
     )
     category = SelectField(

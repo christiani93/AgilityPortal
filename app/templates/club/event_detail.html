@@ -9,7 +9,7 @@
      style="cursor:grab; font-size:.85rem; user-select:none;">
   {% if run.run_type == 'agility' %}<span class="badge bg-primary me-1">Agi</span>
   {% elif run.run_type == 'jumping' %}<span class="badge bg-success me-1">Jump</span>
-  {% else %}<span class="badge bg-warning text-dark me-1">Open</span>{% endif %}
+  {% else %}<span class="badge bg-warning text-dark me-1">{{ run.RUN_TYPE_LABELS.get(run.run_type, run.run_type) }}</span>{% endif %}
   {{ run.CATEGORY_LABELS.get(run.category, run.category) }} · Kl. {{ run.class_level }}
 </div>
 {% endmacro %}
@@ -742,7 +742,7 @@
           <td>
             {% if run.run_type == 'agility' %}<span class="badge bg-primary">Agility</span>
             {% elif run.run_type == 'jumping' %}<span class="badge bg-success">Jumping</span>
-            {% else %}<span class="badge bg-warning text-dark">Open</span>{% endif %}
+            {% else %}<span class="badge bg-warning text-dark">{{ run.RUN_TYPE_LABELS.get(run.run_type, run.run_type) }}</span>{% endif %}
           </td>
           <td>{{ run.CATEGORY_LABELS.get(run.category, run.category) }}</td>
           <td>{{ _('Klasse') }} {{ run.class_level }}</td>
