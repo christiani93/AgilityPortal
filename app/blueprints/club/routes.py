@@ -777,7 +777,7 @@ def tkamo_proxy(ais):
     from flask import current_app
     import requests
     if not ais.isdigit():
-        return Response(_json.dumps({"error": "Ungültige AIS-Nummer"}),
+        return Response(_json.dumps({"error": str(_("Ungültige AIS-Nummer"))}),
                         status=400, mimetype="application/json")
     try:
         r = requests.get(f"https://admin.z-b.tech/api/tkamo/{ais}", timeout=15)
@@ -785,7 +785,7 @@ def tkamo_proxy(ais):
                         mimetype=r.headers.get("Content-Type", "application/json"))
     except requests.RequestException as e:
         current_app.logger.warning("TKAMO-Proxy: AdminPortal nicht erreichbar: %s", e)
-        return Response(_json.dumps({"error": "AdminPortal nicht erreichbar"}),
+        return Response(_json.dumps({"error": str(_("AdminPortal nicht erreichbar"))}),
                         status=502, mimetype="application/json")
 
 

@@ -10,7 +10,7 @@
   {% if run.run_type == 'agility' %}<span class="badge bg-primary me-1">Agi</span>
   {% elif run.run_type == 'jumping' %}<span class="badge bg-success me-1">Jump</span>
   {% else %}<span class="badge bg-warning text-dark me-1">{{ run.RUN_TYPE_LABELS.get(run.run_type, run.run_type) }}</span>{% endif %}
-  {{ run.CATEGORY_LABELS.get(run.category, run.category) }} · Kl. {{ run.class_level }}
+  {{ run.CATEGORY_LABELS.get(run.category, run.category) }} · {{ _('Kl.') }} {{ run.class_level }}
 </div>
 {% endmacro %}
 
@@ -223,7 +223,7 @@
           {{ _('IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail angezeigt.') }}
         </label>
         <textarea name="payment_info" class="form-control font-monospace" rows="5"
-                  placeholder="IBAN: CH56 0483 5012 3456 7800 9&#10;Empfänger: Agility-Club Muster&#10;Verwendungszweck: Startgeld [Hund] [Turnier]">{{ event.payment_info or '' }}</textarea>
+                  placeholder="IBAN: CH56 0483 5012 3456 7800 9&#10;{{ _('Empfänger') }}: Agility-Club Muster&#10;{{ _('Verwendungszweck') }}: {{ _('Startgeld') }} [Hund] [Turnier]">{{ event.payment_info or '' }}</textarea>
       </div>
       <button type="submit" class="btn btn-sm btn-primary">{{ _('Speichern') }}</button>
     </form>
@@ -390,7 +390,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="logo_type" value="event_logo">
             <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
-                    onclick="return confirm('Event-Logo wirklich löschen?')">🗑 {{ _('Löschen') }}</button>
+                    onclick="return confirm('{{ _('Event-Logo wirklich löschen?') }}')">🗑 {{ _('Löschen') }}</button>
           </form>
         {% else %}
           <p class="text-muted small">{{ _('Kein Event-Logo hinterlegt.') }}</p>
@@ -414,7 +414,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="logo_type" value="club_logo">
             <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
-                    onclick="return confirm('Vereins-Logo wirklich löschen?')">🗑 {{ _('Löschen') }}</button>
+                    onclick="return confirm('{{ _('Vereins-Logo wirklich löschen?') }}')">🗑 {{ _('Löschen') }}</button>
           </form>
         {% else %}
           <p class="text-muted small">{{ _('Kein Vereins-Logo hinterlegt.') }}</p>

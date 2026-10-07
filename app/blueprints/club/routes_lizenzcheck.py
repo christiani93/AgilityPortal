@@ -19,6 +19,7 @@ import time
 from datetime import datetime
 
 from flask import abort, current_app, render_template, request, Response, url_for
+from flask_babel import _
 from flask_login import login_required
 from flask_mail import Message
 from itsdangerous import URLSafeSerializer, BadSignature
@@ -331,7 +332,7 @@ def event_lizenzcheck(event_id):
     report_text = request.form.get("tkamo_result", "").strip()
     if not report_text:
         from flask import redirect, url_for, flash
-        flash("Bitte TKAMO-Ergebnis einfügen.", "warning")
+        flash(_("Bitte TKAMO-Ergebnis einfügen."), "warning")
         return redirect(url_for("club.event_detail", event_id=event_id))
 
     name_changes, class_emails, inactive_licenses = _parse_and_apply_tkamo(event, report_text)

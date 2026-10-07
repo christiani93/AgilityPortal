@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AgilityPortal 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 13:01+0200\n"
+"POT-Creation-Date: 2026-10-07 20:35+0200\n"
 "PO-Revision-Date: 2026-04-18 00:00+0000\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -13,10 +13,11 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: app/blueprints/auth/forms.py:8 app/blueprints/auth/forms.py:17
-#: app/blueprints/club/forms.py:10 app/templates/club/event_detail.html:459
+#: app/blueprints/club/forms.py:10 app/templates/club/event_detail.html:470
+#: app/templates/club/template_create_event.html:81
 #: app/templates/club/users.html:17
 msgid "E-Mail"
 msgstr "E-mail"
@@ -36,12 +37,12 @@ msgid "Einloggen"
 msgstr "Connexion"
 
 #: app/blueprints/auth/forms.py:15 app/blueprints/club/forms.py:8
-#: app/blueprints/club/forms.py:99
+#: app/blueprints/club/forms.py:109 app/blueprints/club/forms.py:127
 msgid "Vorname"
 msgstr "Prénom"
 
 #: app/blueprints/auth/forms.py:16 app/blueprints/club/forms.py:9
-#: app/blueprints/club/forms.py:100
+#: app/blueprints/club/forms.py:110 app/blueprints/club/forms.py:128
 msgid "Nachname"
 msgstr "Nom"
 
@@ -69,7 +70,7 @@ msgstr "Créer un compte"
 msgid "E-Mail oder Passwort ungültig."
 msgstr "E-mail ou mot de passe invalide."
 
-#: app/blueprints/auth/routes.py:45 app/blueprints/club/routes.py:211
+#: app/blueprints/auth/routes.py:45 app/blueprints/club/routes.py:212
 msgid "Diese E-Mail-Adresse ist bereits registriert."
 msgstr "Cette adresse e-mail est déjà enregistrée."
 
@@ -109,6 +110,7 @@ msgid "Weitere AIS-Nummern (Mehrtage-Event)"
 msgstr "Numéros AIS supplémentaires (événement multi-jours)"
 
 #: app/blueprints/club/forms.py:46
+#: app/templates/club/template_create_event.html:19
 msgid "Turniername"
 msgstr "Nom du tournoi"
 
@@ -124,16 +126,15 @@ msgstr "Du (date)"
 msgid "Bis (Datum)"
 msgstr "Au (date)"
 
-#: app/blueprints/club/forms.py:50 app/templates/club/event_detail.html:160
+#: app/blueprints/club/forms.py:50 app/templates/club/event_detail.html:171
 #: app/templates/club/event_view.html:64
 msgid "Meldebeginn"
 msgstr "Ouverture des inscriptions"
 
 # event_detail.html — Status-Leiste
-#: app/blueprints/club/forms.py:51 app/templates/club/event_detail.html:78
-#: app/templates/club/event_detail.html:165
-#: app/templates/club/event_info.html:48 app/templates/club/event_view.html:37
-#: app/templates/club/event_view.html:69
+#: app/blueprints/club/forms.py:51 app/templates/club/event_detail.html:89
+#: app/templates/club/event_detail.html:176
+#: app/templates/club/event_view.html:37 app/templates/club/event_view.html:69
 #: app/templates/club/participant_dashboard.html:23
 msgid "Nennschluss"
 msgstr "Clôture des inscriptions"
@@ -146,12 +147,14 @@ msgstr "L’inscription se fait via un portail externe"
 msgid "Link zum externen Anmeldeportal"
 msgstr "Lien vers le portail d’inscription externe"
 
-#: app/blueprints/club/forms.py:54 app/templates/club/event_detail.html:155
-#: app/templates/club/event_info.html:58 app/templates/club/event_view.html:59
+#: app/blueprints/club/forms.py:54 app/templates/club/event_detail.html:166
+#: app/templates/club/event_info.html:84
+#: app/templates/club/event_results_print.html:196
+#: app/templates/club/event_view.html:59
 msgid "Prüfungsleiter"
 msgstr "Directeur des épreuves"
 
-#: app/blueprints/club/forms.py:55 app/templates/club/event_detail.html:170
+#: app/blueprints/club/forms.py:55 app/templates/club/event_detail.html:181
 #: app/templates/club/event_view.html:74
 msgid "Max. Starter"
 msgstr "Max. participants"
@@ -168,7 +171,7 @@ msgstr "Chiennes en chaleur autorisées"
 msgid "Läufige Hündinnen starten am Schluss der Kategorie"
 msgstr "Les chiennes en chaleur partent en fin de catégorie"
 
-#: app/blueprints/club/forms.py:59 app/templates/club/event_detail.html:196
+#: app/blueprints/club/forms.py:59 app/templates/club/event_detail.html:207
 msgid "Bemerkungen (öffentlich)"
 msgstr "Remarques (publiques)"
 
@@ -176,497 +179,548 @@ msgstr "Remarques (publiques)"
 msgid "Testveranstaltung (nicht öffentlich sichtbar)"
 msgstr "Événement test (non visible publiquement)"
 
-#: app/blueprints/club/forms.py:62 app/templates/club/event_detail.html:471
-#: app/templates/club/event_detail.html:881
+#: app/blueprints/club/forms.py:62
+msgid "Spezialturnier / Zusatzreglement"
+msgstr "Tournoi spécial / règlement complémentaire"
+
+#: app/blueprints/club/forms.py:64
+msgid "— Kein Spezialturnier —"
+msgstr "— Aucun tournoi spécial —"
+
+#: app/blueprints/club/forms.py:72 app/services/startlist_pdf.py:91
+#: app/templates/club/event_detail.html:482
+#: app/templates/club/event_detail.html:892
 #: app/templates/club/participant_dashboard.html:21
 #: app/templates/club/pending_requests.html:34
 #: app/templates/club/pending_requests.html:91
+#: app/templates/club/startlist.html:78
 #: app/templates/club/superadmin_dashboard.html:70
 #: app/templates/club/superadmin_dashboard.html:137
+#: app/templates/public/startlist.html:43
+#: app/templates/public/startlist_print.html:124
 msgid "Verein"
 msgstr "Club"
 
-#: app/blueprints/club/forms.py:63 app/blueprints/club/forms.py:133
-#: app/templates/club/event_detail.html:217
-#: app/templates/club/profile_dogs.html:80 app/templates/club/schedule.html:45
+#: app/blueprints/club/forms.py:73 app/blueprints/club/forms.py:130
+#: app/blueprints/club/forms.py:155 app/templates/club/event_detail.html:228
+#: app/templates/club/profile_dogs.html:83 app/templates/club/schedule.html:45
 msgid "Speichern"
 msgstr "Enregistrer"
 
-#: app/blueprints/club/forms.py:68 app/templates/club/event_detail.html:737
+#: app/blueprints/club/forms.py:78 app/templates/club/event_detail.html:748
 #: app/templates/club/pending_requests.html:19
 #: app/templates/club/pending_requests.html:86
+#: app/templates/club/template_create_event.html:11
 msgid "Typ"
 msgstr "Type"
 
-#: app/blueprints/club/forms.py:70
+#: app/blueprints/club/forms.py:80
 msgid "Agility"
 msgstr "Agility"
 
-#: app/blueprints/club/forms.py:71
+#: app/blueprints/club/forms.py:81
 msgid "Jumping"
 msgstr "Jumping"
 
-#: app/blueprints/club/forms.py:72
+#: app/blueprints/club/forms.py:82
 msgid "Open"
 msgstr "Open"
 
-#: app/blueprints/club/forms.py:73
+#: app/blueprints/club/forms.py:83
 msgid "Tunnellauf"
 msgstr "Parcours tunnel"
 
-#: app/blueprints/club/forms.py:77 app/blueprints/club/forms.py:125
-#: app/templates/club/event_detail.html:737
-#: app/templates/club/event_detail.html:907
-#: app/templates/club/event_view.html:285
-#: app/templates/club/event_view.html:349
-#: app/templates/club/profile_dogs.html:36 app/templates/club/schedule.html:380
-#: app/templates/public/startlist.html:29
-#: app/templates/public/startlist_print.html:126
+#: app/blueprints/club/forms.py:87 app/blueprints/club/forms.py:147
+#: app/templates/club/event_detail.html:748
+#: app/templates/club/event_detail.html:918
+#: app/templates/club/event_view.html:299
+#: app/templates/club/event_view.html:363
+#: app/templates/club/profile_dogs.html:39 app/templates/club/schedule.html:380
 msgid "Kategorie"
 msgstr "Catégorie"
 
-#: app/blueprints/club/forms.py:79 app/blueprints/club/forms.py:126
+#: app/blueprints/club/forms.py:89 app/blueprints/club/forms.py:148
 msgid "Large (L)"
 msgstr "Large (L)"
 
-#: app/blueprints/club/forms.py:80 app/blueprints/club/forms.py:126
+#: app/blueprints/club/forms.py:90 app/blueprints/club/forms.py:148
 msgid "Intermediate (I)"
 msgstr "Intermediate (I)"
 
-#: app/blueprints/club/forms.py:81 app/blueprints/club/forms.py:126
+#: app/blueprints/club/forms.py:91 app/blueprints/club/forms.py:148
 msgid "Medium (M)"
 msgstr "Medium (M)"
 
-#: app/blueprints/club/forms.py:82 app/blueprints/club/forms.py:126
+#: app/blueprints/club/forms.py:92 app/blueprints/club/forms.py:148
 msgid "Small (S)"
 msgstr "Small (S)"
 
-#: app/blueprints/club/forms.py:86 app/blueprints/club/forms.py:129
-#: app/blueprints/club/forms.py:138 app/templates/club/event_detail.html:737
+#: app/blueprints/club/forms.py:96 app/blueprints/club/forms.py:151
+#: app/blueprints/club/forms.py:160 app/services/startlist_pdf.py:81
 #: app/templates/club/event_detail.html:748
-#: app/templates/club/event_detail.html:867
-#: app/templates/club/event_detail.html:908
-#: app/templates/club/event_detail.html:935
-#: app/templates/club/event_view.html:350
-#: app/templates/club/event_view.html:363
+#: app/templates/club/event_detail.html:759
+#: app/templates/club/event_detail.html:878
+#: app/templates/club/event_detail.html:919
+#: app/templates/club/event_detail.html:946
+#: app/templates/club/event_view.html:364
+#: app/templates/club/event_view.html:377
 #: app/templates/club/participant_dashboard.html:68
-#: app/templates/club/profile_dogs.html:47
-#: app/templates/club/profile_dogs.html:49 app/templates/club/schedule.html:389
-#: app/templates/public/startlist.html:30
-#: app/templates/public/startlist.html:40
-#: app/templates/public/startlist_print.html:127
-#: app/templates/public/startlist_print.html:137
+#: app/templates/club/profile_dogs.html:50
+#: app/templates/club/profile_dogs.html:52 app/templates/club/schedule.html:389
+#: app/templates/club/startlist.html:67 app/templates/public/startlist.html:31
+#: app/templates/public/startlist_print.html:114
+#: app/templates/public/startlist_print.html:141
 msgid "Klasse"
 msgstr "Classe"
 
-#: app/blueprints/club/forms.py:87 app/blueprints/club/forms.py:130
-#: app/blueprints/club/forms.py:138
+#: app/blueprints/club/forms.py:97 app/blueprints/club/forms.py:152
+#: app/blueprints/club/forms.py:160
 msgid "Klasse 1"
 msgstr "Classe 1"
 
-#: app/blueprints/club/forms.py:87 app/blueprints/club/forms.py:130
-#: app/blueprints/club/forms.py:138
+#: app/blueprints/club/forms.py:97 app/blueprints/club/forms.py:152
+#: app/blueprints/club/forms.py:160
 msgid "Klasse 2"
 msgstr "Classe 2"
 
-#: app/blueprints/club/forms.py:87 app/blueprints/club/forms.py:130
-#: app/blueprints/club/forms.py:138
+#: app/blueprints/club/forms.py:97 app/blueprints/club/forms.py:152
+#: app/blueprints/club/forms.py:160
 msgid "Klasse 3"
 msgstr "Classe 3"
 
-#: app/blueprints/club/forms.py:90 app/templates/club/event_detail.html:728
+#: app/blueprints/club/forms.py:100 app/templates/club/event_detail.html:739
 msgid "Lauf hinzufügen"
 msgstr "Ajouter une épreuve"
 
-#: app/blueprints/club/forms.py:98
+#: app/blueprints/club/forms.py:108
 msgid "AIS-Nr. (falls bekannt)"
 msgstr "N° AIS (si connu)"
 
-#: app/blueprints/club/forms.py:101 app/blueprints/club/forms.py:108
+#: app/blueprints/club/forms.py:111 app/blueprints/club/forms.py:118
 #: app/templates/club/pending_requests.html:23
 msgid "Bemerkung"
 msgstr "Remarque"
 
-#: app/blueprints/club/forms.py:102 app/blueprints/club/forms.py:109
+#: app/blueprints/club/forms.py:112 app/blueprints/club/forms.py:119
 msgid "Anfrage senden"
 msgstr "Envoyer la demande"
 
-#: app/blueprints/club/forms.py:106
+#: app/blueprints/club/forms.py:116
 msgid "SKG-Vereinsnummer"
 msgstr "Numéro de club SKG"
 
-#: app/blueprints/club/forms.py:107 app/templates/club/event_detail.html:474
+#: app/blueprints/club/forms.py:117 app/templates/club/event_detail.html:485
 msgid "Vereinsname"
 msgstr "Nom du club"
 
-#: app/blueprints/club/forms.py:117
+#: app/blueprints/club/forms.py:129 app/templates/club/event_detail.html:476
+#: app/templates/club/template_create_event.html:86
+msgid "Telefon"
+msgstr "Téléphone"
+
+#: app/blueprints/club/forms.py:138
 msgid "Hundename"
 msgstr "Nom du chien"
 
-#: app/blueprints/club/forms.py:118
+#: app/blueprints/club/forms.py:139 app/services/startlist_pdf.py:90
+#: app/templates/club/startlist.html:77 app/templates/public/startlist.html:42
+#: app/templates/public/startlist_print.html:123
+msgid "Rasse"
+msgstr "Race"
+
+#: app/blueprints/club/forms.py:140
 msgid "Lizenz-Typ"
 msgstr "Type de licence"
 
-#: app/blueprints/club/forms.py:118
+#: app/blueprints/club/forms.py:140
 msgid "Schweiz (CH)"
 msgstr "Suisse (CH)"
 
-#: app/blueprints/club/forms.py:118
+#: app/blueprints/club/forms.py:140
 msgid "Ausland (FOREIGN)"
 msgstr "Étranger (FOREIGN)"
 
-#: app/blueprints/club/forms.py:119
+#: app/blueprints/club/forms.py:141
 msgid "Lizenznummer"
 msgstr "Numéro de licence"
 
-#: app/blueprints/club/forms.py:120
+#: app/blueprints/club/forms.py:142
 msgid "Hund speichern"
 msgstr "Enregistrer le chien"
 
-#: app/blueprints/club/forms.py:137 app/templates/club/event_detail.html:856
-#: app/templates/club/event_detail.html:906
-#: app/templates/club/event_info.html:105
-#: app/templates/club/event_view.html:348
+#: app/blueprints/club/forms.py:159 app/services/startlist_pdf.py:89
+#: app/templates/club/event_detail.html:867
+#: app/templates/club/event_detail.html:917
+#: app/templates/club/event_info.html:347 app/templates/club/event_live.html:67
+#: app/templates/club/event_results_print.html:167
+#: app/templates/club/event_view.html:362
 #: app/templates/club/participant_dashboard.html:67
+#: app/templates/club/startlist.html:76
 #: app/templates/public/cups/final_bracket.html:20
 #: app/templates/public/cups/standings.html:46
 #: app/templates/public/cups/standings.html:97
 #: app/templates/public/finalists.html:26
-#: app/templates/public/startlist.html:27
-#: app/templates/public/startlist_print.html:124
+#: app/templates/public/startlist.html:41
+#: app/templates/public/startlist_print.html:122
 msgid "Hund"
 msgstr "Chien"
 
-#: app/blueprints/club/forms.py:139
+#: app/blueprints/club/forms.py:161
 msgid "Hündin ist läufig"
 msgstr "Chienne en chaleur"
 
-#: app/blueprints/club/forms.py:140
+#: app/blueprints/club/forms.py:162
 msgid "Anmelden"
 msgstr "S’inscrire"
 
-#: app/blueprints/club/routes.py:224
+#: app/blueprints/club/routes.py:225
 #, python-format
 msgid "Benutzer %(name)s wurde erstellt."
 msgstr "L'utilisateur %(name)s a été créé."
 
-#: app/blueprints/club/routes.py:240
+#: app/blueprints/club/routes.py:241
 msgid "Du kannst deinen eigenen Account nicht deaktivieren."
 msgstr "Vous ne pouvez pas désactiver votre propre compte."
 
-#: app/blueprints/club/routes.py:243
+#: app/blueprints/club/routes.py:244
 msgid "Superadmin-Accounts können nicht deaktiviert werden."
 msgstr "Les comptes superadmin ne peuvent pas être désactivés."
 
-#: app/blueprints/club/routes.py:248
+#: app/blueprints/club/routes.py:249
 #, python-format
 msgid "%(name)s wurde deaktiviert."
 msgstr "%(name)s a été désactivé."
 
-#: app/blueprints/club/routes.py:262
+#: app/blueprints/club/routes.py:263
 #, python-format
 msgid "%(name)s wurde aktiviert."
 msgstr "%(name)s a été activé."
 
-#: app/blueprints/club/routes.py:280
+#: app/blueprints/club/routes.py:281
 #, python-format
 msgid "Passwort für %(name)s wurde geändert."
 msgstr "Le mot de passe de %(name)s a été modifié."
 
-#: app/blueprints/club/routes.py:420
+#: app/blueprints/club/routes.py:441
 #, python-format
 msgid "Testturnier «%(name)s» erstellt: %(runs)s Läufe, %(regs)s Anmeldungen."
 msgstr "Tournoi test « %(name)s » créé : %(runs)s épreuves, %(regs)s inscriptions."
 
-#: app/blueprints/club/routes.py:479
+#: app/blueprints/club/routes.py:501
 #, python-format
 msgid "Turnier «%(name)s» wurde erstellt."
 msgstr "Le tournoi «%(name)s» a été créé."
 
-#: app/blueprints/club/routes.py:638
+#: app/blueprints/club/routes.py:607
+#, python-format
+msgid "Testkopie «%(name)s» erstellt: %(runs)s Läufe, %(regs)s Anmeldungen. Startnummern bitte in der Kopie neu vergeben."
+msgstr "Copie test «%(name)s» créée : %(runs)s épreuves, %(regs)s inscriptions. Veuillez réattribuer les numéros de départ dans la copie."
+
+#: app/blueprints/club/routes.py:764
 #, python-format
 msgid "Turnier «%(name)s» wurde gelöscht."
 msgstr "Tournoi «%(name)s» supprimé."
 
-#: app/blueprints/club/routes.py:717
+#: app/blueprints/club/routes.py:780
+msgid "Ungültige AIS-Nummer"
+msgstr "Numéro AIS invalide"
+
+#: app/blueprints/club/routes.py:788
+msgid "AdminPortal nicht erreichbar"
+msgstr "AdminPortal inaccessible"
+
+#: app/blueprints/club/routes.py:845
 msgid "Turnier gespeichert."
 msgstr "Tournoi enregistré."
 
-#: app/blueprints/club/routes.py:741
+#: app/blueprints/club/routes.py:919
 msgid "geöffnet"
 msgstr "ouvert"
 
-#: app/blueprints/club/routes.py:741
+#: app/blueprints/club/routes.py:919
 msgid "geschlossen"
 msgstr "fermé"
 
-#: app/blueprints/club/routes.py:742
+#: app/blueprints/club/routes.py:920
 msgid "abgesagt"
 msgstr "annulé"
 
-#: app/blueprints/club/routes.py:742
+#: app/blueprints/club/routes.py:920
 msgid "auf Entwurf zurückgesetzt"
 msgstr "remis en brouillon"
 
-#: app/blueprints/club/routes.py:743
+#: app/blueprints/club/routes.py:921
 #, python-format
 msgid "Turnier wurde %(status)s."
 msgstr "Le tournoi a été %(status)s."
 
-#: app/blueprints/club/routes.py:745
+#: app/blueprints/club/routes.py:923
 msgid "Ungültiger Statuswechsel."
 msgstr "Changement de statut invalide."
 
-#: app/blueprints/club/routes.py:767
+#: app/blueprints/club/routes.py:945
 msgid "Dieser Lauf ist bereits vorhanden."
 msgstr "Cette épreuve existe déjà."
 
-#: app/blueprints/club/routes.py:776
+#: app/blueprints/club/routes.py:954
 msgid "Lauf hinzugefügt."
 msgstr "Épreuve ajoutée."
 
-#: app/blueprints/club/routes.py:808
+#: app/blueprints/club/routes.py:986
 msgid "Lauf entfernt."
 msgstr "Épreuve supprimée."
 
-#: app/blueprints/club/routes.py:844 app/blueprints/club/routes.py:874
+#: app/blueprints/club/routes.py:1022 app/blueprints/club/routes.py:1052
 msgid "Anfrage wurde gesendet. Der Administrator wird sie prüfen."
 msgstr "La demande a été envoyée. L'administrateur l'examinera."
 
-#: app/blueprints/club/routes.py:923
+#: app/blueprints/club/routes.py:1101
 #, python-format
 msgid "Anfrage genehmigt und %(type)s erstellt."
 msgstr "Demande approuvée et %(type)s créé."
 
-#: app/blueprints/club/routes.py:936
+#: app/blueprints/club/routes.py:1114
 msgid "MAIL_SERVER ist nicht in der .env konfiguriert."
 msgstr "MAIL_SERVER n'est pas configuré dans .env."
 
-#: app/blueprints/club/routes.py:951
+#: app/blueprints/club/routes.py:1129
 #, python-format
 msgid "✓ Testmail erfolgreich an %(email)s gesendet (Server: %(server)s)."
 msgstr "✓ E-mail de test envoyé avec succès à %(email)s (Serveur : %(server)s)."
 
-#: app/blueprints/club/routes.py:953
+#: app/blueprints/club/routes.py:1131
 #, python-format
 msgid "✗ Fehler beim Senden: %(error)s"
 msgstr "✗ Erreur lors de l'envoi : %(error)s"
 
+#: app/blueprints/club/routes.py:1167
+msgid "Angaben gespeichert."
+msgstr "Données enregistrées."
+
 # Flash-Messages routes.py — fehlende Einträge
-#: app/blueprints/club/routes.py:985
+#: app/blueprints/club/routes.py:1200
 msgid "Du bist bereits mit diesem Hund verknüpft."
 msgstr "Vous êtes déjà associé à ce chien."
 
-#: app/blueprints/club/routes.py:989
+#: app/blueprints/club/routes.py:1204
 #, python-format
 msgid "Hund «%(name)s» wurde deinem Profil als Hundeführer hinzugefügt."
 msgstr "Le chien «%(name)s» a été ajouté à votre profil en tant que conducteur."
 
-#: app/blueprints/club/routes.py:999
+#: app/blueprints/club/routes.py:1215
 #, python-format
 msgid "Hund «%(name)s» wurde hinzugefügt."
 msgstr "Le chien «%(name)s» a été ajouté."
 
-#: app/blueprints/club/routes.py:1002
+#: app/blueprints/club/routes.py:1218
 #, python-format
 msgid "Ungültige Lizenznummer: %(error)s"
 msgstr "Numéro de licence invalide : %(error)s"
 
-#: app/blueprints/club/routes.py:1043
+#: app/blueprints/club/routes.py:1259
 #, python-format
-msgid ""
-"Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden "
-"aktualisiert."
-msgstr ""
-"Classe/catégorie enregistrée. %(n)s inscription(s) ouverte(s) ont été "
-"mises à jour."
+msgid "Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden aktualisiert."
+msgstr "Classe/catégorie enregistrée. %(n)s inscription(s) ouverte(s) ont été mises à jour."
 
-#: app/blueprints/club/routes.py:1045
+#: app/blueprints/club/routes.py:1261
 msgid "Klasse/Kategorie gespeichert."
 msgstr "Classe/catégorie enregistrée."
 
-#: app/blueprints/club/routes.py:1158
+#: app/blueprints/club/routes.py:1424
 msgid "Nennschluss ist abgelaufen — Abmeldung nicht mehr möglich."
 msgstr "La clôture des inscriptions est passée — désinscription impossible."
 
-#: app/blueprints/club/routes.py:1161
+#: app/blueprints/club/routes.py:1427
 msgid "Diese Anmeldung kann nicht mehr storniert werden."
 msgstr "Cette inscription ne peut plus être annulée."
 
-#: app/blueprints/club/routes.py:1166
+#: app/blueprints/club/routes.py:1432
 #, python-format
 msgid "Abmeldung für %(dog)s wurde erfolgreich gespeichert."
 msgstr "La désinscription de %(dog)s a été enregistrée avec succès."
 
-#: app/blueprints/club/routes.py:1183 app/blueprints/club/routes.py:1429
+#: app/blueprints/club/routes.py:1449 app/blueprints/club/routes.py:1711
 msgid "Dieses Turnier erlaubt keine läufigen Hündinnen."
 msgstr "Ce tournoi n'autorise pas les chiennes en chaleur."
 
-#: app/blueprints/club/routes.py:1190
+#: app/blueprints/club/routes.py:1456
 #, python-format
 msgid "%(dog)s als läufig gemeldet."
 msgstr "%(dog)s signalée en chaleur."
 
-#: app/blueprints/club/routes.py:1192
+#: app/blueprints/club/routes.py:1458
 #, python-format
 msgid "Läufig-Meldung für %(dog)s aufgehoben."
 msgstr "Signalement en chaleur de %(dog)s annulé."
 
-#: app/blueprints/club/routes.py:1262
+#: app/blueprints/club/routes.py:1528
+msgid "Die Anmeldung für dieses Turnier läuft über ein externes Portal."
+msgstr "L'inscription à ce tournoi se fait via un portail externe."
+
+#: app/blueprints/club/routes.py:1531
 msgid "Anmeldungen sind nicht mehr offen."
 msgstr "Les inscriptions ne sont plus ouvertes."
 
-#: app/blueprints/club/routes.py:1265
+#: app/blueprints/club/routes.py:1534
 msgid "Bitte füge zuerst einen Hund in deinem Profil hinzu."
 msgstr "Veuillez d'abord ajouter un chien à votre profil."
 
-#: app/blueprints/club/routes.py:1269
+#: app/blueprints/club/routes.py:1538
 msgid "Bitte hinterlege zuerst die Kategorie für diesen Hund in deinem Profil."
 msgstr "Veuillez d'abord indiquer la catégorie de ce chien dans votre profil."
 
-#: app/blueprints/club/routes.py:1276
+#: app/blueprints/club/routes.py:1547
+#, python-format
+msgid "Für dieses Turnier gibt es keinen Lauf in Kategorie %(cat)s Klasse %(cls)s. Bitte eine angebotene Klasse wählen."
+msgstr "Ce tournoi n'a pas d'épreuve dans la catégorie %(cat)s classe %(cls)s. Veuillez choisir une classe proposée."
+
+#: app/blueprints/club/routes.py:1558
 msgid "Dieser Hund ist für dieses Turnier bereits angemeldet."
 msgstr "Ce chien est déjà inscrit à ce tournoi."
 
-#: app/blueprints/club/routes.py:1308
+#: app/blueprints/club/routes.py:1590
 msgid "Anmeldung erfolgreich."
 msgstr "Inscription réussie."
 
-#: app/blueprints/club/routes.py:1332
+#: app/blueprints/club/routes.py:1614
 msgid "Anmeldung ist bereits storniert."
 msgstr "L'inscription est déjà annulée."
 
-#: app/blueprints/club/routes.py:1336
+#: app/blueprints/club/routes.py:1618
 msgid "Anmeldung wurde storniert."
 msgstr "L'inscription a été annulée."
 
-#: app/blueprints/club/routes.py:1398
+#: app/blueprints/club/routes.py:1680
 msgid "Anmeldung bestätigt."
 msgstr "Inscription confirmée."
 
-#: app/blueprints/club/routes.py:1412
+#: app/blueprints/club/routes.py:1694
 msgid "Anmeldung abgelehnt."
 msgstr "Inscription refusée."
 
-#: app/blueprints/club/routes.py:1436
+#: app/blueprints/club/routes.py:1718
 #, python-format
 msgid "%(dog)s als läufig markiert."
 msgstr "%(dog)s marquée en chaleur."
 
-#: app/blueprints/club/routes.py:1438
+#: app/blueprints/club/routes.py:1720
 #, python-format
 msgid "Läufig-Markierung für %(dog)s aufgehoben."
 msgstr "Marque en chaleur retirée pour %(dog)s."
 
-#: app/blueprints/club/routes.py:1527
+#: app/blueprints/club/routes.py:1809
 msgid "Bitte eine Lizenznummer angeben."
 msgstr "Veuillez indiquer un numéro de licence."
 
-#: app/blueprints/club/routes.py:1535
+#: app/blueprints/club/routes.py:1817
 msgid "Bitte eine gültige Klasse (1–3) wählen."
 msgstr "Veuillez choisir une classe valide (1–3)."
 
-#: app/blueprints/club/routes.py:1540
+#: app/blueprints/club/routes.py:1822
 msgid "Bitte eine gültige Kategorie (S/M/I/L) wählen."
 msgstr "Veuillez choisir une catégorie valide (S/M/I/L)."
 
-#: app/blueprints/club/routes.py:1549
+#: app/blueprints/club/routes.py:1831
 msgid "Neuer Hund: bitte den Hundenamen angeben."
 msgstr "Nouveau chien : veuillez indiquer le nom du chien."
 
-#: app/blueprints/club/routes.py:1563
+#: app/blueprints/club/routes.py:1845
 #, python-format
 msgid "Ungültige Lizenznummer: %(err)s"
 msgstr "Numéro de licence invalide : %(err)s"
 
-#: app/blueprints/club/routes.py:1574
+#: app/blueprints/club/routes.py:1856
 #, python-format
 msgid "%(dog)s ist für dieses Turnier bereits angemeldet."
 msgstr "%(dog)s est déjà inscrit à ce tournoi."
 
-#: app/blueprints/club/routes.py:1608
+#: app/blueprints/club/routes.py:1890
 #, python-format
 msgid "%(dog)s wurde hinzugefügt."
 msgstr "%(dog)s a été ajouté."
 
-#: app/blueprints/club/routes.py:1629
+#: app/blueprints/club/routes.py:1911
 #, python-format
 msgid "%(n)s Anmeldungen bestätigt."
 msgstr "%(n)s inscription(s) confirmée(s)."
 
-#: app/blueprints/club/routes.py:1754
+#: app/blueprints/club/routes.py:2062
 msgid "Startnummern wurden vergeben."
 msgstr "Numéros de départ attribués."
 
-#: app/blueprints/club/routes.py:2010
+#: app/blueprints/club/routes.py:2348
 msgid "Startnummern wurden zurückgesetzt."
 msgstr "Numéros de départ réinitialisés."
 
-#: app/blueprints/club/routes.py:2040
+#: app/blueprints/club/routes.py:2378
 msgid "Anfrage abgelehnt."
 msgstr "Demande rejetée."
 
-#: app/blueprints/club/routes.py:2191
+#: app/blueprints/club/routes.py:2529
 msgid "Ringkonfiguration gespeichert."
 msgstr "Configuration des rings enregistrée."
 
-#: app/blueprints/club/routes.py:2225
+#: app/blueprints/club/routes.py:2563
 msgid "Einstellungen gespeichert."
 msgstr "Paramètres enregistrés."
 
-#: app/blueprints/club/routes.py:2275
+#: app/blueprints/club/routes.py:2613
 msgid "Dieser Lauf ist bereits im Zeitplan."
 msgstr "Cette épreuve est déjà dans le programme."
 
-#: app/blueprints/club/routes.py:2743
+#: app/blueprints/club/routes.py:3110
 msgid "Ungültiger Logo-Typ."
 msgstr "Type de logo invalide."
 
-#: app/blueprints/club/routes.py:2748
+#: app/blueprints/club/routes.py:3115
 msgid "Keine Datei ausgewählt."
 msgstr "Aucun fichier sélectionné."
 
-#: app/blueprints/club/routes.py:2753
+#: app/blueprints/club/routes.py:3120
 #, python-format
 msgid "Ungültiges Dateiformat. Erlaubt: %(formats)s"
 msgstr "Format de fichier invalide. Autorisés : %(formats)s"
 
-#: app/blueprints/club/routes.py:2766
+#: app/blueprints/club/routes.py:3133
 msgid "Logo gespeichert."
 msgstr "Logo enregistré."
 
-#: app/blueprints/club/routes.py:2788
+#: app/blueprints/club/routes.py:3155
 msgid "Event-Logo gelöscht."
 msgstr "Logo de l'événement supprimé."
 
-#: app/blueprints/club/routes.py:2795
+#: app/blueprints/club/routes.py:3162
 msgid "Vereins-Logo gelöscht."
 msgstr "Logo du club supprimé."
 
-#: app/blueprints/club/routes.py:2797
+#: app/blueprints/club/routes.py:3164
 msgid "Kein Logo zum Löschen gefunden."
 msgstr "Aucun logo à supprimer."
 
-#: app/blueprints/club/routes.py:2838
+#: app/blueprints/club/routes.py:3205
 msgid "Zahlungsinfos gespeichert."
 msgstr "Informations de paiement enregistrées."
 
-#: app/blueprints/club/routes.py:2863
+#: app/blueprints/club/routes.py:3230
 msgid "Betreff und Text dürfen nicht leer sein."
 msgstr "L'objet et le texte ne peuvent pas être vides."
 
-#: app/blueprints/club/routes.py:2879
+#: app/blueprints/club/routes.py:3246
 msgid "Keine Empfänger gefunden."
 msgstr "Aucun destinataire trouvé."
 
-#: app/blueprints/club/routes.py:2889
+#: app/blueprints/club/routes.py:3256
 #, python-format
 msgid "Versand gestartet: %(n)d Empfänger · Job-ID: %(id)s"
 msgstr "Envoi démarré : %(n)d destinataires · ID de job : %(id)s"
 
-#: app/blueprints/club/routes.py:2905
+#: app/blueprints/club/routes.py:3272
 msgid "Job nicht gefunden (Server wurde möglicherweise neugestartet)."
 msgstr "Tâche introuvable (le serveur a peut-être redémarré)."
+
+#: app/blueprints/club/routes_lizenzcheck.py:335
+msgid "Bitte TKAMO-Ergebnis einfügen."
+msgstr "Veuillez coller le résultat TKAMO."
 
 # Flash-Messages routes_website_sync.py
 #: app/blueprints/club/routes_website_sync.py:31
@@ -715,12 +769,8 @@ msgid "Fehler beim Synchronisieren: %(error)s"
 msgstr "Erreur lors de la synchronisation : %(error)s"
 
 #: app/blueprints/club/routes_website_sync.py:113
-msgid ""
-"Es besteht bereits eine Reservationsanfrage. Verwende 'Daten "
-"aktualisieren'."
-msgstr ""
-"Une demande de réservation existe déjà. Utilisez 'Mettre à jour les "
-"données'."
+msgid "Es besteht bereits eine Reservationsanfrage. Verwende 'Daten aktualisieren'."
+msgstr "Une demande de réservation existe déjà. Utilisez 'Mettre à jour les données'."
 
 #: app/blueprints/club/routes_website_sync.py:126
 msgid "Name und E-Mail des Ansprechpartners sind Pflichtfelder."
@@ -774,17 +824,71 @@ msgstr "Données de réservation mises à jour avec succès."
 msgid "Aktualisierung fehlgeschlagen: %(error)s"
 msgstr "Mise à jour échouée : %(error)s"
 
+#: app/services/startlist_pdf.py:88 app/templates/club/event_detail.html:920
+#: app/templates/club/event_live.html:68
+#: app/templates/club/event_results_print.html:168
+#: app/templates/club/profile_dogs.html:32
+#: app/templates/public/cups/final_bracket.html:20
+#: app/templates/public/cups/standings.html:98
+#: app/templates/public/startlist.html:40
+#: app/templates/public/startlist_print.html:121
+msgid "Hundeführer"
+msgstr "Conducteur"
+
+#: app/services/startlist_pdf.py:121 app/templates/club/event_info.html:349
+#: app/templates/club/event_info.html:477 app/templates/club/event_live.html:69
+#: app/templates/club/event_results_print.html:169
+#: app/templates/club/event_view.html:361
+#: app/templates/club/participant_dashboard.html:69
+#: app/templates/club/startlist.html:74
+msgid "Nr."
+msgstr "N°"
+
+#: app/services/startlist_pdf.py:191 app/templates/club/event_detail.html:840
+#: app/templates/club/event_info.html:154 app/templates/club/event_live.html:16
+#: app/templates/club/startlist.html:2 app/templates/club/startlist.html:14
+#: app/templates/public/overview.html:96 app/templates/public/startlist.html:2
+#: app/templates/public/startlist.html:14
+#: app/templates/public/startlist_print.html:6
+#: app/templates/public/startlist_print.html:94
+#: app/templates/public/startlist_print.html:113
+msgid "Startliste"
+msgstr "Liste de départ"
+
+#: app/services/startlist_pdf.py:191 app/templates/club/event_info.html:154
+#: app/templates/public/overview.html:96 app/templates/public/startlist.html:2
+#: app/templates/public/startlist.html:14
+#: app/templates/public/startlist_print.html:6
+#: app/templates/public/startlist_print.html:94
+#: app/templates/public/startlist_print.html:113
+msgid "Meldeliste"
+msgstr "Liste des inscrits"
+
+#: app/services/startlist_pdf.py:202 app/templates/public/startlist.html:32
+#: app/templates/public/startlist_print.html:116
+msgid "Anzahl Teams"
+msgstr "Nombre d'équipes"
+
+#: app/services/startlist_pdf.py:242
+msgid "Startlisten"
+msgstr "Listes de départ"
+
+#: app/services/startlist_pdf.py:242
+msgid "Meldelisten"
+msgstr "Listes des inscrits"
+
 #: app/templates/base.html:48
 msgid "Logout"
 msgstr "Déconnexion"
 
 #: app/templates/base.html:65 app/templates/club/admin_settings.html:7
 #: app/templates/club/dashboard.html:3 app/templates/club/dashboard.html:7
-#: app/templates/club/event_detail.html:48
+#: app/templates/club/event_detail.html:59
 #: app/templates/club/event_form.html:10 app/templates/club/event_info.html:31
 #: app/templates/club/event_view.html:16
 #: app/templates/club/participant_dashboard.html:2
 #: app/templates/club/profile_dogs.html:7
+#: app/templates/club/profile_edit.html:7
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -797,70 +901,77 @@ msgstr "Tournois"
 msgid "Turnier erstellen"
 msgstr "Créer un tournoi"
 
-#: app/templates/base.html:75 app/templates/base.html:78
+#: app/templates/base.html:75 app/templates/base.html:124
+#: app/templates/club/template_list.html:2
+#: app/templates/club/template_list.html:6
+msgid "Turnier-Vorlagen"
+msgstr "Modèles de tournoi"
+
+#: app/templates/base.html:79 app/templates/base.html:82
 #: app/templates/club/pending_requests.html:2
 msgid "Anfragen"
 msgstr "Demandes"
 
-#: app/templates/base.html:83
+#: app/templates/base.html:86
 msgid "Mein Profil"
 msgstr "Mon profil"
 
-#: app/templates/base.html:86 app/templates/club/participant_dashboard.html:111
+#: app/templates/base.html:89 app/templates/club/profile_edit.html:2
+#: app/templates/club/profile_edit.html:6
+msgid "Meine Angaben"
+msgstr "Mes données"
+
+#: app/templates/base.html:94 app/templates/club/participant_dashboard.html:111
 #: app/templates/club/participant_dashboard.html:115
 #: app/templates/club/profile_dogs.html:2
 #: app/templates/club/profile_dogs.html:6
 msgid "Meine Hunde"
 msgstr "Mes chiens"
 
-#: app/templates/base.html:90
+#: app/templates/base.html:98
 msgid "Verwaltung"
 msgstr "Administration"
 
-#: app/templates/base.html:94
+#: app/templates/base.html:102
 msgid "Alle Benutzer"
 msgstr "Tous les utilisateurs"
 
-#: app/templates/base.html:99 app/templates/club/users.html:3
+#: app/templates/base.html:107 app/templates/club/users.html:3
 #: app/templates/club/users.html:7
 msgid "Mitglieder"
 msgstr "Membres"
 
-#: app/templates/base.html:104
+#: app/templates/base.html:112
 msgid "Cups"
 msgstr "Cups"
 
-#: app/templates/base.html:107
+#: app/templates/base.html:115
 msgid "Cup-Verwaltung"
 msgstr "Gestion des cups"
 
-#: app/templates/base.html:111
+#: app/templates/base.html:119
 msgid "Vereins-Freigaben"
 msgstr "Autorisations de club"
 
-#: app/templates/base.html:113
+#: app/templates/base.html:121
 msgid "Vorlagen"
 msgstr "Modèles"
 
-#: app/templates/base.html:116
-msgid "Turnier-Vorlagen"
-msgstr "Modèles de tournoi"
-
 # event_detail.html — TKAMO-Import
-#: app/templates/base.html:118
+#: app/templates/base.html:126
 msgid "Import"
 msgstr "Import"
 
 # event_detail.html — TKAMO-Import
-#: app/templates/base.html:121
+#: app/templates/base.html:129
 msgid "AOA-Import"
 msgstr "Import AOA"
 
-#: app/templates/base.html:124
+#: app/templates/base.html:132
 msgid "Feedback"
 msgstr "Feedback"
 
-#: app/templates/base.html:127
+#: app/templates/base.html:135
 msgid "Bug / Wunsch melden"
 msgstr "Signaler un bug / une suggestion"
 
@@ -882,12 +993,8 @@ msgid "Ich bin Teilnehmer"
 msgstr "Je suis participant"
 
 #: app/templates/home.html:24
-msgid ""
-"Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde"
-" zu verwalten."
-msgstr ""
-"Inscrivez-vous aux tournois ouverts ou créez un compte pour gérer vos "
-"chiens."
+msgid "Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde zu verwalten."
+msgstr "Inscrivez-vous aux tournois ouverts ou créez un compte pour gérer vos chiens."
 
 #: app/templates/home.html:29
 msgid "Neues Konto erstellen"
@@ -899,9 +1006,7 @@ msgstr "Je suis membre du club"
 
 #: app/templates/home.html:41
 msgid "Verwalte Turniere deines Vereins, bereite Läufe vor und weise Richter zu."
-msgstr ""
-"Gérez les tournois de votre club, préparez les épreuves et assignez les "
-"juges."
+msgstr "Gérez les tournois de votre club, préparez les épreuves et assignez les juges."
 
 #: app/templates/home.html:46
 msgid "Konto wird vom Vereins-Admin erstellt."
@@ -967,6 +1072,34 @@ msgstr "Paramètres du serveur"
 msgid "API-Keys (Umgebungsvariablen)"
 msgstr "Clés API (variables d'environnement)"
 
+#: app/templates/club/admin_settings.html:14
+msgid "Diese Keys sind in der"
+msgstr "Ces clés sont définies dans le fichier"
+
+#: app/templates/club/admin_settings.html:14
+msgid "-Datei auf dem Server gesetzt."
+msgstr " sur le serveur."
+
+#: app/templates/club/admin_settings.html:15
+msgid "Trage sie in der AgilitySoftware unter"
+msgstr "Saisis-les dans AgilitySoftware sous"
+
+#: app/templates/club/admin_settings.html:15
+msgid "Einstellungen → Portal-Synchronisation"
+msgstr "Paramètres → Synchronisation du portail"
+
+#: app/templates/club/admin_settings.html:15
+msgid "ein."
+msgstr "."
+
+#: app/templates/club/admin_settings.html:20
+msgid "Schlüssel"
+msgstr "Clé"
+
+#: app/templates/club/admin_settings.html:21
+msgid "Wert"
+msgstr "Valeur"
+
 #: app/templates/club/admin_settings.html:37
 msgid "Anzeigen / Verbergen"
 msgstr "Afficher / Masquer"
@@ -975,6 +1108,14 @@ msgstr "Afficher / Masquer"
 #: app/templates/club/lizenzcheck_result.html:65
 msgid "Kopieren"
 msgstr "Copier"
+
+#: app/templates/club/admin_settings.html:52
+msgid "Zum Ändern"
+msgstr "Pour modifier"
+
+#: app/templates/club/admin_settings.html:52
+msgid "auf dem Server bearbeiten und den Dienst neu starten"
+msgstr "sur le serveur et redémarrer le service"
 
 #: app/templates/club/admin_settings.html:58
 msgid "Empfangene Live-Updates"
@@ -1022,18 +1163,18 @@ msgstr "Final"
 msgid "Exportiert"
 msgstr "Exporté"
 
+#: app/templates/club/admin_settings.html:112
+msgid "unbekannt"
+msgstr "inconnu"
+
 #: app/templates/club/admin_settings.html:131
 msgid "Noch keine Ergebnis-Exporte empfangen."
 msgstr "Aucun export de résultats reçu pour l'instant."
 
 # club/dashboard.html
 #: app/templates/club/dashboard.html:15
-msgid ""
-"Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den "
-"Administrator."
-msgstr ""
-"Votre compte n'est associé à aucun club. Veuillez contacter "
-"l'administrateur."
+msgid "Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den Administrator."
+msgstr "Votre compte n'est associé à aucun club. Veuillez contacter l'administrateur."
 
 #: app/templates/club/dashboard.html:24
 #: app/templates/club/participant_dashboard.html:12
@@ -1050,14 +1191,14 @@ msgstr "Total tournois"
 msgid "Aktive Mitglieder"
 msgstr "Membres actifs"
 
-#: app/templates/club/dashboard.html:58 app/templates/club/event_info.html:62
+#: app/templates/club/dashboard.html:58 app/templates/club/event_info.html:88
 #: app/templates/club/event_view.html:49
 #: app/templates/club/superadmin_dashboard.html:71
 msgid "Ort"
 msgstr "Lieu"
 
 #: app/templates/club/dashboard.html:59
-#: app/templates/club/event_detail.html:317
+#: app/templates/club/event_detail.html:328
 #: app/templates/club/participant_dashboard.html:22
 #: app/templates/club/participant_dashboard.html:66
 #: app/templates/club/pending_requests.html:22
@@ -1067,9 +1208,9 @@ msgid "Datum"
 msgstr "Date"
 
 #: app/templates/club/dashboard.html:60
-#: app/templates/club/event_detail.html:910
-#: app/templates/club/event_info.html:108
-#: app/templates/club/event_view.html:351
+#: app/templates/club/event_detail.html:921
+#: app/templates/club/event_info.html:350
+#: app/templates/club/event_view.html:365
 #: app/templates/club/participant_dashboard.html:70
 #: app/templates/club/pending_requests.html:86
 #: app/templates/club/superadmin_dashboard.html:73
@@ -1087,15 +1228,16 @@ msgstr "Ouvert"
 msgid "Geschlossen"
 msgstr "Fermé"
 
-#: app/templates/club/dashboard.html:82 app/templates/club/event_detail.html:68
+#: app/templates/club/dashboard.html:82 app/templates/club/event_detail.html:79
 #: app/templates/club/event_info.html:44 app/templates/club/event_view.html:28
 #: app/templates/club/superadmin_dashboard.html:93
 msgid "Abgesagt"
 msgstr "Annulé"
 
-#: app/templates/club/dashboard.html:84 app/templates/club/event_detail.html:70
+#: app/templates/club/dashboard.html:84 app/templates/club/event_detail.html:81
 #: app/templates/club/event_view.html:30
 #: app/templates/club/superadmin_dashboard.html:94
+#: app/templates/club/template_create_event.html:14
 msgid "Entwurf"
 msgstr "Brouillon"
 
@@ -1160,11 +1302,23 @@ msgstr "envoyé"
 msgid "fehlgeschlagen"
 msgstr "échoué"
 
+#: app/templates/club/event_detail.html:13
+#: app/templates/club/event_info.html:198 app/templates/club/event_live.html:52
+#: app/templates/club/event_results_print.html:159
+#: app/templates/club/event_view.html:140 app/templates/club/schedule.html:328
+#: app/templates/club/startlist.html:52
+#: app/templates/public/cups/standings.html:101
+#: app/templates/public/cups/standings.html:123
+#: app/templates/public/overview.html:69
+msgid "Kl."
+msgstr "Cl."
+
 # ── Neue Strings ab 2026-04-19
 # ────────────────────────────────────────────────
 # event_detail.html — Header-Buttons
-#: app/templates/club/event_detail.html:34 app/templates/club/schedule.html:2
-#: app/templates/club/schedule.html:7 app/templates/public/overview.html:88
+#: app/templates/club/event_detail.html:34
+#: app/templates/club/event_live.html:58 app/templates/club/schedule.html:2
+#: app/templates/club/schedule.html:7 app/templates/public/overview.html:115
 #: app/templates/public/schedule.html:2 app/templates/public/schedule.html:7
 msgid "Zeitplan"
 msgstr "Programme"
@@ -1185,139 +1339,158 @@ msgstr "Le contrôle des licences doit être effectué en premier (obligation TK
 msgid "Export ZIP"
 msgstr "Export ZIP"
 
+#: app/templates/club/event_detail.html:49
+msgid "Team-Challenge"
+msgstr "Team-Challenge"
+
 # club/event_detail.html
-#: app/templates/club/event_detail.html:47
-#: app/templates/club/event_detail.html:149 app/templates/club/schedule.html:57
+#: app/templates/club/event_detail.html:51
+#: app/templates/club/event_detail.html:160 app/templates/club/schedule.html:57
 msgid "Bearbeiten"
 msgstr "Modifier"
 
-#: app/templates/club/event_detail.html:51
-#, python-format
-msgid ""
-"Turnier «%(name)s» wirklich löschen? Alle Anmeldungen und Zeitpläne "
-"werden unwiderruflich gelöscht."
-msgstr ""
-"Vraiment supprimer le tournoi «%(name)s» ? Toutes les inscriptions et les"
-" programmes seront définitivement supprimés."
+#: app/templates/club/event_detail.html:54
+msgid "Testkopie dieses Turniers erstellen? Läufe, Richter, Zeitplan und Anmeldungen werden übernommen; Startnummern werden in der Kopie neu vergeben."
+msgstr "Créer une copie test de ce tournoi ? Les épreuves, juges, horaires et inscriptions seront repris ; les numéros de départ seront réattribués dans la copie."
 
-#: app/templates/club/event_detail.html:53
-#: app/templates/club/event_detail.html:382
-#: app/templates/club/event_detail.html:406
+#: app/templates/club/event_detail.html:56
+msgid "Testkopie"
+msgstr "Copie test"
+
+#: app/templates/club/event_detail.html:62
+#, python-format
+msgid "Turnier «%(name)s» wirklich löschen? Alle Anmeldungen und Zeitpläne werden unwiderruflich gelöscht."
+msgstr "Vraiment supprimer le tournoi «%(name)s» ? Toutes les inscriptions et les programmes seront définitivement supprimés."
+
+#: app/templates/club/event_detail.html:64
+#: app/templates/club/event_detail.html:393
+#: app/templates/club/event_detail.html:417
 msgid "Löschen"
 msgstr "Supprimer"
 
-#: app/templates/club/event_detail.html:64
+#: app/templates/club/event_detail.html:75
 #: app/templates/club/event_info.html:38 app/templates/club/event_view.html:22
 msgid "Anmeldungen offen"
 msgstr "Inscriptions ouvertes"
 
-#: app/templates/club/event_detail.html:66
+#: app/templates/club/event_detail.html:77
 #: app/templates/club/event_info.html:42 app/templates/club/event_view.html:26
 msgid "Anmeldungen geschlossen"
 msgstr "Inscriptions fermées"
 
-#: app/templates/club/event_detail.html:85
-#: app/templates/club/event_detail.html:87
+#: app/templates/club/event_detail.html:96
+#: app/templates/club/event_detail.html:98
+#: app/templates/club/event_info.html:56 app/templates/club/event_view.html:275
 msgid "Anmeldung über externes Portal"
 msgstr "Inscription via portail externe"
 
-#: app/templates/club/event_detail.html:97
+#: app/templates/club/event_detail.html:108
 msgid "Anmeldungen öffnen"
 msgstr "Ouvrir les inscriptions"
 
-#: app/templates/club/event_detail.html:100
-#: app/templates/club/event_detail.html:113
-#: app/templates/club/event_detail.html:126
+#: app/templates/club/event_detail.html:111
+#: app/templates/club/event_detail.html:124
+#: app/templates/club/event_detail.html:137
 msgid "Turnier absagen?"
 msgstr "Annuler le tournoi ?"
 
-#: app/templates/club/event_detail.html:103
-#: app/templates/club/event_detail.html:116
-#: app/templates/club/event_detail.html:129
+#: app/templates/club/event_detail.html:114
+#: app/templates/club/event_detail.html:127
+#: app/templates/club/event_detail.html:140
 msgid "Absagen"
 msgstr "Annuler"
 
-#: app/templates/club/event_detail.html:110
+#: app/templates/club/event_detail.html:121
 msgid "Anmeldungen schliessen"
 msgstr "Fermer les inscriptions"
 
-#: app/templates/club/event_detail.html:123
+#: app/templates/club/event_detail.html:134
 msgid "Anmeldungen wieder öffnen"
 msgstr "Rouvrir les inscriptions"
 
-#: app/templates/club/event_detail.html:134
+#: app/templates/club/event_detail.html:145
 msgid "Turnier reaktivieren?"
 msgstr "Réactiver le tournoi ?"
 
-#: app/templates/club/event_detail.html:137
+#: app/templates/club/event_detail.html:148
 msgid "Reaktivieren (→ Entwurf)"
 msgstr "Réactiver (→ Brouillon)"
 
 # event_detail.html — Turnierinfos
-#: app/templates/club/event_detail.html:148
+#: app/templates/club/event_detail.html:159
 #: app/templates/club/event_view.html:44
 msgid "Turnierinfos"
 msgstr "Infos du tournoi"
 
-#: app/templates/club/event_detail.html:174
+#: app/templates/club/event_detail.html:185
 msgid "angemeldet"
 msgstr "inscrits"
 
-#: app/templates/club/event_detail.html:179
-#: app/templates/club/event_info.html:66 app/templates/club/event_view.html:79
+#: app/templates/club/event_detail.html:190
+#: app/templates/club/event_detail.html:226
+#: app/templates/club/event_info.html:96 app/templates/club/event_view.html:79
 #: app/templates/public/overview.html:48
 msgid "Startgeld"
-msgstr "Taxe de départ"
+msgstr "Finance de départ"
 
-#: app/templates/club/event_detail.html:183
-#: app/templates/club/event_info.html:69 app/templates/club/event_view.html:83
+#: app/templates/club/event_detail.html:194
+#: app/templates/club/event_info.html:107 app/templates/club/event_view.html:83
 msgid "Läufige Hündinnen"
 msgstr "Chiennes en chaleur"
 
-#: app/templates/club/event_detail.html:186
-#: app/templates/club/event_info.html:72 app/templates/club/event_view.html:86
+#: app/templates/club/event_detail.html:197
+#: app/templates/club/event_info.html:110 app/templates/club/event_view.html:86
 msgid "Erlaubt"
 msgstr "Autorisé"
 
-#: app/templates/club/event_detail.html:188
-#: app/templates/club/event_info.html:74 app/templates/club/event_view.html:88
+#: app/templates/club/event_detail.html:199
+#: app/templates/club/event_info.html:112 app/templates/club/event_view.html:88
 msgid "starten am Schluss"
 msgstr "courent en dernier"
 
-#: app/templates/club/event_detail.html:191
-#: app/templates/club/event_info.html:77 app/templates/club/event_view.html:91
+#: app/templates/club/event_detail.html:202
+#: app/templates/club/event_info.html:115 app/templates/club/event_view.html:91
 msgid "Nicht erlaubt"
 msgstr "Non autorisé"
 
 # event_detail.html — Zahlungsinfos
-#: app/templates/club/event_detail.html:206
+#: app/templates/club/event_detail.html:217
 msgid "Zahlungsinfos für Bestätigungsmail"
 msgstr "Infos de paiement pour l'e-mail de confirmation"
 
-#: app/templates/club/event_detail.html:212
-msgid ""
-"IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail "
-"angezeigt."
+#: app/templates/club/event_detail.html:223
+msgid "IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail angezeigt."
 msgstr "IBAN, bénéficiaire, motif etc. — affiché dans l'e-mail de confirmation."
 
-# event_detail.html — TKAMO-Import
 #: app/templates/club/event_detail.html:226
+msgid "Empfänger"
+msgstr "Bénéficiaire"
+
+#: app/templates/club/event_detail.html:226
+msgid "Verwendungszweck"
+msgstr "Motif du paiement"
+
+# event_detail.html — TKAMO-Import
+#: app/templates/club/event_detail.html:237
 msgid "TKAMO-Import"
 msgstr "Import TKAMO"
 
-#: app/templates/club/event_detail.html:249
-#: app/templates/club/event_detail.html:319
+#: app/templates/club/event_detail.html:260
+#: app/templates/club/event_detail.html:330
+#: app/templates/public/overview.html:62
 msgid "Wettbewerbe"
 msgstr "Épreuves"
 
-#: app/templates/club/event_detail.html:253
-#: app/templates/club/event_detail.html:321
+#: app/templates/club/event_detail.html:264
+#: app/templates/club/event_detail.html:332
 msgid "Kategorien"
 msgstr "Catégories"
 
-#: app/templates/club/event_detail.html:257
-#: app/templates/club/event_detail.html:323
-#: app/templates/club/event_detail.html:737
+#: app/templates/club/event_detail.html:268
+#: app/templates/club/event_detail.html:334
+#: app/templates/club/event_detail.html:748
+#: app/templates/club/event_info.html:166
+#: app/templates/club/event_info.html:227
 #: app/templates/club/event_view.html:107
 #: app/templates/club/event_view.html:169
 #: app/templates/club/pending_requests.html:32
@@ -1327,553 +1500,523 @@ msgstr "Catégories"
 msgid "Richter"
 msgstr "Juge"
 
-#: app/templates/club/event_detail.html:261
+#: app/templates/club/event_detail.html:272
 msgid "Kontakt-E-Mail"
 msgstr "E-mail de contact"
 
-#: app/templates/club/event_detail.html:266
+#: app/templates/club/event_detail.html:277
 msgid "Noch keine TKAMO-Daten geladen."
 msgstr "Aucune donnée TKAMO chargée."
 
-#: app/templates/club/event_detail.html:270
+#: app/templates/club/event_detail.html:281
 msgid "Mehrtage-Event — weitere AIS-Nummern:"
 msgstr "Événement multi-jours — autres numéros AIS :"
 
-#: app/templates/club/event_detail.html:271
+#: app/templates/club/event_detail.html:282
 msgid "teilen diese Reservation und diesen Website-Eintrag"
 msgstr "partagent cette réservation et cette entrée sur le site"
 
-#: app/templates/club/event_detail.html:277
+#: app/templates/club/event_detail.html:288
 msgid "TKAMO-Daten jetzt laden"
 msgstr "Charger les données TKAMO maintenant"
 
 # event_detail.html — Website-Sync
-#: app/templates/club/event_detail.html:287
+#: app/templates/club/event_detail.html:298
 msgid "Website-Sync (z-b.tech)"
 msgstr "Synchronisation site web (z-b.tech)"
 
-#: app/templates/club/event_detail.html:291
+#: app/templates/club/event_detail.html:302
 msgid "Noch nicht synchronisiert"
 msgstr "Pas encore synchronisé"
 
-#: app/templates/club/event_detail.html:296
+#: app/templates/club/event_detail.html:307
 msgid "z-b.tech Events"
 msgstr "Événements z-b.tech"
 
-#: app/templates/club/event_detail.html:305
+#: app/templates/club/event_detail.html:316
 msgid "Zuerst TKAMO-Import ausführen."
 msgstr "Exécuter d'abord l'import TKAMO."
 
-#: app/templates/club/event_detail.html:306
-msgid ""
-"Der Inserat-Text übernimmt die TKAMO-Felder (Wettbewerbe, Kategorien, "
-"Richter). Ohne Import bleiben diese Zeilen auf Standardtexten."
-msgstr ""
-"Le texte de l'annonce reprend les champs TKAMO (épreuves, catégories, "
-"juges). Sans import, ces lignes conservent les textes par défaut."
+#: app/templates/club/event_detail.html:317
+msgid "Der Inserat-Text übernimmt die TKAMO-Felder (Wettbewerbe, Kategorien, Richter). Ohne Import bleiben diese Zeilen auf Standardtexten."
+msgstr "Le texte de l'annonce reprend les champs TKAMO (épreuves, catégories, juges). Sans import, ces lignes conservent les textes par défaut."
 
-#: app/templates/club/event_detail.html:307
+#: app/templates/club/event_detail.html:318
 msgid "Empfohlener Ablauf: 1. TKAMO-Import → 2. Website-Sync."
 msgstr "Procédure recommandée : 1. Import TKAMO → 2. Synchronisation du site web."
 
-#: app/templates/club/event_detail.html:314
-msgid "Inserat-Text wird automatisch aus den eingetragenen Daten generiert:"
-msgstr ""
-"Le texte de l'annonce est généré automatiquement à partir des données "
-"saisies :"
-
-#: app/templates/club/event_detail.html:319
-#: app/templates/club/event_detail.html:321
-#: app/templates/club/event_detail.html:323
 #: app/templates/club/event_detail.html:325
+msgid "Inserat-Text wird automatisch aus den eingetragenen Daten generiert:"
+msgstr "Le texte de l'annonce est généré automatiquement à partir des données saisies :"
+
+#: app/templates/club/event_detail.html:330
+#: app/templates/club/event_detail.html:332
+#: app/templates/club/event_detail.html:334
+#: app/templates/club/event_detail.html:336
 msgid "fehlt"
 msgstr "manquant"
 
-#: app/templates/club/event_detail.html:325
+#: app/templates/club/event_detail.html:336
 msgid "TKAMO-Link"
 msgstr "Lien TKAMO"
 
-#: app/templates/club/event_detail.html:331
+#: app/templates/club/event_detail.html:342
 msgid "Datum fehlt — bitte zuerst im Event-Formular eintragen."
-msgstr ""
-"Date manquante — veuillez d'abord la saisir dans le formulaire de "
-"l'événement."
+msgstr "Date manquante — veuillez d'abord la saisir dans le formulaire de l'événement."
 
-#: app/templates/club/event_detail.html:340
+#: app/templates/club/event_detail.html:351
 msgid "Zusatztext (optional — erscheint im Inserat nach den Infos)"
-msgstr ""
-"Texte supplémentaire (facultatif — apparaît dans l'annonce après les "
-"infos)"
+msgstr "Texte supplémentaire (facultatif — apparaît dans l'annonce après les infos)"
 
-#: app/templates/club/event_detail.html:341
+#: app/templates/club/event_detail.html:352
 msgid "vorhanden"
 msgstr "présent"
 
-#: app/templates/club/event_detail.html:345
+#: app/templates/club/event_detail.html:356
 msgid "Ergänzende Informationen, z.B. Parkplätze, Verpflegung, Besonderheiten..."
 msgstr "Informations complémentaires, ex. parking, restauration, particularités..."
 
-#: app/templates/club/event_detail.html:347
+#: app/templates/club/event_detail.html:358
 msgid "Zusatztext speichern"
 msgstr "Enregistrer le texte supplémentaire"
 
-#: app/templates/club/event_detail.html:357
+#: app/templates/club/event_detail.html:368
 msgid "Jetzt auf z-b.tech synchronisieren"
 msgstr "Synchroniser sur z-b.tech maintenant"
 
-#: app/templates/club/event_detail.html:360
+#: app/templates/club/event_detail.html:371
 #, python-format
 msgid "Aktualisiert bestehenden Eintrag #%(id)d"
 msgstr "Met à jour l'entrée existante n°%(id)d"
 
-#: app/templates/club/event_detail.html:368
+#: app/templates/club/event_detail.html:379
 msgid "Logos (Event- & Vereins-Logo)"
 msgstr "Logos (logo de l’événement et du club)"
 
-#: app/templates/club/event_detail.html:374
+#: app/templates/club/event_detail.html:385
+#: app/templates/club/event_results_print.html:140
 msgid "Event-Logo"
 msgstr "Logo de l’événement"
 
-#: app/templates/club/event_detail.html:385
+#: app/templates/club/event_detail.html:393
+msgid "Event-Logo wirklich löschen?"
+msgstr "Vraiment supprimer le logo de l'événement ?"
+
+#: app/templates/club/event_detail.html:396
 msgid "Kein Event-Logo hinterlegt."
 msgstr "Aucun logo d’événement déposé."
 
-#: app/templates/club/event_detail.html:392
-#: app/templates/club/event_detail.html:416
+#: app/templates/club/event_detail.html:403
+#: app/templates/club/event_detail.html:427
 msgid "Hochladen"
 msgstr "Téléverser"
 
-#: app/templates/club/event_detail.html:398
+#: app/templates/club/event_detail.html:409
+#: app/templates/club/event_results_print.html:128
 msgid "Vereins-Logo"
 msgstr "Logo du club"
 
-#: app/templates/club/event_detail.html:409
+#: app/templates/club/event_detail.html:417
+msgid "Vereins-Logo wirklich löschen?"
+msgstr "Vraiment supprimer le logo du club ?"
+
+#: app/templates/club/event_detail.html:420
 msgid "Kein Vereins-Logo hinterlegt."
 msgstr "Aucun logo de club déposé."
 
 # event_detail.html — Reservationsanfrage
-#: app/templates/club/event_detail.html:427
+#: app/templates/club/event_detail.html:438
 msgid "Reservationsanfrage (z-b.tech)"
 msgstr "Demande de réservation (z-b.tech)"
 
-#: app/templates/club/event_detail.html:429
+#: app/templates/club/event_detail.html:440
 #, python-format
 msgid "Anfrage #%(id)d gesendet"
 msgstr "Demande n°%(id)d envoyée"
 
-#: app/templates/club/event_detail.html:431
+#: app/templates/club/event_detail.html:442
 msgid "Sync"
 msgstr "Sync"
 
-#: app/templates/club/event_detail.html:434
+#: app/templates/club/event_detail.html:445
 msgid "Noch keine Anfrage"
 msgstr "Aucune demande"
 
-#: app/templates/club/event_detail.html:439
+#: app/templates/club/event_detail.html:450
 msgid "Im Admin öffnen"
 msgstr "Ouvrir dans l'admin"
 
-#: app/templates/club/event_detail.html:446
-msgid ""
-"Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an "
-"admin.z-b.tech."
-msgstr ""
-"Envoie une demande de réservation pour le service de chronométrage à "
-"admin.z-b.tech."
+#: app/templates/club/event_detail.html:457
+msgid "Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an admin.z-b.tech."
+msgstr "Envoie une demande de réservation pour le service de chronométrage à admin.z-b.tech."
 
-#: app/templates/club/event_detail.html:447
+#: app/templates/club/event_detail.html:458
 msgid "Turnierdaten (Name, Datum, Ort) werden automatisch übernommen."
 msgstr "Les données du tournoi (nom, date, lieu) sont reprises automatiquement."
 
-#: app/templates/club/event_detail.html:453
+#: app/templates/club/event_detail.html:464
 msgid "Ansprechpartner"
 msgstr "Personne de contact"
 
-#: app/templates/club/event_detail.html:456
+#: app/templates/club/event_detail.html:467
 msgid "Vorname Nachname"
 msgstr "Prénom Nom"
 
-#: app/templates/club/event_detail.html:465
-msgid "Telefon"
-msgstr "Téléphone"
-
-#: app/templates/club/event_detail.html:477
-#: app/templates/club/event_info.html:81 app/templates/club/event_view.html:96
+#: app/templates/club/event_detail.html:488
+#: app/templates/club/event_info.html:119 app/templates/club/event_view.html:96
 msgid "Bemerkungen"
 msgstr "Remarques"
 
-#: app/templates/club/event_detail.html:479
+#: app/templates/club/event_detail.html:490
 msgid "Besondere Anforderungen, Hinweise..."
 msgstr "Exigences particulières, remarques..."
 
-#: app/templates/club/event_detail.html:482
+#: app/templates/club/event_detail.html:493
 msgid "Zusatzleistungen"
 msgstr "Services supplémentaires"
 
-#: app/templates/club/event_detail.html:485
+#: app/templates/club/event_detail.html:496
 msgid "Sonderauswertung / Meisterschaft"
 msgstr "Évaluation spéciale / championnat"
 
-#: app/templates/club/event_detail.html:490
+#: app/templates/club/event_detail.html:501
 msgid "Webseite (z-b.tech)"
 msgstr "Site web (z-b.tech)"
 
-#: app/templates/club/event_detail.html:494
+#: app/templates/club/event_detail.html:505
 msgid "Betreuung Turniertag"
 msgstr "Assistance le jour du tournoi"
 
-#: app/templates/club/event_detail.html:498
+#: app/templates/club/event_detail.html:509
 msgid "Reservationsanfrage senden"
 msgstr "Envoyer la demande de réservation"
 
-#: app/templates/club/event_detail.html:506
-msgid ""
-"Oder dieses Turnier einer bestehenden Reservation anhängen (ein "
-"Veranstalter bucht mehrere Turniere in einer Anfrage)."
-msgstr ""
-"Ou rattacher ce tournoi à une réservation existante (un organisateur "
-"réserve plusieurs tournois en une seule demande)."
+#: app/templates/club/event_detail.html:517
+msgid "Oder dieses Turnier einer bestehenden Reservation anhängen (ein Veranstalter bucht mehrere Turniere in einer Anfrage)."
+msgstr "Ou rattacher ce tournoi à une réservation existante (un organisateur réserve plusieurs tournois en une seule demande)."
 
-#: app/templates/club/event_detail.html:512
+#: app/templates/club/event_detail.html:523
 msgid "Bestehende Reservation"
 msgstr "Réservation existante"
 
-#: app/templates/club/event_detail.html:514
+#: app/templates/club/event_detail.html:525
 msgid "— Turnier mit Reservation wählen —"
 msgstr "— Choisir un tournoi avec réservation —"
 
-#: app/templates/club/event_detail.html:517
+#: app/templates/club/event_detail.html:528
 #, python-format
 msgid "Anfrage #%(id)d"
 msgstr "Demande #%(id)d"
 
-#: app/templates/club/event_detail.html:524
+#: app/templates/club/event_detail.html:535
 msgid "Anhängen"
 msgstr "Rattacher"
 
-#: app/templates/club/event_detail.html:533
+#: app/templates/club/event_detail.html:544
 msgid "Diese Reservation umfasst mehrere Turniere:"
 msgstr "Cette réservation comprend plusieurs tournois :"
 
-#: app/templates/club/event_detail.html:537
+#: app/templates/club/event_detail.html:548
 msgid "dieses Turnier"
 msgstr "ce tournoi"
 
-#: app/templates/club/event_detail.html:544
-msgid ""
-"Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die "
-"bestehende Anfrage."
-msgstr ""
-"Transfère les données actuelles du tournoi (nom, date, lieu, "
-"participants) à la demande existante."
+#: app/templates/club/event_detail.html:555
+msgid "Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die bestehende Anfrage."
+msgstr "Transfère les données actuelles du tournoi (nom, date, lieu, participants) à la demande existante."
 
-#: app/templates/club/event_detail.html:545
+#: app/templates/club/event_detail.html:556
 msgid "Es werden alle Turniere dieser Reservation gemeinsam gesendet."
 msgstr "Tous les tournois de cette réservation sont envoyés ensemble."
 
-#: app/templates/club/event_detail.html:550
+#: app/templates/club/event_detail.html:561
 msgid "Daten aktualisieren"
 msgstr "Mettre à jour les données"
 
 # event_detail.html — Lizenzcheck
-#: app/templates/club/event_detail.html:560
+#: app/templates/club/event_detail.html:571
 #: app/templates/club/lizenzcheck_result.html:2
 #: app/templates/club/lizenzcheck_result.html:7
 msgid "Lizenzcheck"
 msgstr "Contrôle des licences"
 
-#: app/templates/club/event_detail.html:562
+#: app/templates/club/event_detail.html:573
 msgid "Durchgeführt"
 msgstr "Effectué"
 
-#: app/templates/club/event_detail.html:564
+#: app/templates/club/event_detail.html:575
 msgid "Ausstehend (TKAMO-Pflicht)"
 msgstr "En attente (obligation TKAMO)"
 
-#: app/templates/club/event_detail.html:570
+#: app/templates/club/event_detail.html:581
 msgid "CSV exportieren und an TKAMO senden"
 msgstr "Exporter CSV et envoyer à TKAMO"
 
-#: app/templates/club/event_detail.html:571
+#: app/templates/club/event_detail.html:582
 msgid "TKAMO-Antwortdatei (.txt) hier hochladen"
 msgstr "Télécharger le fichier de réponse TKAMO (.txt) ici"
 
-#: app/templates/club/event_detail.html:576
+#: app/templates/club/event_detail.html:587
 msgid "CSV für TKAMO exportieren"
 msgstr "Exporter CSV pour TKAMO"
 
-#: app/templates/club/event_detail.html:585
+#: app/templates/club/event_detail.html:596
 msgid "TKAMO-Ergebnis hier einfügen:"
 msgstr "Coller le résultat TKAMO ici :"
 
-#: app/templates/club/event_detail.html:587
+#: app/templates/club/event_detail.html:598
 #: app/templates/club/lizenzcheck_result.html:81
 msgid "Text vom TKAMO-Lizenzcheck hier einfügen..."
 msgstr "Coller le texte du contrôle des licences TKAMO ici..."
 
-#: app/templates/club/event_detail.html:590
+#: app/templates/club/event_detail.html:601
 msgid "Ergebnis speichern & anzeigen"
 msgstr "Enregistrer et afficher le résultat"
 
 # event_detail.html — Sammelmail
-#: app/templates/club/event_detail.html:599
+#: app/templates/club/event_detail.html:610
 msgid "E-Mail an Teilnehmer"
 msgstr "E-mail aux participants"
 
-#: app/templates/club/event_detail.html:602
+#: app/templates/club/event_detail.html:613
 msgid "E-Mail an alle gewählten Teilnehmer senden?"
 msgstr "Envoyer l'e-mail à tous les participants sélectionnés ?"
 
-#: app/templates/club/event_detail.html:607
+#: app/templates/club/event_detail.html:618
 msgid "Betreff"
 msgstr "Objet"
 
-#: app/templates/club/event_detail.html:611
+#: app/templates/club/event_detail.html:622
 msgid "Alle (ausser Storniert)"
 msgstr "Tous (sauf annulés)"
 
-#: app/templates/club/event_detail.html:612
+#: app/templates/club/event_detail.html:623
 msgid "Nur Ausstehend"
 msgstr "En attente uniquement"
 
-#: app/templates/club/event_detail.html:613
+#: app/templates/club/event_detail.html:624
 msgid "Nur Bestätigt"
 msgstr "Confirmés uniquement"
 
-#: app/templates/club/event_detail.html:619
+#: app/templates/club/event_detail.html:630
 msgid "Nachrichtentext..."
 msgstr "Texte du message..."
 
-#: app/templates/club/event_detail.html:623
+#: app/templates/club/event_detail.html:634
 msgid "Versand starten"
 msgstr "Lancer l'envoi"
 
-#: app/templates/club/event_detail.html:626
+#: app/templates/club/event_detail.html:637
 #, python-format
 msgid "ca. %(n)d Empfänger · 1 Mail/Sek."
 msgstr "env. %(n)d destinataires · 1 e-mail/sec."
 
-#: app/templates/club/event_detail.html:637
+#: app/templates/club/event_detail.html:648
 msgid "Anwesende Richter"
 msgstr "Juges présents"
 
-#: app/templates/club/event_detail.html:653
+#: app/templates/club/event_detail.html:664
 msgid "Richter entfernen"
 msgstr "Retirer le juge"
 
-#: app/templates/club/event_detail.html:657
+#: app/templates/club/event_detail.html:668
 msgid "Noch keine Richter hinzugefügt."
 msgstr "Aucun juge ajouté."
 
-#: app/templates/club/event_detail.html:667
+#: app/templates/club/event_detail.html:678
 msgid "Richter wählen"
 msgstr "Choisir un juge"
 
-#: app/templates/club/event_detail.html:674
-#: app/templates/club/event_detail.html:786
-#: app/templates/club/event_detail.html:893
+#: app/templates/club/event_detail.html:685
+#: app/templates/club/event_detail.html:797
+#: app/templates/club/event_detail.html:904
 #: app/templates/club/schedule.html:352 app/templates/club/schedule.html:413
 #: app/templates/club/schedule.html:429 app/templates/club/schedule.html:453
 msgid "Hinzufügen"
 msgstr "Ajouter"
 
-#: app/templates/club/event_detail.html:677
+#: app/templates/club/event_detail.html:688
 msgid "Alle Richter sind bereits hinzugefügt."
 msgstr "Tous les juges ont déjà été ajoutés."
 
-#: app/templates/club/event_detail.html:687
+#: app/templates/club/event_detail.html:698
 msgid "Läufe zuordnen"
 msgstr "Assigner les épreuves"
 
-#: app/templates/club/event_detail.html:688
+#: app/templates/club/event_detail.html:699
 msgid "Läufe per Drag & Drop den Richtern zuweisen"
 msgstr "Assigner les épreuves aux juges par glisser-déposer"
 
-#: app/templates/club/event_detail.html:695
+#: app/templates/club/event_detail.html:706
 msgid "Nicht zugewiesen"
 msgstr "Non assigné"
 
-#: app/templates/club/event_detail.html:719
+#: app/templates/club/event_detail.html:730
 msgid "Füge zuerst anwesende Richter hinzu, um die Läufe zuordnen zu können."
 msgstr "Ajoutez d'abord des juges présents pour pouvoir assigner les épreuves."
 
 # club/participant_dashboard.html
-#: app/templates/club/event_detail.html:725
+#: app/templates/club/event_detail.html:736
+#: app/templates/club/template_create_event.html:13
+#: app/templates/club/template_list.html:21
 msgid "Läufe"
 msgstr "Épreuves"
 
-#: app/templates/club/event_detail.html:753
+#: app/templates/club/event_detail.html:764
 msgid "Lauf entfernen?"
 msgstr "Supprimer l'épreuve ?"
 
-#: app/templates/club/event_detail.html:764
+#: app/templates/club/event_detail.html:775
 msgid "Noch keine Läufe vorbereitet."
 msgstr "Aucune épreuve préparée."
 
-#: app/templates/club/event_detail.html:791
+#: app/templates/club/event_detail.html:802
 msgid "Alle Läufe auf einmal:"
 msgstr "Toutes les épreuves en une fois :"
 
-#: app/templates/club/event_detail.html:793
+#: app/templates/club/event_detail.html:804
 msgid "Alle Agility"
 msgstr "Tout Agility"
 
-#: app/templates/club/event_detail.html:794
+#: app/templates/club/event_detail.html:805
 msgid "Alle Jumping"
 msgstr "Tout Jumping"
 
-#: app/templates/club/event_detail.html:795
+#: app/templates/club/event_detail.html:806
 msgid "Standard (Agi+Jump S/M/I/L × 1/2/3)"
 msgstr "Standard (Agi+Jump S/M/I/L × 1/2/3)"
 
-#: app/templates/club/event_detail.html:809
-#: app/templates/public/startlist_print.html:148
+#: app/templates/club/event_detail.html:820
 msgid "Anmeldungen"
 msgstr "Inscriptions"
 
 # event_detail.html — Anmeldungstabelle
-#: app/templates/club/event_detail.html:810
+#: app/templates/club/event_detail.html:821
 msgid "ausstehend"
 msgstr "en attente"
 
-#: app/templates/club/event_detail.html:811
+#: app/templates/club/event_detail.html:822
 msgid "eingereicht"
 msgstr "soumis"
 
-#: app/templates/club/event_detail.html:812
+#: app/templates/club/event_detail.html:823
 msgid "bestätigt"
 msgstr "confirmés"
 
-#: app/templates/club/event_detail.html:818
+#: app/templates/club/event_detail.html:829
 msgid "Alle bestätigen"
 msgstr "Tout confirmer"
 
-#: app/templates/club/event_detail.html:823
+#: app/templates/club/event_detail.html:834
 msgid "Startnummern neu vergeben? Bestehende werden überschrieben."
 msgstr "Réattribuer les numéros de départ ? Les existants seront écrasés."
 
-#: app/templates/club/event_detail.html:825
+#: app/templates/club/event_detail.html:836
 msgid "Startnummern vergeben"
 msgstr "Attribuer les numéros de départ"
 
-#: app/templates/club/event_detail.html:829
-#: app/templates/public/overview.html:75 app/templates/public/startlist.html:2
-#: app/templates/public/startlist.html:8
-#: app/templates/public/startlist_print.html:6
-#: app/templates/public/startlist_print.html:103
-msgid "Startliste"
-msgstr "Liste de départ"
-
-#: app/templates/club/event_detail.html:832
+#: app/templates/club/event_detail.html:843
 msgid "Alle Startnummern wirklich löschen?"
 msgstr "Vraiment supprimer tous les numéros de départ ?"
 
-#: app/templates/club/event_detail.html:834
+#: app/templates/club/event_detail.html:845
 msgid "Startnummern löschen"
 msgstr "Supprimer les numéros de départ"
 
-#: app/templates/club/event_detail.html:844
+#: app/templates/club/event_detail.html:855
 msgid "Teilnehmer hinzufügen"
 msgstr "Ajouter un participant"
 
-#: app/templates/club/event_detail.html:851
+#: app/templates/club/event_detail.html:862
 msgid "Lizenz-Nr."
 msgstr "N° de licence"
 
-#: app/templates/club/event_detail.html:860
+#: app/templates/club/event_detail.html:871
 msgid "Kat."
 msgstr "Cat."
 
-#: app/templates/club/event_detail.html:873
+#: app/templates/club/event_detail.html:884
 msgid "HF Vorname"
 msgstr "Prénom conducteur"
 
-#: app/templates/club/event_detail.html:877
+#: app/templates/club/event_detail.html:888
 msgid "HF Nachname"
 msgstr "Nom conducteur"
 
-#: app/templates/club/event_detail.html:888
-#: app/templates/club/event_detail.html:931
-#: app/templates/club/event_info.html:118
+#: app/templates/club/event_detail.html:899
+#: app/templates/club/event_detail.html:942
+#: app/templates/club/event_info.html:360
 msgid "läufig"
 msgstr "en chaleur"
 
-#: app/templates/club/event_detail.html:909
-#: app/templates/club/profile_dogs.html:29
-#: app/templates/public/cups/final_bracket.html:20
-#: app/templates/public/cups/standings.html:98
-msgid "Hundeführer"
-msgstr "Conducteur"
-
-#: app/templates/club/event_detail.html:911
+#: app/templates/club/event_detail.html:922
 msgid "Geprüft"
 msgstr "Vérifié"
 
-#: app/templates/club/event_detail.html:931
+#: app/templates/club/event_detail.html:942
 msgid "Läufig"
 msgstr "En chaleur"
 
-#: app/templates/club/event_detail.html:931
+#: app/templates/club/event_detail.html:942
 msgid "startet am Schluss"
 msgstr "part en dernier"
 
-#: app/templates/club/event_detail.html:941
-#: app/templates/club/event_info.html:133
-#: app/templates/club/event_view.html:366
+#: app/templates/club/event_detail.html:952
+#: app/templates/club/event_info.html:375
+#: app/templates/club/event_view.html:380
 #: app/templates/club/participant_dashboard.html:92
 msgid "Ausstehend"
 msgstr "En attente"
 
-#: app/templates/club/event_detail.html:943
-#: app/templates/club/event_view.html:368
+#: app/templates/club/event_detail.html:954
+#: app/templates/club/event_view.html:382
 msgid "Eingereicht"
 msgstr "Soumis"
 
-#: app/templates/club/event_detail.html:945
-#: app/templates/club/event_info.html:135
-#: app/templates/club/event_view.html:370
+#: app/templates/club/event_detail.html:956
+#: app/templates/club/event_info.html:377
+#: app/templates/club/event_view.html:384
 #: app/templates/club/participant_dashboard.html:94
 msgid "Bestätigt"
 msgstr "Confirmé"
 
-#: app/templates/club/event_detail.html:947
-#: app/templates/club/event_view.html:372
+#: app/templates/club/event_detail.html:958
+#: app/templates/club/event_view.html:386
 msgid "Storniert"
 msgstr "Annulé"
 
-#: app/templates/club/event_detail.html:956
+#: app/templates/club/event_detail.html:967
 msgid "Abweichung erkannt"
 msgstr "Écart détecté"
 
-#: app/templates/club/event_detail.html:958
+#: app/templates/club/event_detail.html:969
 msgid "In Ordnung"
 msgstr "Correct"
 
-#: app/templates/club/event_detail.html:966
+#: app/templates/club/event_detail.html:977
 msgid "Läufig-Markierung aufheben"
 msgstr "Retirer la marque en chaleur"
 
-#: app/templates/club/event_detail.html:966
+#: app/templates/club/event_detail.html:977
 msgid "Als läufig markieren"
 msgstr "Marquer en chaleur"
 
-#: app/templates/club/event_detail.html:977
+#: app/templates/club/event_detail.html:988
 msgid "Anmeldung wirklich ablehnen?"
 msgstr "Vraiment rejeter cette inscription ?"
 
-#: app/templates/club/event_detail.html:989
+#: app/templates/club/event_detail.html:1000
 msgid "Noch keine Anmeldungen."
 msgstr "Aucune inscription."
 
-#: app/templates/club/event_detail.html:1012
+#: app/templates/club/event_detail.html:1023
 msgid "Dieser Hund ist bereits für dieses Turnier angemeldet."
 msgstr "Ce chien est déjà inscrit à ce tournoi."
 
-#: app/templates/club/event_detail.html:1015
+#: app/templates/club/event_detail.html:1026
 msgid "Hund in der DB gefunden."
 msgstr "Chien trouvé dans la base de données."
 
-#: app/templates/club/event_detail.html:1019
+#: app/templates/club/event_detail.html:1030
 msgid "Neuer Hund — bitte Angaben ausfüllen."
 msgstr "Nouveau chien — veuillez compléter les informations."
 
@@ -1895,13 +2038,8 @@ msgid "Von TKAMO laden"
 msgstr "Charger depuis TKAMO"
 
 #: app/templates/club/event_form.html:44
-msgid ""
-"Bei Mehrtage-Events: weitere AIS-Nummern (kommagetrennt). Alle Tage "
-"teilen eine Reservation und einen Website-Eintrag."
-msgstr ""
-"Pour les événements multi-jours : numéros AIS supplémentaires (séparés "
-"par des virgules). Tous les jours partagent une réservation et une entrée"
-" sur le site."
+msgid "Bei Mehrtage-Events: weitere AIS-Nummern (kommagetrennt). Alle Tage teilen eine Reservation und einen Website-Eintrag."
+msgstr "Pour les événements multi-jours : numéros AIS supplémentaires (séparés par des virgules). Tous les jours partagent une réservation et une entrée sur le site."
 
 #: app/templates/club/event_form.html:81
 msgid "Danach keine neuen Anmeldungen mehr."
@@ -1915,255 +2053,408 @@ msgstr "Nécessaire uniquement si l’inscription passe par un portail externe."
 msgid "Läufige Hündinnen werden am Ende ihrer Kategorie eingeteilt."
 msgstr "Les chiennes en chaleur sont placées en fin de catégorie."
 
-#: app/templates/club/event_form.html:138
-msgid ""
-"Testveranstaltungen sind nur für Superadmin sichtbar und erscheinen nicht"
-" in der öffentlichen Turnierübersicht."
-msgstr ""
-"Les événements de test ne sont visibles que pour les superadmins et "
-"n'apparaissent pas dans l'aperçu public des tournois."
+#: app/templates/club/event_form.html:136
+msgid "Markiert das Turnier als Spezialformat (z.B. Edelweiss Challenge für die Team-Challenge). Blendet die passenden Zusatzfunktionen frei."
+msgstr "Marque le tournoi comme format spécial (p. ex. Edelweiss Challenge pour le Team-Challenge). Active les fonctions supplémentaires correspondantes."
 
-#: app/templates/club/event_form.html:151
+#: app/templates/club/event_form.html:146
+msgid "Testveranstaltungen sind nur für Superadmin sichtbar und erscheinen nicht in der öffentlichen Turnierübersicht."
+msgstr "Les événements de test ne sont visibles que pour les superadmins et n'apparaissent pas dans l'aperçu public des tournois."
+
+#: app/templates/club/event_form.html:159
 msgid "Bitte AIS-Nummer eingeben."
 msgstr "Veuillez saisir un numéro AIS."
 
-#: app/templates/club/event_form.html:152
+#: app/templates/club/event_form.html:160 app/templates/club/event_live.html:26
 msgid "Lade…"
 msgstr "Chargement…"
 
-#: app/templates/club/event_form.html:177
+#: app/templates/club/event_form.html:185
 msgid "Daten geladen — bitte prüfen und speichern."
 msgstr "Données chargées — veuillez vérifier et enregistrer."
 
-#: app/templates/club/event_form.html:178
+#: app/templates/club/event_form.html:186
 msgid "Netzwerkfehler — AdminPortal nicht erreichbar?"
 msgstr "Erreur réseau — AdminPortal inaccessible ?"
 
-#: app/templates/club/event_info.html:29 app/templates/club/event_info.html:203
-#: app/templates/public/overview.html:65
+#: app/templates/club/event_info.html:29 app/templates/club/event_info.html:442
+#: app/templates/public/overview.html:86
 msgid "Live"
 msgstr "Live"
 
 # event_view.html
-#: app/templates/club/event_info.html:40 app/templates/club/event_view.html:24
-msgid "Nennschluss abgelaufen"
+#: app/templates/club/event_info.html:40
+msgid "Anmeldeschluss abgelaufen"
 msgstr "Clôture des inscriptions dépassée"
 
-#: app/templates/club/event_info.html:90
-msgid "Meine Anmeldung"
-msgstr "Mon inscription"
+# event_detail.html — Status-Leiste
+#: app/templates/club/event_info.html:48
+msgid "Anmeldeschluss"
+msgstr "Clôture des inscriptions"
 
-#: app/templates/club/event_info.html:97
-msgid ""
-"Startnummern wurden bereits vergeben. Eine Abmeldung oder Läufig-Meldung "
-"wird dem Veranstalter angezeigt — die Startnummer bleibt reserviert."
-msgstr ""
-"Les numéros de départ ont déjà été attribués. Un retrait ou un "
-"signalement en chaleur sera affiché à l'organisateur — le numéro de "
-"départ reste réservé."
+#: app/templates/club/event_info.html:58
+msgid "Die Anmeldung für dieses Turnier läuft über ein externes Anmeldeportal des Veranstalters — nicht über dieses Portal."
+msgstr "L'inscription à ce tournoi se fait via le portail d'inscription externe de l'organisateur — pas via ce portail."
 
-#: app/templates/club/event_info.html:106
-msgid "Kat. / Kl."
-msgstr "Cat. / Cl."
+#: app/templates/club/event_info.html:61 app/templates/club/event_view.html:280
+msgid "Zur externen Anmeldung"
+msgstr "Vers l'inscription externe"
 
-#: app/templates/club/event_info.html:107
-#: app/templates/club/event_info.html:238
-#: app/templates/club/event_view.html:347
-#: app/templates/club/participant_dashboard.html:69
-msgid "Nr."
-msgstr "N°"
+#: app/templates/club/event_info.html:64 app/templates/club/event_view.html:283
+msgid "Der Veranstalter hat noch keinen Anmeldelink hinterlegt."
+msgstr "L'organisateur n'a pas encore indiqué de lien d'inscription."
 
-#: app/templates/club/event_info.html:150
-msgid "Läufig-Meldung aufheben"
-msgstr "Annuler le signalement en chaleur"
-
-#: app/templates/club/event_info.html:151
-msgid "Nicht läufig"
-msgstr "Pas en chaleur"
-
-#: app/templates/club/event_info.html:155
-msgid "Hündin als läufig melden"
-msgstr "Signaler la chienne en chaleur"
-
-#: app/templates/club/event_info.html:156
-msgid "Läufig melden"
-msgstr "Signaler en chaleur"
-
-#: app/templates/club/event_info.html:164
-msgid "Vom Turnier abmelden?"
-msgstr "Se désinscrire du tournoi ?"
-
-#: app/templates/club/event_info.html:167
-msgid "Abmelden"
-msgstr "Se désinscrire"
-
-#: app/templates/club/event_info.html:181
-msgid "Startnummern vergeben am"
-msgstr "Numéros attribués le"
-
-#: app/templates/club/event_info.html:184
-msgid "Vollständige Startliste"
-msgstr "Liste de départ complète"
-
-#: app/templates/club/event_info.html:191
-msgid "Du bist für dieses Turnier noch nicht angemeldet."
-msgstr "Vous n'êtes pas encore inscrit(e) à ce tournoi."
-
-#: app/templates/club/event_info.html:199
-msgid "Ergebnisse"
-msgstr "Résultats"
-
-# dashboard.html / participant_dashboard.html / profile_dogs.html /
-# startlist.html / event_info.html / superadmin_dashboard.html / users.html
-#: app/templates/club/event_info.html:201
-msgid "Abgeschlossen"
-msgstr "Terminé"
-
-#: app/templates/club/event_info.html:207
-msgid "Stand"
-msgstr "Au"
-
-#: app/templates/club/event_info.html:226
-#: app/templates/club/event_info.html:289
-msgid "Offizielle Liste"
-msgstr "Liste officielle"
-
-#: app/templates/club/event_info.html:226
-msgid "Rangliste PDF"
-msgstr "PDF du classement"
-
-#: app/templates/club/event_info.html:229
-#: app/templates/club/event_view.html:170 app/templates/club/schedule.html:148
-#: app/templates/club/schedule.html:483 app/templates/public/schedule.html:34
-#: app/templates/public/startlist_print.html:148
-msgid "Starter"
-msgstr "Participants"
-
-#: app/templates/club/event_info.html:236
-msgid "Pl."
-msgstr "Pl."
-
-#: app/templates/club/event_info.html:237
-msgid "Hund / Hundeführer"
-msgstr "Chien / Conducteur"
-
-#: app/templates/club/event_info.html:239
-msgid "Zeit"
-msgstr "Temps"
-
-#: app/templates/club/event_info.html:240
-msgid "F / V"
-msgstr "F / V"
-
-#: app/templates/club/event_info.html:273
-msgid "Noch keine Ergebnisse verfügbar."
-msgstr "Aucun résultat disponible pour le moment."
-
-#: app/templates/club/event_info.html:278
-msgid "Ranglisten"
-msgstr "Classements"
-
-#: app/templates/club/event_info.html:289
-msgid "Vorläufig"
-msgstr "Provisoire"
-
-#: app/templates/club/event_view.html:54
+#: app/templates/club/event_info.html:75 app/templates/club/event_view.html:54
 msgid "Veranstalter"
 msgstr "Organisateur"
 
+#: app/templates/club/event_info.html:92
+msgid "Anmeldebeginn"
+msgstr "Ouverture des inscriptions"
+
+# event_detail.html — Sammelmail
+#: app/templates/club/event_info.html:100 app/templates/public/overview.html:49
+msgid "Max. Teilnehmer"
+msgstr "Participants max."
+
+#: app/templates/club/event_info.html:104 app/templates/club/schedule.html:25
+msgid "Anzahl Ringe"
+msgstr "Nombre de rings"
+
+#: app/templates/club/event_info.html:132
+msgid "TKAMO-Agenda"
+msgstr "Agenda TKAMO"
+
+#: app/templates/club/event_info.html:135
+msgid "Tag 1"
+msgstr "Jour 1"
+
+#: app/templates/club/event_info.html:141
+#: app/templates/club/template_create_event.html:38
+msgid "Tag"
+msgstr "Jour"
+
+#: app/templates/club/event_info.html:157
+msgid "Startliste ansehen"
+msgstr "Voir la liste de départ"
+
+#: app/templates/club/event_info.html:157
+msgid "Meldeliste ansehen"
+msgstr "Voir la liste des inscrits"
+
+#: app/templates/club/event_info.html:188
 #: app/templates/club/event_view.html:130
 msgid "Startende Kategorien & Klassen"
 msgstr "Catégories & classes participantes"
 
-#: app/templates/club/event_view.html:140 app/templates/club/schedule.html:328
-#: app/templates/public/cups/standings.html:101
-#: app/templates/public/cups/standings.html:123
-msgid "Kl."
-msgstr "Cl."
-
+#: app/templates/club/event_info.html:209
 #: app/templates/club/event_view.html:151 app/templates/public/schedule.html:15
 msgid "Ablaufplan"
 msgstr "Programme"
 
+#: app/templates/club/event_info.html:211
 #: app/templates/club/event_view.html:153 app/templates/public/schedule.html:17
 msgid "Mit Zeiten"
 msgstr "Avec horaires"
 
+#: app/templates/club/event_info.html:213
 #: app/templates/club/event_view.html:155 app/templates/public/schedule.html:19
 msgid "Reihenfolge"
 msgstr "Ordre"
 
+#: app/templates/club/event_info.html:223
 #: app/templates/club/event_view.html:165 app/templates/club/schedule.html:29
 #: app/templates/club/schedule.html:363 app/templates/club/schedule.html:440
 #: app/templates/club/schedule.html:478 app/templates/public/schedule.html:29
 msgid "Ring"
 msgstr "Ring"
 
+#: app/templates/club/event_info.html:224
 #: app/templates/club/event_view.html:166 app/templates/club/schedule.html:479
 #: app/templates/public/schedule.html:30
 msgid "Start"
 msgstr "Début"
 
+#: app/templates/club/event_info.html:225
 #: app/templates/club/event_view.html:167 app/templates/club/schedule.html:480
 #: app/templates/public/schedule.html:31
 msgid "Ende"
 msgstr "Fin"
 
+#: app/templates/club/event_info.html:226
 #: app/templates/club/event_view.html:168 app/templates/public/schedule.html:32
 msgid "Segment"
 msgstr "Segment"
 
+#: app/templates/club/event_info.html:228
+#: app/templates/club/event_info.html:468 app/templates/club/event_live.html:72
+#: app/templates/club/event_results_print.html:161
+#: app/templates/club/event_view.html:170 app/templates/club/schedule.html:148
+#: app/templates/club/schedule.html:483 app/templates/club/startlist.html:68
+#: app/templates/public/schedule.html:34
+msgid "Starter"
+msgstr "Participants"
+
+#: app/templates/club/event_info.html:253 app/templates/club/event_live.html:53
 #: app/templates/club/event_view.html:195 app/templates/club/schedule.html:175
 #: app/templates/club/schedule.html:484 app/templates/public/schedule.html:59
 msgid "Umbau"
 msgstr "Changement de ring"
 
+#: app/templates/club/event_info.html:322
 #: app/templates/club/event_view.html:264
 #: app/templates/public/schedule.html:128
 msgid "Zeiten werden sichtbar sobald die Startnummern vergeben sind."
-msgstr ""
-"Les horaires seront visibles dès que les numéros de départ seront "
-"attribués."
+msgstr "Les horaires seront visibles dès que les numéros de départ seront attribués."
+
+#: app/templates/club/event_info.html:332
+msgid "Meine Anmeldung"
+msgstr "Mon inscription"
+
+#: app/templates/club/event_info.html:339
+msgid "Startnummern wurden bereits vergeben. Eine Abmeldung oder Läufig-Meldung wird dem Veranstalter angezeigt — die Startnummer bleibt reserviert."
+msgstr "Les numéros de départ ont déjà été attribués. Un retrait ou un signalement en chaleur sera affiché à l'organisateur — le numéro de départ reste réservé."
+
+#: app/templates/club/event_info.html:348
+msgid "Kat. / Kl."
+msgstr "Cat. / Cl."
+
+#: app/templates/club/event_info.html:392
+msgid "Läufig-Meldung aufheben"
+msgstr "Annuler le signalement en chaleur"
+
+#: app/templates/club/event_info.html:393
+msgid "Nicht läufig"
+msgstr "Pas en chaleur"
+
+#: app/templates/club/event_info.html:397
+msgid "Hündin als läufig melden"
+msgstr "Signaler la chienne en chaleur"
+
+#: app/templates/club/event_info.html:398
+msgid "Läufig melden"
+msgstr "Signaler en chaleur"
+
+#: app/templates/club/event_info.html:406
+msgid "Vom Turnier abmelden?"
+msgstr "Se désinscrire du tournoi ?"
+
+#: app/templates/club/event_info.html:409
+msgid "Abmelden"
+msgstr "Se désinscrire"
+
+#: app/templates/club/event_info.html:423
+msgid "Startnummern vergeben am"
+msgstr "Numéros attribués le"
+
+#: app/templates/club/event_info.html:430
+msgid "Du bist für dieses Turnier noch nicht angemeldet."
+msgstr "Vous n'êtes pas encore inscrit(e) à ce tournoi."
+
+#: app/templates/club/event_info.html:438 app/templates/club/event_live.html:63
+msgid "Ergebnisse"
+msgstr "Résultats"
+
+# dashboard.html / participant_dashboard.html / profile_dogs.html /
+# startlist.html / event_info.html / superadmin_dashboard.html / users.html
+#: app/templates/club/event_info.html:440 app/templates/club/event_live.html:62
+#: app/templates/club/event_results_print.html:145
+msgid "Abgeschlossen"
+msgstr "Terminé"
+
+#: app/templates/club/event_info.html:446 app/templates/club/event_live.html:64
+#: app/templates/club/event_results_print.html:149
+#: app/templates/club/event_results_print.html:197
+#: app/templates/club/startlist.html:109
+msgid "Stand"
+msgstr "Au"
+
+#: app/templates/club/event_info.html:465
+#: app/templates/club/event_info.html:528 app/templates/club/event_live.html:60
+msgid "Offizielle Liste"
+msgstr "Liste officielle"
+
+#: app/templates/club/event_info.html:465
+msgid "Rangliste PDF"
+msgstr "PDF du classement"
+
+#: app/templates/club/event_info.html:475 app/templates/club/event_live.html:51
+#: app/templates/club/event_results_print.html:166
+msgid "Pl."
+msgstr "Pl."
+
+#: app/templates/club/event_info.html:476
+msgid "Hund / Hundeführer"
+msgstr "Chien / Conducteur"
+
+#: app/templates/club/event_info.html:478 app/templates/club/event_live.html:70
+msgid "Zeit"
+msgstr "Temps"
+
+#: app/templates/club/event_info.html:479 app/templates/club/event_live.html:71
+msgid "F / V"
+msgstr "F / V"
+
+#: app/templates/club/event_info.html:512
+msgid "Noch keine Ergebnisse verfügbar."
+msgstr "Aucun résultat disponible pour le moment."
+
+#: app/templates/club/event_info.html:517 app/templates/club/event_live.html:59
+msgid "Ranglisten"
+msgstr "Classements"
+
+#: app/templates/club/event_info.html:528 app/templates/club/event_live.html:61
+msgid "Vorläufig"
+msgstr "Provisoire"
+
+#: app/templates/club/event_live.html:19
+msgid "Rangliste drucken"
+msgstr "Imprimer le classement"
+
+#: app/templates/club/event_live.html:27
+msgid "Aktualisiert automatisch alle 15 Sekunden"
+msgstr "Mise à jour automatique toutes les 15 secondes"
+
+#: app/templates/club/event_live.html:45
+msgid "Noch kein aktiver Lauf."
+msgstr "Aucune épreuve en cours."
+
+#: app/templates/club/event_live.html:46
+msgid "Am Start"
+msgstr "Au départ"
+
+#: app/templates/club/event_live.html:47
+msgid "Kein Starter aktiv"
+msgstr "Aucun partant actif"
+
+#: app/templates/club/event_live.html:48
+msgid "Nächster"
+msgstr "Suivant"
+
+#: app/templates/club/event_live.html:49
+msgid "weitere Starter ausstehend"
+msgstr "partants supplémentaires en attente"
+
+#: app/templates/club/event_live.html:50
+msgid "Letzte 5 Ergebnisse"
+msgstr "5 derniers résultats"
+
+#: app/templates/club/event_live.html:54 app/templates/club/schedule.html:176
+#: app/templates/club/schedule.html:485
+msgid "Briefing"
+msgstr "Briefing"
+
+#: app/templates/club/event_live.html:55
+msgid "Vorbereitungspause"
+msgstr "Pause de préparation"
+
+#: app/templates/club/event_live.html:56 app/templates/club/schedule.html:146
+#: app/templates/club/schedule.html:481
+msgid "Lauf"
+msgstr "Épreuve"
+
+#: app/templates/club/event_live.html:57 app/templates/club/schedule.html:163
+#: app/templates/club/schedule.html:502
+msgid "Rangverkündigung"
+msgstr "Remise des prix"
+
+#: app/templates/club/event_live.html:65
+msgid "Offizielle Rangliste (PDF)"
+msgstr "Classement officiel (PDF)"
+
+#: app/templates/club/event_live.html:66
+msgid "Vorläufige Rangliste (PDF)"
+msgstr "Classement provisoire (PDF)"
+
+#: app/templates/club/event_live.html:73
+msgid "Zuletzt aktualisiert"
+msgstr "Dernière mise à jour"
+
+#: app/templates/club/event_live.html:74
+#: app/templates/club/event_results_print.html:149
+#: app/templates/club/event_results_print.html:197
+#: app/templates/club/startlist.html:109
+msgid "Uhr"
+msgstr "h"
+
+#: app/templates/club/event_live.html:75
+msgid "Verbindungsfehler – versuche erneut…"
+msgstr "Erreur de connexion – nouvelle tentative…"
+
+#: app/templates/club/event_results_print.html:6
+#: app/templates/public/cups/final_bracket.html:10
+msgid "Rangliste"
+msgstr "Classement"
+
+#: app/templates/club/event_results_print.html:123
+#: app/templates/public/startlist_print.html:83
+msgid "Drucken / PDF"
+msgstr "Imprimer / PDF"
+
+#: app/templates/club/event_results_print.html:147
+msgid "Vorläufige Rangliste (Live)"
+msgstr "Classement provisoire (en direct)"
+
+#: app/templates/club/event_results_print.html:170
+msgid "Zeit (s)"
+msgstr "Temps (s)"
+
+#: app/templates/club/event_results_print.html:171
+msgid "F"
+msgstr "F"
+
+#: app/templates/club/event_results_print.html:172
+msgid "V"
+msgstr "R"
+
+# event_view.html
+#: app/templates/club/event_view.html:24
+msgid "Nennschluss abgelaufen"
+msgstr "Clôture des inscriptions dépassée"
+
+#: app/templates/club/event_view.html:277
+msgid "Die Anmeldung für dieses Turnier läuft nicht über dieses Portal, sondern über ein externes Anmeldeportal des Veranstalters."
+msgstr "L'inscription à ce tournoi ne se fait pas via ce portail, mais via le portail d'inscription externe de l'organisateur."
 
 # club/event_view.html
-#: app/templates/club/event_view.html:275
+#: app/templates/club/event_view.html:289
 msgid "Für dieses Turnier anmelden"
 msgstr "S'inscrire à ce tournoi"
 
-#: app/templates/club/event_view.html:291
+#: app/templates/club/event_view.html:305
 msgid "Eine Änderung hier aktualisiert automatisch das Hundeprofil."
 msgstr "Une modification ici met automatiquement à jour le profil du chien."
 
-#: app/templates/club/event_view.html:300
+#: app/templates/club/event_view.html:314
 msgid "Läufige Hündinnen werden am Schluss der Kategorie eingeteilt."
 msgstr "Les chiennes en chaleur sont placées en fin de catégorie."
 
-#: app/templates/club/event_view.html:317
+#: app/templates/club/event_view.html:331
 msgid "Nicht gesetzt — bitte in Meine Hunde hinterlegen"
 msgstr "Non défini — veuillez renseigner dans Mes chiens"
 
-#: app/templates/club/event_view.html:328
+#: app/templates/club/event_view.html:342
 msgid "Füge zuerst einen Hund in deinem Profil hinzu, um dich anzumelden."
 msgstr "Ajoutez d'abord un chien à votre profil pour vous inscrire."
 
-#: app/templates/club/event_view.html:329
+#: app/templates/club/event_view.html:343
 msgid "Hunde verwalten"
 msgstr "Gérer les chiens"
 
-#: app/templates/club/event_view.html:339
+#: app/templates/club/event_view.html:353
 #: app/templates/club/participant_dashboard.html:58
 msgid "Meine Anmeldungen"
 msgstr "Mes inscriptions"
 
-#: app/templates/club/event_view.html:379
+#: app/templates/club/event_view.html:393
 msgid "Anmeldung stornieren?"
 msgstr "Annuler l'inscription ?"
 
-#: app/templates/club/event_view.html:381
+#: app/templates/club/event_view.html:395
 msgid "Stornieren"
 msgstr "Annuler"
 
-#: app/templates/club/event_view.html:392
+#: app/templates/club/event_view.html:406
 msgid "Noch keine Anmeldungen für dieses Turnier."
 msgstr "Aucune inscription pour ce tournoi."
 
@@ -2283,56 +2574,50 @@ msgstr "Approuvé"
 msgid "Abgelehnt"
 msgstr "Rejeté"
 
-#: app/templates/club/profile_dogs.html:27
+#: app/templates/club/profile_dogs.html:30
 msgid "Besitzer"
 msgstr "Propriétaire"
 
-#: app/templates/club/profile_dogs.html:43
-#: app/templates/club/profile_dogs.html:51
+#: app/templates/club/profile_dogs.html:46
+#: app/templates/club/profile_dogs.html:54
 msgid "nicht gesetzt"
 msgstr "non défini"
 
-#: app/templates/club/profile_dogs.html:60
+#: app/templates/club/profile_dogs.html:63
 msgid "Klasse ändern"
 msgstr "Changer de classe"
 
-#: app/templates/club/profile_dogs.html:84
+#: app/templates/club/profile_dogs.html:87
 msgid "Offene Anmeldungen werden automatisch angepasst."
 msgstr "Les inscriptions ouvertes seront automatiquement mises à jour."
 
-#: app/templates/club/profile_dogs.html:95
+#: app/templates/club/profile_dogs.html:98
 msgid "Noch keine Hunde registriert."
 msgstr "Aucun chien enregistré."
 
-#: app/templates/club/profile_dogs.html:103
+#: app/templates/club/profile_dogs.html:106
 msgid "Hund hinzufügen"
 msgstr "Ajouter un chien"
 
-#: app/templates/club/profile_dogs.html:118
+#: app/templates/club/profile_dogs.html:128
 msgid "CH = nur Ziffern (z.B. 12345) · FOREIGN = AAA-12345 (Länderkürzel-Nummer)"
-msgstr ""
-"CH = chiffres uniquement (ex. 12345) · FOREIGN = AAA-12345 (code pays-"
-"numéro)"
+msgstr "CH = chiffres uniquement (ex. 12345) · FOREIGN = AAA-12345 (code pays-numéro)"
 
-#: app/templates/club/profile_dogs.html:129
-msgid ""
-"Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), "
-"wirst du automatisch als Hundeführer verknüpft."
-msgstr ""
-"Si le chien est déjà enregistré dans le système (même numéro de licence),"
-" vous serez automatiquement lié(e) en tant que conducteur/trice."
+#: app/templates/club/profile_dogs.html:139
+msgid "Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), wirst du automatisch als Hundeführer verknüpft."
+msgstr "Si le chien est déjà enregistré dans le système (même numéro de licence), vous serez automatiquement lié(e) en tant que conducteur/trice."
+
+#: app/templates/club/profile_edit.html:36
+msgid "Der Name wird für Export/Startliste verwendet (z.B. Hundeführer-Angabe)."
+msgstr "Le nom est utilisé pour l'export/la liste de départ (p. ex. mention du conducteur)."
 
 #: app/templates/club/request_club.html:6
 msgid "Verein hinzufügen lassen"
 msgstr "Demander l'ajout d'un club"
 
 #: app/templates/club/request_club.html:13
-msgid ""
-"Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen"
-" ein — der Administrator prüft die Angaben und legt den Verein an."
-msgstr ""
-"Votre club manque dans la liste ? Entrez le numéro SKG et le nom — "
-"l'administrateur vérifiera les données et ajoutera le club."
+msgid "Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen ein — der Administrator prüft die Angaben und legt den Verein an."
+msgstr "Votre club manque dans la liste ? Entrez le numéro SKG et le nom — l'administrateur vérifiera les données et ajoutera le club."
 
 #: app/templates/club/request_club.html:32
 #: app/templates/club/request_judge.html:39
@@ -2344,12 +2629,8 @@ msgid "Neuen Richter beantragen"
 msgstr "Demander un nouveau juge"
 
 #: app/templates/club/request_judge.html:13
-msgid ""
-"Fehlt ein Richter in der Liste? Trage die Daten ein — der Administrator "
-"prüft die AIS-Nummer und legt den Richter an."
-msgstr ""
-"Un juge manque dans la liste ? Entrez les données — l'administrateur "
-"vérifiera le numéro AIS et ajoutera le juge."
+msgid "Fehlt ein Richter in der Liste? Trage die Daten ein — der Administrator prüft die AIS-Nummer und legt den Richter an."
+msgstr "Un juge manque dans la liste ? Entrez les données — l'administrateur vérifiera le numéro AIS et ajoutera le juge."
 
 #: app/templates/club/reset_password.html:13
 msgid "Passwort für"
@@ -2359,10 +2640,6 @@ msgstr "Mot de passe pour"
 #: app/templates/club/schedule.html:18
 msgid "Ringkonfiguration"
 msgstr "Configuration des rings"
-
-#: app/templates/club/schedule.html:25
-msgid "Anzahl Ringe"
-msgstr "Nombre de rings"
 
 #: app/templates/club/schedule.html:37
 msgid "Startzeit"
@@ -2397,60 +2674,32 @@ msgid "Kl. 3"
 msgstr "Cl. 3"
 
 #: app/templates/club/schedule.html:115
-msgid ""
-"Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102"
-" usw."
-msgstr ""
-"Exemple : 1101 → le premier participant Large Cl.1 reçoit le n°1101, le "
-"suivant 1102, etc."
+msgid "Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102 usw."
+msgstr "Exemple : 1101 → le premier participant Large Cl.1 reçoit le n°1101, le suivant 1102, etc."
 
 #: app/templates/club/schedule.html:120
 msgid "Einstellungen speichern"
 msgstr "Enregistrer les paramètres"
 
 #: app/templates/club/schedule.html:129
-msgid ""
-"Tipp: Beim ersten Lauf jeder Gruppe kannst du mit den Schaltern Umbau / "
-"Briefing festlegen, ob diese für die Gruppe eingerechnet werden (grün = "
-"eingerechnet). So lässt sich z. B. vor dem Open der Klasse 1 der Umbau "
-"und das Briefing weglassen."
-msgstr ""
-"Astuce : sur la première épreuve de chaque groupe, utilisez les boutons "
-"Changement de ring / Briefing pour définir si ceux-ci sont comptés pour "
-"le groupe (vert = comptés). Cela permet par exemple d’omettre le "
-"changement de ring et le briefing avant l’Open de la classe 1."
+msgid "Tipp: Beim ersten Lauf jeder Gruppe kannst du mit den Schaltern Umbau / Briefing festlegen, ob diese für die Gruppe eingerechnet werden (grün = eingerechnet). So lässt sich z. B. vor dem Open der Klasse 1 der Umbau und das Briefing weglassen."
+msgstr "Astuce : sur la première épreuve de chaque groupe, utilisez les boutons Changement de ring / Briefing pour définir si ceux-ci sont comptés pour le groupe (vert = comptés). Cela permet par exemple d’omettre le changement de ring et le briefing avant l’Open de la classe 1."
 
 #: app/templates/club/schedule.html:136
 msgid "Blöcke"
 msgstr "Blocs"
 
-#: app/templates/club/schedule.html:146 app/templates/club/schedule.html:481
-msgid "Lauf"
-msgstr "Épreuve"
-
 #: app/templates/club/schedule.html:149
 msgid "Gesch. Dauer"
 msgstr "Durée estimée"
-
-#: app/templates/club/schedule.html:163 app/templates/club/schedule.html:502
-msgid "Rangverkündigung"
-msgstr "Remise des prix"
-
-#: app/templates/club/schedule.html:176 app/templates/club/schedule.html:485
-msgid "Briefing"
-msgstr "Briefing"
 
 #: app/templates/club/schedule.html:185
 msgid "Für diese Gruppe ein-/ausrechnen"
 msgstr "Inclure/exclure pour ce groupe"
 
 #: app/templates/club/schedule.html:201
-msgid ""
-"Hier eigenen Umbau/Briefing erzwingen (z.B. getrennte Gruppe innerhalb "
-"der Klasse)"
-msgstr ""
-"Forcer ici un changement de parcours/briefing distinct (p. ex. groupe "
-"séparé au sein de la classe)"
+msgid "Hier eigenen Umbau/Briefing erzwingen (z.B. getrennte Gruppe innerhalb der Klasse)"
+msgstr "Forcer ici un changement de parcours/briefing distinct (p. ex. groupe séparé au sein de la classe)"
 
 #: app/templates/club/schedule.html:202
 msgid "Split"
@@ -2461,12 +2710,8 @@ msgid "kein"
 msgstr "aucun"
 
 #: app/templates/club/schedule.html:246
-msgid ""
-"Manuelle Teilnehmerzahl (überschreibt Online-Anmeldungen). Leer = "
-"automatisch."
-msgstr ""
-"Nombre de participants manuel (remplace les inscriptions en ligne). Vide "
-"= automatique."
+msgid "Manuelle Teilnehmerzahl (überschreibt Online-Anmeldungen). Leer = automatisch."
+msgstr "Nombre de participants manuel (remplace les inscriptions en ligne). Vide = automatique."
 
 #: app/templates/club/schedule.html:258 app/templates/club/schedule.html:518
 #: app/templates/club/schedule.html:521 app/templates/club/schedule.html:524
@@ -2486,12 +2731,8 @@ msgid "Nicht eingeplante Läufe"
 msgstr "Épreuves non planifiées"
 
 #: app/templates/club/schedule.html:335
-msgid ""
-"Klicke auf einen Lauf um ihn zu Ring 1 hinzuzufügen. Ring und Richter "
-"können danach geändert werden."
-msgstr ""
-"Cliquez sur une épreuve pour l'ajouter au ring 1. Le ring et le juge "
-"peuvent être modifiés ensuite."
+msgid "Klicke auf einen Lauf um ihn zu Ring 1 hinzuzufügen. Ring und Richter können danach geändert werden."
+msgstr "Cliquez sur une épreuve pour l'ajouter au ring 1. Le ring et le juge peuvent être modifiés ensuite."
 
 #: app/templates/club/schedule.html:349
 msgid "Lauf-Block hinzufügen"
@@ -2523,13 +2764,8 @@ msgid "z. B. Rangverkündigung Large"
 msgstr "ex. Remise des prix Large"
 
 #: app/templates/club/schedule.html:457
-msgid ""
-"Rangverkündigungen sind rein informativ und verbrauchen keine Zeit. Sie "
-"unterbrechen Gruppen: danach beginnt ein neuer Umbau."
-msgstr ""
-"Les remises des prix sont purement informatives et ne consomment pas de "
-"temps. Elles interrompent les groupes : un nouveau changement de ring "
-"commence ensuite."
+msgid "Rangverkündigungen sind rein informativ und verbrauchen keine Zeit. Sie unterbrechen Gruppen: danach beginnt ein neuer Umbau."
+msgstr "Les remises des prix sont purement informatives et ne consomment pas de temps. Elles interrompent les groupes : un nouveau changement de ring commence ensuite."
 
 #: app/templates/club/schedule.html:472
 msgid "Zeitplan-Übersicht"
@@ -2539,10 +2775,42 @@ msgstr "Aperçu du programme"
 msgid "Laufzeit"
 msgstr "Temps de parcours"
 
+#: app/templates/club/startlist.html:26 app/templates/public/overview.html:104
+#: app/templates/public/startlist.html:18
+msgid "Alle als PDF (ZIP)"
+msgstr "Tout en PDF (ZIP)"
+
+#: app/templates/club/startlist.html:30
+msgid "Turnierverwaltung"
+msgstr "Gestion du tournoi"
+
+#: app/templates/club/startlist.html:38
+msgid "Für dieses Turnier wurden noch keine Startnummern vergeben."
+msgstr "Aucun numéro de départ n'a encore été attribué pour ce tournoi."
+
+#: app/templates/club/startlist.html:42
+msgid "Noch keine bestätigten Anmeldungen mit Startnummer vorhanden."
+msgstr "Aucune inscription confirmée avec numéro de départ pour l'instant."
+
+#: app/templates/club/startlist.html:60
+msgid "Die Startnummer gilt für alle Laufarten (Agility und Jumping). Die Startreihenfolge ist in beiden Läufen identisch."
+msgstr "Le numéro de départ est valable pour toutes les épreuves (Agility et Jumping). L'ordre de départ est identique dans les deux épreuves."
+
+#: app/templates/club/startlist.html:75
+#: app/templates/club/superadmin_dashboard.html:121
+#: app/templates/club/template_create_event.html:76
+#: app/templates/club/users.html:16
+msgid "Name"
+msgstr "Nom"
+
+#: app/templates/club/startlist.html:90
+msgid "Läufig — startet am Schluss"
+msgstr "En chaleurs — part en dernier"
+
 # club/superadmin_dashboard.html
 #: app/templates/club/superadmin_dashboard.html:2
 #: app/templates/public/finalists.html:6 app/templates/public/schedule.html:6
-#: app/templates/public/startlist.html:6
+#: app/templates/public/startlist.html:10
 msgid "Übersicht"
 msgstr "Vue d'ensemble"
 
@@ -2583,19 +2851,8 @@ msgid "Testturnier erstellen"
 msgstr "Créer un tournoi test"
 
 #: app/templates/club/superadmin_dashboard.html:117
-msgid ""
-"Erstellt eine Testveranstaltung mit allen Standard-Läufen (Agility + "
-"Jumping, alle Kategorien, Kl. 1–3) und befüllt sie direkt mit "
-"Testanmeldungen. Nur für Superadmin sichtbar."
-msgstr ""
-"Crée un événement test avec toutes les courses standard (Agility + "
-"Jumping, toutes catégories, Cl. 1–3) et le remplit d'inscriptions test. "
-"Visible uniquement par le superadmin."
-
-#: app/templates/club/superadmin_dashboard.html:121
-#: app/templates/club/users.html:16
-msgid "Name"
-msgstr "Nom"
+msgid "Erstellt eine Testveranstaltung mit allen Standard-Läufen (Agility + Jumping, alle Kategorien, Kl. 1–3) und befüllt sie direkt mit Testanmeldungen. Nur für Superadmin sichtbar."
+msgstr "Crée un événement test avec toutes les courses standard (Agility + Jumping, toutes catégories, Cl. 1–3) et le remplit d'inscriptions test. Visible uniquement par le superadmin."
 
 #: app/templates/club/superadmin_dashboard.html:127
 msgid "Starter pro Lauf"
@@ -2612,6 +2869,109 @@ msgstr "aucun club"
 #: app/templates/club/superadmin_dashboard.html:149
 msgid "Erstellen"
 msgstr "Créer"
+
+#: app/templates/club/template_create_event.html:2
+msgid "Turnier aus Vorlage erzeugen"
+msgstr "Créer un tournoi à partir d'un modèle"
+
+#: app/templates/club/template_create_event.html:6
+#, python-format
+msgid "Turnier aus «%(name)s» erzeugen"
+msgstr "Créer un tournoi à partir de «%(name)s»"
+
+# club/superadmin_dashboard.html
+#: app/templates/club/template_create_event.html:7
+msgid "Zur Übersicht"
+msgstr "Vers l'aperçu"
+
+#: app/templates/club/template_create_event.html:12
+msgid "Sonderregel"
+msgstr "Règlement spécial"
+
+#: app/templates/club/template_create_event.html:13
+msgid "Turniertag(e)"
+msgstr "jour(s) de tournoi"
+
+#: app/templates/club/template_create_event.html:14
+msgid "Das Turnier wird als"
+msgstr "Le tournoi est créé comme"
+
+#: app/templates/club/template_create_event.html:14
+msgid "angelegt."
+msgstr "."
+
+#: app/templates/club/template_create_event.html:25
+msgid "Startdatum"
+msgstr "Date de début"
+
+#: app/templates/club/template_create_event.html:29
+msgid "Enddatum"
+msgstr "Date de fin"
+
+#: app/templates/club/template_create_event.html:31
+msgid "leer = eintägig (= Startdatum)"
+msgstr "vide = un jour (= date de début)"
+
+#: app/templates/club/template_create_event.html:35
+msgid "AIS-Turniernummer"
+msgstr "Numéro de tournoi AIS"
+
+#: app/templates/club/template_create_event.html:40
+msgid "AIS-Nr. Tag"
+msgstr "N° AIS jour"
+
+#: app/templates/club/template_create_event.html:44
+msgid "Jeder Turniertag hat eine eigene AIS-Nummer. Tag 1 = Haupt-Nummer, Folgetage werden als Zusatz gespeichert. Leer lassen, wenn noch nicht bekannt."
+msgstr "Chaque jour de tournoi a son propre numéro AIS. Jour 1 = numéro principal, les jours suivants sont enregistrés en complément. Laisser vide si pas encore connu."
+
+#: app/templates/club/template_create_event.html:50
+msgid "Verknüpfungen (optional)"
+msgstr "Liens (facultatif)"
+
+#: app/templates/club/template_create_event.html:54
+msgid "Webseiten-Eintrag auf z-b.tech direkt erstellen"
+msgstr "Créer directement l'entrée sur le site z-b.tech"
+
+#: app/templates/club/template_create_event.html:60
+msgid "Reservationsanfrage direkt an AdminPortal senden"
+msgstr "Envoyer directement la demande de réservation à AdminPortal"
+
+#: app/templates/club/template_create_event.html:64
+msgid "Vorlage „gemeinsame Reservation\": Existiert bereits ein Turnier aus dieser Vorlage mit Reservation, wird dieses Turnier dort angehängt statt eine neue Anfrage zu stellen."
+msgstr "Modèle « réservation commune » : si un tournoi issu de ce modèle avec réservation existe déjà, ce tournoi y sera rattaché au lieu de créer une nouvelle demande."
+
+#: app/templates/club/template_create_event.html:73
+msgid "Kontakt für Reservationsanfrage"
+msgstr "Contact pour la demande de réservation"
+
+#: app/templates/club/template_create_event.html:91
+msgid "Aus der Vorlage vorbefüllt — nur wirksam, wenn „Reservationsanfrage\" oben angehakt ist."
+msgstr "Pré-rempli depuis le modèle — effectif uniquement si « Demande de réservation » est cochée ci-dessus."
+
+#: app/templates/club/template_create_event.html:97
+#: app/templates/club/template_list.html:39
+msgid "Turnier erzeugen"
+msgstr "Créer le tournoi"
+
+#: app/templates/club/template_list.html:10
+msgid "Vorlagen für jährlich wiederkehrende Turniere deines Vereins. Beim Erzeugen werden nur Datum und AIS-Nummer(n) abgefragt — alles andere (Läufe, Config) kommt aus der Vorlage. Neue Vorlagen legt der Administrator an."
+msgstr "Modèles pour les tournois annuels récurrents de votre club. Lors de la création, seules la date et le(s) numéro(s) AIS sont demandés — tout le reste (épreuves, configuration) provient du modèle. Les nouveaux modèles sont créés par l'administrateur."
+
+#: app/templates/club/template_list.html:18
+msgid "Vorlage"
+msgstr "Modèle"
+
+#: app/templates/club/template_list.html:19
+msgid "Typ / Sonderregel"
+msgstr "Type / Règlement spécial"
+
+#: app/templates/club/template_list.html:20
+msgid "Tage"
+msgstr "Jours"
+
+#: app/templates/club/template_list.html:47
+msgid "Noch keine Vorlagen für deinen Verein vorhanden."
+msgstr "Aucun modèle pour votre club pour l'instant."
 
 #: app/templates/club/users.html:32
 msgid "Mitglied"
@@ -2661,7 +3021,7 @@ msgstr "Passés"
 
 #: app/templates/public/finalists.html:2 app/templates/public/finalists.html:7
 #: app/templates/public/finalists.html:17
-#: app/templates/public/overview.html:100
+#: app/templates/public/overview.html:127
 msgid "Finalisten"
 msgstr "Finalistes"
 
@@ -2703,39 +3063,27 @@ msgstr "Début des inscriptions"
 msgid "Meldeschluss"
 msgstr "Clôture des inscriptions"
 
-# event_detail.html — Sammelmail
-#: app/templates/public/overview.html:49
-msgid "Max. Teilnehmer"
-msgstr "Participants max."
-
 #: app/templates/public/overview.html:51
 msgid "Anmeldedetails folgen."
 msgstr "Détails d'inscription à venir."
 
-#: app/templates/public/overview.html:66
+#: app/templates/public/overview.html:87
 msgid "Aktuelle Startliste und Ranglisten"
 msgstr "Liste de départ et classements en direct"
 
-#: app/templates/public/overview.html:75 app/templates/public/startlist.html:2
-#: app/templates/public/startlist.html:8
-#: app/templates/public/startlist_print.html:6
-#: app/templates/public/startlist_print.html:103
-msgid "Meldeliste"
-msgstr "Liste des inscrits"
-
-#: app/templates/public/overview.html:77
+#: app/templates/public/overview.html:98
 msgid "Teilnehmer mit Startnummern"
 msgstr "Participants avec numéros de départ"
 
-#: app/templates/public/overview.html:77
+#: app/templates/public/overview.html:98
 msgid "Angemeldete Teilnehmer"
 msgstr "Participants inscrits"
 
-#: app/templates/public/overview.html:89
+#: app/templates/public/overview.html:116
 msgid "Ringe, Läufe und Startzeiten"
 msgstr "Rings, parcours et heures de départ"
 
-#: app/templates/public/overview.html:101
+#: app/templates/public/overview.html:128
 msgid "Qualifizierte Teams"
 msgstr "Équipes qualifiées"
 
@@ -2743,38 +3091,30 @@ msgstr "Équipes qualifiées"
 msgid "Noch kein Zeitplan veröffentlicht."
 msgstr "Aucun horaire publié pour l'instant."
 
-#: app/templates/public/startlist.html:12
-#: app/templates/public/startlist_print.html:92
-msgid "Drucken / PDF"
-msgstr "Imprimer / PDF"
+#: app/templates/public/startlist.html:8
+msgid "Ganze Startliste"
+msgstr "Liste de départ complète"
 
-#: app/templates/public/startlist.html:18
-#: app/templates/public/startlist_print.html:116
+#: app/templates/public/startlist.html:24
+#: app/templates/public/startlist_print.html:107
 msgid "Vorläufige Meldeliste – Startnummern sind noch nicht vergeben."
-msgstr ""
-"Liste des inscrits provisoire – les numéros de départ ne sont pas encore "
-"attribués."
+msgstr "Liste des inscrits provisoire – les numéros de départ ne sont pas encore attribués."
 
-#: app/templates/public/startlist.html:26
-#: app/templates/public/startlist_print.html:123
-msgid "Startnummer"
-msgstr "Numéro de départ"
+#: app/templates/public/startlist.html:39
+#: app/templates/public/startlist_print.html:120
+msgid "Start-Nr."
+msgstr "N° de départ"
 
-#: app/templates/public/startlist.html:28
-#: app/templates/public/startlist_print.html:125
-msgid "Führer/in"
-msgstr "Conducteur/trice"
-
-#: app/templates/public/startlist.html:47
-#: app/templates/public/startlist_print.html:143
+#: app/templates/public/startlist.html:61
+#: app/templates/public/startlist_print.html:145
 msgid "Noch keine Anmeldungen vorhanden."
 msgstr "Aucune inscription pour l'instant."
 
-#: app/templates/public/startlist_print.html:97
+#: app/templates/public/startlist_print.html:88
 msgid "Vereinslogo"
 msgstr "Logo du club"
 
-#: app/templates/public/startlist_print.html:110
+#: app/templates/public/startlist_print.html:101
 msgid "Eventlogo"
 msgstr "Logo de l'événement"
 
@@ -2783,10 +3123,6 @@ msgstr "Logo de l'événement"
 #: app/templates/public/cups/final_bracket.html:41
 msgid "Finale"
 msgstr "Finale"
-
-#: app/templates/public/cups/final_bracket.html:10
-msgid "Rangliste"
-msgstr "Classement"
 
 #: app/templates/public/cups/final_bracket.html:16
 msgid "Startliste (nach Losnummer)"
@@ -2926,12 +3262,17 @@ msgid "Noch keine Teams qualifiziert."
 msgstr "Aucune équipe qualifiée pour l'instant."
 
 #: app/templates/public/cups/standings.html:137
-msgid ""
-"Die Qualifikationsliste ist noch nicht verfügbar – sie wird nach jedem "
-"Meeting aktualisiert."
-msgstr ""
-"La liste de qualification n'est pas encore disponible – elle est mise à "
-"jour après chaque meeting."
+msgid "Die Qualifikationsliste ist noch nicht verfügbar – sie wird nach jedem Meeting aktualisiert."
+msgstr "La liste de qualification n'est pas encore disponible – elle est mise à jour après chaque meeting."
+
+msgid "SM"
+msgstr "SM"
+
+msgid "Nachwuchs"
+msgstr "Juniors"
+
+msgid "Nachrücker"
+msgstr "Remplaçant"
 
 # base.html
 #~ msgid "Vereinsportal"
@@ -2946,4 +3287,10 @@ msgstr ""
 
 #~ msgid "Ein Hund mit dieser Lizenznummer ist bereits registriert."
 #~ msgstr "Un chien avec ce numéro de licence est déjà enregistré."
+
+#~ msgid "Vollständige Startliste"
+#~ msgstr "Liste de départ complète"
+
+#~ msgid "Führer/in"
+#~ msgstr "Conducteur/trice"
 

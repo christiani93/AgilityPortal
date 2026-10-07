@@ -5,10 +5,97 @@
 
 Stand: 2026-10-07
 
-## Session 2026-10-07 (Teil 8) — TKAMO-Name + Verein-Name + Rasse + Zeitplan-Renderfix — ⏳ LOKAL FERTIG, UNCOMMITTED
+## Session 2026-10-07 (Teil 10) — i18n-Durchsicht Portal + Software — ⏳ LOKAL FERTIG, NICHT COMMITTED/DEPLOYED
 
-112/112 Tests grün, **noch NICHT committed/deployed** (Prod-Head bleibt `e3f4g5h6i7j8`).
-Details in Memory `project_local_20261007_tkaname_verein_schedulefix`.
+Komplette Übersetzungs-Durchsicht aller nicht-Admin-Seiten (Portal) + Druck-Routen
+(Software), Auslöser war die Club-Startliste mit DE-Text auf FR/EN. Beide Projekte
+lokal fertig + verifiziert, **nichts committed, nichts deployed.** Memory:
+`project_i18n_review_20261007`, `feedback_pybabel_fuzzy_corruption`,
+`software_print_locale_routing_gotcha`.
+
+**Portal (`AgilityPortal`, `main`, uncommitted):**
+- [x] `club/startlist.html`, `club/event_live.html` (JS via `I18N`-Objekt),
+      `club/event_results_print.html`, `club/template_list.html`,
+      `club/template_create_event.html` komplett `_()`-gewrappt.
+- [x] Lücken: `club/event_detail.html` (2 confirm-Dialoge + Zahlungs-Platzhalter),
+      `club/admin_settings.html`, `public/finalists.html` (Label-Dicts via `_(dict.get())`),
+      Python: `routes_lizenzcheck.py` flash, `routes.py` TKAMO-Proxy-JSON-Errors.
+- [x] PDF-Generator `app/services/startlist_pdf.py`: `gettext as _` importiert,
+      `_DATA_COLUMNS`→Funktion `_data_columns()` (lazy im Request-Kontext),
+      Spaltenköpfe/Block-Label/ZIP-Dateiname übersetzt.
+- [x] **Katalog-Korruption behoben:** `pybabel update` hatte ~96 FR/EN-Strings per
+      Fuzzy-Match verfälscht (LIVE: "Rasse"→FR "Classe"/EN "Class"!). Alle neu/korrekt
+      übersetzt, fuzzy=0 empty=0, `.mo` kompiliert, gettext in fr/en/de smoke-getestet.
+- [x] PDF-ZIP-Generierung mit FR-Locale getestet (Dateiname korrekt gesluggt).
+- [ ] **TODO: committen + Portal-Deploy** (`supervisorctl -c … restart agilityportal`).
+      Keine Migration. ⚠️ Fix der verfälschten Live-Übersetzungen sollte zeitnah raus.
+
+**Software (`AgilitySoftware`, `feature/ko-cup`, uncommitted):**
+- [x] `web_app/app.py` `_select_locale()` erweitert: erfasst jetzt auch Rangliste-PDF
+      (`/live/preview_ranking_pdf/`, `/live/upload_ranking_pdf/`) + KO-Druck
+      (`/ko-cup/rings_print/`, `*/print`) — vorher IMMER DE (Gotcha-Memory).
+- [x] `ko_cup_print.html`, `ko_cup_rings_print.html`, `print/all.html` (5 Header),
+      `routes_print.py` (3 flash + 2 title=), `ko_cup.py::round_label()` (mit
+      `has_request_context()`-DE-Fallback, bricht Tests ohne App-Kontext nicht).
+- [x] SOURCE_LABELS + Rundennamen sind dynamische Lookups → msgids manuell in .po;
+      fr/en gefüllt, fuzzy=0 empty=0, kompiliert, Locale-Routing 9/9 Testfälle grün.
+- [ ] **TODO: committen; geht erst mit `feature/ko-cup`→`main`-Merge + EXE-Rebuild live.**
+
+**Bewusst DE belassen (Risiko>Nutzen vor Event):** `models.py`-Label-Dicts (als Strings
+verglichen/exportiert), Lizenzcheck-Diagnosemeldungen, VAR-Beamer-Fallback,
+Superadmin-only Verein-Dropdown.
+
+## Session 2026-10-07 (Teil 9) — Öffentl. + interne Startliste je Block + ZIP-PDF — ✅ DEPLOYED
+
+Live seit 2026-10-07 (`fb68dae`/`1b80fb7`, danach Follow-up-Fixes `932b442`
+Logo-Downscale, `12811f2` ZIP auch in der internen Club-Startliste, `9bebedd`
+Logo-Seitenverhältnis, `f8ec0e1` dynamische Spaltenbreiten + einheitliche
+Zeilenhöhe + ~30 Zeilen/Seite). GitHub-Push nachgeholt, origin/main synchron.
+Keine DB-Migration (Head bleibt `f6a7b8c9d0e1`). Mit Event 16 verifiziert.
+Memory: `project_startlist_blocks_zip_pdf`.
+
+- [x] **Daten-Fix (Kern):** Nach AOA-Import+Startnummernvergabe war die öffentliche
+      Startliste leer, weil `_collect_startlist_rows` nur die `StartNumber`-Tabelle
+      las (wird NUR beim Software-Rücksync befüllt). Jetzt dreistufig:
+      StartNumber-Tabelle (Vorrang) → `Registration.start_number` (portal-intern)
+      → Meldeliste. In `app/blueprints/public/routes_events.py`.
+- [x] **Gruppierung je (Kategorie, Klasse)** wie AgilitySoftware-Startliste
+      (`_group_startlist_rows`, Reihenfolge S-M-I-L dann Klasse, Spalten
+      Start-Nr./Hundeführer/Hund/Rasse/Verein). On-Screen + Druckseite.
+- [x] **Einzelblock** `/events/<id>/startlist?cat=Large&cls=3` (direkt verlinkbar)
+      und `/events/<id>/startlist/print?cat=&cls=` (eine Druckseite = ein PDF).
+- [x] **ZIP-Download** `/events/<id>/startlists.zip`: ein PDF pro Block, ein
+      Download. Button in Event-Übersicht (`overview.html`) + Startlistenseite.
+      Einzel-Druckbuttons auf /startlist/ entfernt (ZIP ersetzt sie).
+- [x] **PDF-Engine = fpdf2** (`fpdf2==2.8.5`, neu in requirements.txt), NICHT
+      xhtml2pdf: dessen aktuelle Version zieht pyHanko + hebt `cryptography`
+      42.0.8→50 an (gepinnter DB-Treiber-Stack!). fpdf2 ist pure Python.
+      Quirks: Core-Fonts Latin-1 → `_s()`-Sanitizer (curly quotes→ASCII);
+      `pdf.table(headings_style=FontFace(...))` (kein dict); Logos aus
+      `instance/uploads/logos/<event_id>/` als Datei eingebettet.
+- [x] **DEPLOY:** `git pull` + `pip install -r requirements.txt` im Prod-venv
+      `.venv` (zieht fpdf2+Pillow+fonttools+defusedxml) + `supervisorctl -c
+      ~/.services/supervisord/hostpoint.conf restart agilityportal`. Keine
+      Migration. ZIP-Route auf Prod gegen Event 16 verifiziert (öffentlich +
+      intern, beide 200).
+- [x] **Logo-Fixes (Follow-up):** Logos wurden 1:1 in Originalauflösung
+      eingebettet (5907x5059px → 1.38MB/PDF) UND verzerrt (fix w+h statt
+      Seitenverhältnis). Jetzt: Pillow-Downscale (max. 400px) + `_fit_box()`
+      seitenrichtig, Logo darf bis zur vollen Kopfbereich-Höhe (27mm) gross
+      sein, Breite bleibt auf 30mm begrenzt.
+- [x] **Spalten/Zeilen (Follow-up):** Start-Nr. inhaltsbasiert statt fix 18mm,
+      übrige Spalten dynamisch; bei Platzmangel wird Verein zuerst gekürzt
+      ("...", kein Umbruch mehr) → einheitliche Zeilenhöhe; Zeilenhöhe auf
+      ~30 Datenzeilen/Seite kalibriert (wie Software-Rangliste-PDF).
+- [x] i18n: neue DE-Strings nach FR/EN extrahiert + übersetzt (siehe Teil 10 oben).
+
+## Session 2026-10-07 (Teil 8) — TKAMO-Name + Verein + Rasse + Gap-Neu + AOA-Import-Fix — ✅ DEPLOYED
+
+3 Commits live (`63d9dde` tka_name/Verein/Rasse/Schedule, `862a016` Gap-Neu, `15f1510`
+AOA-Import-Merge-Fix). **NEUER Prod-Alembic-Head `f6a7b8c9d0e1`** (additiv dogs.tka_name).
+DB-Backup `~/backups/agilityportal_xahizivi_main_20261007_185507.sql`. 115/115 Tests grün.
+GitHub-Push nachgeholt (der 500er war nur temporär), origin/main synchron. Details Memory
+`project_prod_deploy_20261007_gap_import`.
 - [x] **`Dog.tka_name`** (neue Migration `f6a7b8c9d0e1`, down `e3f4g5h6i7j8`, additiv add_column):
       Lizenzcheck (`_parse_and_apply_tkamo`) schreibt offiziellen TKAMO-Namen in `tka_name`
       statt `dog.name`; TKAMO-CSV (`event_lizenzcheck_csv`) nutzt `tka_name or name`.
@@ -373,7 +460,8 @@ Deploy (`44bb7df`). SQLite-Tests hatten den Bug nicht gefangen (MySQL-only-Synta
       Entscheid lokal vs. Prod für den Trockenlauf offen; Exportdatei-Pfad vom User noch ausstehend.
 - [ ] **Startlisten** (User-Plan 2026-10-07): morgen Do 08.10. die Freitag-Startliste,
       am Fr 10.10. dann die fürs Wochenende (Events 10/11) — gemeinsam mit Claude.
-      ⚠️ Vorher Teil-8-Bündel deployen, sonst Startliste noch mit Vereinsnummern/ohne Rasse.
+      Teil-8+9-Bündel (Vereinsname/Rasse/Zeitplan-Fix + Block-ZIP-PDF) ist bereits
+      deployed. **Blockiert auf den AOA-Import oben** (0 Regs → keine Startliste).
 
 ## Halloween Cup KO-System (30.10.–01.11.2026)
 

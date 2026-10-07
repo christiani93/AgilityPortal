@@ -9,6 +9,7 @@ import io
 import re
 import zipfile
 
+from flask_babel import gettext as _
 from fpdf import FPDF
 from fpdf.fonts import FontFace
 from PIL import Image
@@ -77,17 +78,18 @@ def _slug(text) -> str:
 def _block_label(group) -> str:
     cat = group["category_code"] or ""
     cls = group["class_level"]
-    return f"{cat} - Klasse {cls}" if cls else cat
+    return f"{cat} - {_('Klasse')} {cls}" if cls else cat
 
 
 # Spalten (key, Header, min-Breite mm, Schrumpf-Priorität – 1 schrumpft als
 # erstes). "start_no" schrumpft nicht mit (eigene kleine, feste Breite).
-_DATA_COLUMNS = [
-    ("handler_name", "Hundeführer", 30, 3),
-    ("dog_name", "Hund", 25, 3),
-    ("breed", "Rasse", 18, 2),
-    ("club_name", "Verein", 16, 1),
-]
+def _data_columns():
+    return [
+        ("handler_name", _("Hundeführer"), 30, 3),
+        ("dog_name", _("Hund"), 25, 3),
+        ("breed", _("Rasse"), 18, 2),
+        ("club_name", _("Verein"), 16, 1),
+    ]
 _COL_PAD = 4  # mm Puffer je Spalte (Zellenrand + Reserve für Kürzung)
 
 
@@ -116,14 +118,16 @@ def _plan_columns(pdf, rows, has_numbers, available_mm):
     damit keine Zeile umbricht (einheitliche Zeilenhöhe)."""
     cols = []
     if has_numbers:
+        nr_header = _s(_("Nr."))
         nr_values = [_s(row["start_no"]) for row in rows]
-        nr_w = max([_text_width(pdf, "Nr.", bold=True)]
+        nr_w = max([_text_width(pdf, nr_header, bold=True)]
                    + [_text_width(pdf, v) for v in nr_values]) + _COL_PAD
-        cols.append({"key": "start_no", "header": "Nr.", "width": nr_w,
+        cols.append({"key": "start_no", "header": nr_header, "width": nr_w,
                      "fixed": True})
 
     dynamic = []
-    for key, header, min_w, prio in _DATA_COLUMNS:
+    for key, header, min_w, prio in _data_columns():
+        header = _s(header)
         values = [_s(row[key] or "") for row in rows]
         natural = max([_text_width(pdf, header, bold=True)]
                       + [_text_width(pdf, v) for v in values]) + _COL_PAD
@@ -184,7 +188,7 @@ def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
             pass
     pdf.set_font("Helvetica", "B", 15)
     pdf.cell(0, 8, _s(event.name), align="C", new_x="LMARGIN", new_y="NEXT")
-    sub = _s(f"{'Startliste' if has_numbers else 'Meldeliste'} {_block_label(group)}")
+    sub = _s(f"{_('Startliste') if has_numbers else _('Meldeliste')} {_block_label(group)}")
     pdf.set_font("Helvetica", "BI", 12)
     pdf.cell(0, 7, sub, align="C", new_x="LMARGIN", new_y="NEXT")
     meta = []
@@ -195,7 +199,7 @@ def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
     pdf.set_font("Helvetica", "", 9)
     pdf.cell(0, 5, " · ".join(meta), align="C", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 5, _s(f"Anzahl Teams: {group['count']}"), align="C",
+    pdf.cell(0, 5, _s(f"{_('Anzahl Teams')}: {group['count']}"), align="C",
              new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
 
@@ -235,5 +239,5 @@ def build_startlist_zip(event, groups, has_numbers, logo_paths):
             name = f"{i:02d}_{_slug(_block_label(group))}.pdf"
             zf.writestr(name, pdf_bytes)
     buf.seek(0)
-    kind = "Startlisten" if has_numbers else "Meldelisten"
-    return buf.getvalue(), f"{kind}_{_slug(event.name)}.zip"
+    kind = _("Startlisten") if has_numbers else _("Meldelisten")
+    return buf.getvalue(), f"{_slug(kind)}_{_slug(event.name)}.zip"

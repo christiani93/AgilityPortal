@@ -11,14 +11,14 @@
   <div class="card-header fw-semibold">🔑 {{ _('API-Keys (Umgebungsvariablen)') }}</div>
   <div class="card-body">
     <p class="text-muted small mb-3">
-      Diese Keys sind in der <code>.env</code>-Datei auf dem Server gesetzt.
-      Trage sie in der AgilitySoftware unter <em>Einstellungen → Portal-Synchronisation</em> ein.
+      {{ _('Diese Keys sind in der') }} <code>.env</code>{{ _('-Datei auf dem Server gesetzt.') }}
+      {{ _('Trage sie in der AgilitySoftware unter') }} <em>{{ _('Einstellungen → Portal-Synchronisation') }}</em> {{ _('ein.') }}
     </p>
     <table class="table table-sm table-bordered mb-0">
       <thead class="table-light">
         <tr>
-          <th>Schlüssel</th>
-          <th>Wert</th>
+          <th>{{ _('Schlüssel') }}</th>
+          <th>{{ _('Wert') }}</th>
           <th style="width:2.5rem;"></th>
         </tr>
       </thead>
@@ -49,7 +49,7 @@
     </table>
   </div>
   <div class="card-footer text-muted small">
-    Zum Ändern: <code>.env</code> auf dem Server bearbeiten und den Dienst neu starten (<code>supervisorctl restart agilityportal</code>).
+    {{ _('Zum Ändern') }}: <code>.env</code> {{ _('auf dem Server bearbeiten und den Dienst neu starten') }} (<code>supervisorctl restart agilityportal</code>).
   </div>
 </div>
 
@@ -109,7 +109,7 @@
             {% if imp.event_id %}
               <a href="{{ url_for('club.event_info', event_id=imp.event_id) }}">{{ imp.event_id }}</a>
             {% else %}
-              <span class="text-muted">unbekannt</span>
+              <span class="text-muted">{{ _('unbekannt') }}</span>
             {% endif %}
           </td>
           <td class="text-center">

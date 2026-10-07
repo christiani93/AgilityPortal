@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Startliste – {{ event.name }}{% endblock %}
+{% block title %}{{ _('Startliste') }} – {{ event.name }}{% endblock %}
 
 {% block content %}
 <style>
@@ -11,7 +11,7 @@
 {# ── Kopfzeile ──────────────────────────────────────────────────────────── #}
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
   <div>
-    <h2 class="mb-0">📋 Startliste — {{ event.name }}</h2>
+    <h2 class="mb-0">📋 {{ _('Startliste') }} — {{ event.name }}</h2>
     <small class="text-muted">
       {% if event.starts_at %}{{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}
       {% if event.ends_at and event.ends_at.date() != event.starts_at.date() %}
@@ -23,11 +23,11 @@
   <div class="d-flex gap-2">
     {% if sorted_groups %}
     <a href="{{ url_for('club.event_startlist_zip', event_id=event.id) }}"
-       class="btn btn-sm btn-success">⬇️ Alle als PDF (ZIP)</a>
+       class="btn btn-sm btn-success">⬇️ {{ _('Alle als PDF (ZIP)') }}</a>
     {% endif %}
     {% if current_user.is_authenticated and current_user.is_superadmin %}
     <a href="{{ url_for('club.event_detail', event_id=event.id) }}"
-       class="btn btn-sm btn-outline-secondary">← Turnierverwaltung</a>
+       class="btn btn-sm btn-outline-secondary">← {{ _('Turnierverwaltung') }}</a>
     {% endif %}
   </div>
 </div>
@@ -35,11 +35,11 @@
 {# ── Hinweis wenn noch keine Startnummern vergeben ─────────────────────── #}
 {% if not has_numbers %}
 <div class="alert alert-warning">
-  ⚠️ Für dieses Turnier wurden noch keine Startnummern vergeben.
+  ⚠️ {{ _('Für dieses Turnier wurden noch keine Startnummern vergeben.') }}
 </div>
 {% elif not sorted_groups %}
 <div class="alert alert-info">
-  Noch keine bestätigten Anmeldungen mit Startnummer vorhanden.
+  {{ _('Noch keine bestätigten Anmeldungen mit Startnummer vorhanden.') }}
 </div>
 {% endif %}
 
@@ -49,7 +49,7 @@
   {% for (cat, cls), regs in sorted_groups %}
   <a href="#group-{{ cat }}-{{ cls }}"
      class="btn btn-sm btn-outline-primary">
-    {{ cat }} Kl.{{ cls }}
+    {{ cat }} {{ _('Kl.') }}{{ cls }}
     <span class="badge bg-primary ms-1">{{ regs | length }}</span>
   </a>
   {% endfor %}
@@ -57,26 +57,25 @@
 
 {# ── Hinweis: Startnummer gilt für alle Laufarten ─────────────────────── #}
 <div class="alert alert-light border small text-muted mb-4">
-  ℹ️ Die Startnummer gilt für alle Laufarten (Agility und Jumping).
-  Die Startreihenfolge ist in beiden Läufen identisch.
+  ℹ️ {{ _('Die Startnummer gilt für alle Laufarten (Agility und Jumping). Die Startreihenfolge ist in beiden Läufen identisch.') }}
 </div>
 
 {# ── Tabellen pro Kategorie × Klasse ──────────────────────────────────── #}
 {% for (cat, cls), regs in sorted_groups %}
 <div class="card mb-4" id="group-{{ cat }}-{{ cls }}">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">{{ cat }} — Klasse {{ cls }}</span>
-    <span class="badge bg-secondary">{{ regs | length }} Starter</span>
+    <span class="fw-semibold">{{ cat }} — {{ _('Klasse') }} {{ cls }}</span>
+    <span class="badge bg-secondary">{{ regs | length }} {{ _('Starter') }}</span>
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-hover table-striped mb-0 align-middle">
       <thead class="table-light">
         <tr>
-          <th style="width:70px;">Nr.</th>
-          <th>Name</th>
-          <th>Hund</th>
-          <th>Rasse</th>
-          <th>Verein</th>
+          <th style="width:70px;">{{ _('Nr.') }}</th>
+          <th>{{ _('Name') }}</th>
+          <th>{{ _('Hund') }}</th>
+          <th>{{ _('Rasse') }}</th>
+          <th>{{ _('Verein') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -88,7 +87,7 @@
               {{ reg.handler.first_name }} {{ reg.handler.last_name }}
             {% else %}—{% endif %}
             {% if event.bitches_in_season_start_last and reg.is_in_season %}
-              <span class="badge bg-warning text-dark ms-1" title="Läufig — startet am Schluss">♀</span>
+              <span class="badge bg-warning text-dark ms-1" title="{{ _('Läufig — startet am Schluss') }}">♀</span>
             {% endif %}
           </td>
           <td>{{ reg.dog.name if reg.dog else '—' }}</td>
@@ -107,7 +106,7 @@
 {# ── Footer ─────────────────────────────────────────────────────────────── #}
 <div class="text-muted small text-center mt-4">
   {% if event.start_numbers_generated_at %}
-    Stand: {{ event.start_numbers_generated_at.strftime("%d.%m.%Y %H:%M") }} Uhr
+    {{ _('Stand') }}: {{ event.start_numbers_generated_at.strftime("%d.%m.%Y %H:%M") }} {{ _('Uhr') }}
   {% endif %}
 </div>
 

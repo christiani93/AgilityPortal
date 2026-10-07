@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ get_locale() }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rangliste — {{ event.name }}</title>
+  <title>{{ _('Rangliste') }} — {{ event.name }}</title>
   <style>
     /* ── Basis ───────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; }
@@ -120,12 +120,12 @@
 </head>
 <body>
 
-<button class="print-btn" onclick="window.print()">🖨️ Drucken / PDF</button>
+<button class="print-btn" onclick="window.print()">🖨️ {{ _('Drucken / PDF') }}</button>
 
 <div class="page-header">
   <div class="page-header-logo">
     {% if club_logo_url %}
-      <img src="{{ club_logo_url }}" alt="Vereins-Logo">
+      <img src="{{ club_logo_url }}" alt="{{ _('Vereins-Logo') }}">
     {% endif %}
   </div>
   <div class="page-header-center">
@@ -137,16 +137,16 @@
   </div>
   <div class="page-header-logo" style="text-align:right;">
     {% if event_logo_url %}
-      <img src="{{ event_logo_url }}" alt="Event-Logo">
+      <img src="{{ event_logo_url }}" alt="{{ _('Event-Logo') }}">
     {% endif %}
   </div>
   <div class="meta">
     {% if latest_import.final %}
-      <strong>✓ Abgeschlossen</strong>
+      <strong>✓ {{ _('Abgeschlossen') }}</strong>
     {% else %}
-      ⚠ Vorläufige Rangliste (Live)
+      ⚠ {{ _('Vorläufige Rangliste (Live)') }}
     {% endif %}
-    <br>Stand: {{ result_updated }} Uhr
+    <br>{{ _('Stand') }}: {{ result_updated }} {{ _('Uhr') }}
   </div>
 </div>
 
@@ -156,20 +156,20 @@
     <span>
       {{ cls.ring }} ·
       {{ cls.discipline | capitalize if cls.discipline else '?' }} ·
-      {{ cls.category_code }} Kl.{{ cls.class_level }}
+      {{ cls.category_code }} {{ _('Kl.') }}{{ cls.class_level }}
     </span>
-    <span style="font-weight:normal; font-size:9pt;">{{ cls.results | length }} Starter</span>
+    <span style="font-weight:normal; font-size:9pt;">{{ cls.results | length }} {{ _('Starter') }}</span>
   </div>
   <table>
     <thead>
       <tr>
-        <th class="rank-col">Pl.</th>
-        <th>Hund</th>
-        <th>Hundeführer</th>
-        <th class="cent">Nr.</th>
-        <th class="num">Zeit (s)</th>
-        <th class="cent">F</th>
-        <th class="cent">V</th>
+        <th class="rank-col">{{ _('Pl.') }}</th>
+        <th>{{ _('Hund') }}</th>
+        <th>{{ _('Hundeführer') }}</th>
+        <th class="cent">{{ _('Nr.') }}</th>
+        <th class="num">{{ _('Zeit (s)') }}</th>
+        <th class="cent">{{ _('F') }}</th>
+        <th class="cent">{{ _('V') }}</th>
       </tr>
     </thead>
     <tbody>
@@ -193,8 +193,8 @@
 {% endfor %}
 
 <div class="page-footer">
-  <span>{{ event.name }}{% if event.pruefungsleiter %} · Prüfungsleiter: {{ event.pruefungsleiter }}{% endif %}</span>
-  <span>Stand: {{ result_updated }} Uhr</span>
+  <span>{{ event.name }}{% if event.pruefungsleiter %} · {{ _('Prüfungsleiter') }}: {{ event.pruefungsleiter }}{% endif %}</span>
+  <span>{{ _('Stand') }}: {{ result_updated }} {{ _('Uhr') }}</span>
 </div>
 
 </body>

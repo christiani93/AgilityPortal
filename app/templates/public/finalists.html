@@ -13,7 +13,7 @@
       <div class="card-header">
         <strong>
           {% if category %}{{ category }}{% endif %}
-          {% if division %}<span class="text-muted">– {{ division_labels.get(division, division) }}</span>{% endif %}
+          {% if division %}<span class="text-muted">– {{ _(division_labels.get(division, division)) }}</span>{% endif %}
           {% if not category and not division %}{{ _('Finalisten') }}{% endif %}
         </strong>
         <span class="text-muted small">({{ items|length }})</span>
@@ -40,11 +40,11 @@
               <td>{{ f.license }}</td>
               <td>
                 {% if f.source == 'title_defender' %}
-                  <span class="badge bg-warning text-dark">{{ source_labels.get(f.source, f.source) }}</span>
+                  <span class="badge bg-warning text-dark">{{ _(source_labels.get(f.source, f.source)) }}</span>
                 {% elif f.source == 'nachruecker' %}
-                  <span class="badge bg-secondary">{{ source_labels.get(f.source, f.source) }}</span>
+                  <span class="badge bg-secondary">{{ _(source_labels.get(f.source, f.source)) }}</span>
                 {% else %}
-                  <span class="badge bg-success">{{ source_labels.get(f.source, f.source) }}</span>
+                  <span class="badge bg-success">{{ _(source_labels.get(f.source, f.source)) }}</span>
                 {% endif %}
               </td>
               <td>{{ f.from_class if f.from_class is not none else '–' }}</td>
