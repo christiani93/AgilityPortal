@@ -199,11 +199,30 @@ def public_finalists(event_id):
     )
 
 
-def _collect_startlist_rows(event_id):
-    """Sammelt Startlisten-Zeilen für ein Event.
+def _row_from_registration(registration, start_no):
+    dog = registration.dog
+    handler = registration.handler
+    return {
+        "start_no": start_no,
+        "dog_name": dog.name if dog else "",
+        "breed": (dog.breed if dog else "") or "",
+        "handler_name": f"{handler.first_name} {handler.last_name}" if handler else "",
+        "category_code": registration.category_code,
+        "class_level": registration.class_level,
+        "club_name": registration.club_display_name or "",
+    }
 
-    Mit vergebenen Startnummern → echte Startliste (nach Startnummer sortiert).
-    Ohne Startnummern → vorläufige Meldeliste (nach Kategorie/Klasse/Hund).
+
+def _collect_startlist_rows(event_id):
+    """Sammelt Startlisten-Zeilen für ein Event (dreistufig):
+
+    1. StartNumber-Tabelle befüllt (Rücksync aus der AgilitySoftware) → deren
+       Nummern haben Vorrang, denn das ist der massgebliche Event-Tag-Stand.
+    2. sonst bestätigte Anmeldungen mit portal-intern vergebener Startnummer
+       (``Registration.start_number``) → echte Startliste, nach Nummer sortiert.
+    3. sonst → vorläufige Meldeliste (alle offenen Anmeldungen, nach
+       Kategorie/Klasse/Hund).
+
     Rückgabe: (rows, has_numbers)
     """
     numbers = (
@@ -211,53 +230,75 @@ def _collect_startlist_rows(event_id):
         .order_by(StartNumber.start_no)
         .all()
     )
-
-    rows = []
     if numbers:
+        rows = []
         for entry in numbers:
             registration = Registration.query.get(entry.registration_id)
-            if not registration:
-                continue
-            dog = registration.dog
-            handler = registration.handler
-            rows.append(
-                {
-                    "start_no": entry.start_no,
-                    "dog_name": dog.name if dog else "",
-                    "breed": (dog.breed if dog else "") or "",
-                    "handler_name": f"{handler.first_name} {handler.last_name}" if handler else "",
-                    "category_code": registration.category_code,
-                    "class_level": registration.class_level,
-                    "club_name": registration.club_display_name or "",
-                }
-            )
-    else:
-        registrations = (
-            Registration.query.filter_by(event_id=event_id)
-            .filter(Registration.status != RegistrationStatus.CANCELLED)
-            .all()
+            if registration:
+                rows.append(_row_from_registration(registration, entry.start_no))
+        return rows, True
+
+    confirmed_numbered = (
+        Registration.query.filter_by(
+            event_id=event_id, status=RegistrationStatus.CONFIRMED
         )
-        for registration in registrations:
-            dog = registration.dog
-            handler = registration.handler
-            rows.append(
-                {
-                    "start_no": None,
-                    "dog_name": dog.name if dog else "",
-                    "breed": (dog.breed if dog else "") or "",
-                    "handler_name": f"{handler.first_name} {handler.last_name}" if handler else "",
-                    "category_code": registration.category_code,
-                    "class_level": registration.class_level,
-                    "club_name": registration.club_display_name or "",
-                }
-            )
-        rows.sort(key=lambda r: (
-            _CATEGORY_ORDER.get(r["category_code"], 99),
-            r["class_level"] or 0,
+        .filter(Registration.start_number.isnot(None))
+        .order_by(Registration.start_number)
+        .all()
+    )
+    if confirmed_numbered:
+        rows = [_row_from_registration(r, r.start_number) for r in confirmed_numbered]
+        return rows, True
+
+    registrations = (
+        Registration.query.filter_by(event_id=event_id)
+        .filter(Registration.status != RegistrationStatus.CANCELLED)
+        .all()
+    )
+    rows = [_row_from_registration(r, None) for r in registrations]
+    rows.sort(key=lambda r: (
+        _CATEGORY_ORDER.get(r["category_code"], 99),
+        r["class_level"] or 0,
+        r["dog_name"].lower(),
+    ))
+    return rows, False
+
+
+def _group_startlist_rows(rows, only_cat=None, only_cls=None):
+    """Gruppiert Startlisten-Zeilen zu je einem Block pro (Kategorie, Klasse) –
+    wie die Startliste der AgilitySoftware (ein Block = ein Lauf-Startliste).
+
+    only_cat/only_cls filtern optional auf genau einen Block (für Einzel-PDF).
+    Rückgabe: Liste von {category_code, class_level, rows, count}, sortiert nach
+    Kategorie (S-M-I-L) und Klasse."""
+    from collections import OrderedDict
+    groups = OrderedDict()
+    for row in rows:
+        cat = row["category_code"]
+        cls = row["class_level"]
+        if only_cat is not None and cat != only_cat:
+            continue
+        if only_cls is not None and (cls or 0) != only_cls:
+            continue
+        groups.setdefault((cat, cls), []).append(row)
+
+    ordered = sorted(
+        groups.items(),
+        key=lambda kv: (_CATEGORY_ORDER.get(kv[0][0], 99), kv[0][1] or 0),
+    )
+    result = []
+    for (cat, cls), block_rows in ordered:
+        block_rows.sort(key=lambda r: (
+            r["start_no"] if r["start_no"] is not None else 10_000,
             r["dog_name"].lower(),
         ))
-
-    return rows, bool(numbers)
+        result.append({
+            "category_code": cat,
+            "class_level": cls,
+            "rows": block_rows,
+            "count": len(block_rows),
+        })
+    return result
 
 
 def _event_logo_urls(event):
@@ -281,13 +322,20 @@ def public_startlist(event_id):
     # Meldeliste/Startliste ist für publizierte Events öffentlich sichtbar –
     # gleich wie für eingeloggte Nutzer (kein startlist_public-Gate mehr).
 
+    # ?cat=&cls= blendet auf genau eine Klasse/Kategorie ein → direkt verlinkbar.
+    only_cat = request.args.get("cat") or None
+    only_cls = request.args.get("cls", type=int)
+
     rows, has_numbers = _collect_startlist_rows(event_id)
+    groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls)
 
     return render_template(
         "public/startlist.html",
         event=event,
+        groups=groups,
         rows=rows,
         has_numbers=has_numbers,
+        single_block=bool(only_cat or only_cls),
     )
 
 
@@ -295,19 +343,25 @@ def public_startlist(event_id):
 def public_startlist_print(event_id):
     """Druckfertige, login-freie Startliste/Meldeliste mit Logo-Kopf.
 
-    Gleiche Daten wie die öffentliche Startliste, aber als eigenständige
-    A4-Druckseite (Browser → „Als PDF speichern")."""
+    Je ein Block pro (Kategorie, Klasse), Layout wie in der AgilitySoftware.
+    Ohne Filter: alle Blöcke mit Seitenumbruch (Sammeldruck). Mit ?cat=&cls=
+    genau ein Block → eine Druckseite = ein PDF pro Klasse/Kategorie beim
+    „Als PDF speichern"."""
     event = Event.query.get_or_404(event_id)
     if not event.is_published and not _has_admin_key():
         abort(404)
 
+    only_cat = request.args.get("cat") or None
+    only_cls = request.args.get("cls", type=int)
+
     rows, has_numbers = _collect_startlist_rows(event_id)
+    groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls)
     event_logo_url, club_logo_url = _event_logo_urls(event)
 
     return render_template(
         "public/startlist_print.html",
         event=event,
-        rows=rows,
+        groups=groups,
         has_numbers=has_numbers,
         event_logo_url=event_logo_url,
         club_logo_url=club_logo_url,

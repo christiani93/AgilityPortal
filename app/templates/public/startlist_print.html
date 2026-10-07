@@ -37,30 +37,21 @@
 
     .list-note { font-size: 9pt; color: #555; margin: 0 0 1em; }
 
+    /* ── Block pro Kategorie/Klasse ──────────────────────────── */
+    .block { page-break-after: always; }
+    .block:last-child { page-break-after: auto; }
+    .block-title { text-align: center; font-size: 15pt; font-weight: 700; font-style: italic; margin: .4cm 0 2px 0; }
+    .block-count { text-align: center; font-size: 10pt; font-weight: 600; margin: 0 0 10px 0; }
+
     /* ── Tabelle ─────────────────────────────────────────────── */
     table { width: 100%; border-collapse: collapse; font-size: 10pt; }
-    thead th {
-      background: #f0f0f0;
-      border-bottom: 1px solid #999;
-      padding: .25em .4em;
-      text-align: left;
-    }
+    th, td { border: none; border-bottom: 1px solid #ccc; padding: 4px 6px; text-align: left; }
+    thead th { border-bottom: 1.5px solid #333; background: transparent; font-weight: 700; }
     thead { display: table-header-group; }
-    tbody tr { border-bottom: 1px solid #ddd; page-break-inside: avoid; }
-    tbody tr:nth-child(even) { background: #f9f9f9; }
-    td { padding: .22em .4em; }
-    td.num  { text-align: right; width: 4em; }
-    td.cent { text-align: center; width: 5em; }
+    tbody tr { page-break-inside: avoid; }
+    td.num { width: 4em; }
 
-    .page-footer {
-      margin-top: 2em;
-      border-top: 1px solid #ccc;
-      padding-top: .5em;
-      font-size: 8pt;
-      color: #666;
-      display: flex;
-      justify-content: space-between;
-    }
+    .block-footer { margin-top: 10px; padding-top: 4px; border-top: 1px solid #999; display: flex; justify-content: space-between; font-size: 8pt; color: #666; }
 
     /* ── Screen-only: Druck-Button ───────────────────────────── */
     .print-btn {
@@ -112,45 +103,47 @@
   </div>
 </div>
 
-{% if not has_numbers and rows %}
+{% if not has_numbers and groups %}
 <p class="list-note">{{ _('Vorläufige Meldeliste – Startnummern sind noch nicht vergeben.') }}</p>
 {% endif %}
 
-{% if rows %}
-<table>
-  <thead>
-    <tr>
-      {% if has_numbers %}<th class="cent">{{ _('Startnummer') }}</th>{% endif %}
-      <th>{{ _('Hund') }}</th>
-      <th>{{ _('Rasse') }}</th>
-      <th>{{ _('Führer/in') }}</th>
-      <th>{{ _('Verein') }}</th>
-      <th>{{ _('Kategorie') }}</th>
-      <th>{{ _('Klasse') }}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in rows %}
-    <tr>
-      {% if has_numbers %}<td class="cent">{{ row.start_no }}</td>{% endif %}
-      <td>{{ row.dog_name }}</td>
-      <td>{{ row.breed or '—' }}</td>
-      <td>{{ row.handler_name }}</td>
-      <td>{{ row.club_name or '—' }}</td>
-      <td>{{ row.category_code }}</td>
-      <td>{% if row.class_level %}{{ _('Klasse') }} {{ row.class_level }}{% else %}–{% endif %}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% for group in groups %}
+<div class="block">
+  <div class="block-title">
+    {% if has_numbers %}{{ _('Startliste') }}{% else %}{{ _('Meldeliste') }}{% endif %}
+    {{ group.category_code }}{% if group.class_level %} – {{ _('Klasse') }} {{ group.class_level }}{% endif %}
+  </div>
+  <div class="block-count">{{ _('Anzahl Teams') }}: {{ group.count }}</div>
+  <table>
+    <thead>
+      <tr>
+        {% if has_numbers %}<th class="num">{{ _('Start-Nr.') }}</th>{% endif %}
+        <th>{{ _('Hundeführer') }}</th>
+        <th>{{ _('Hund') }}</th>
+        <th>{{ _('Rasse') }}</th>
+        <th>{{ _('Verein') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in group.rows %}
+      <tr>
+        {% if has_numbers %}<td class="num"><strong>{{ row.start_no }}</strong></td>{% endif %}
+        <td>{{ row.handler_name }}</td>
+        <td>{{ row.dog_name }}</td>
+        <td>{{ row.breed or '' }}</td>
+        <td>{{ row.club_name or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="block-footer">
+    <span>{{ event.name }}{% if event.starts_at %} — {{ event.starts_at.strftime("%d.%m.%Y") }}{% endif %}</span>
+    <span>{{ group.category_code }}{% if group.class_level %} / {{ _('Klasse') }} {{ group.class_level }}{% endif %}</span>
+  </div>
+</div>
 {% else %}
 <p class="list-note">{{ _('Noch keine Anmeldungen vorhanden.') }}</p>
-{% endif %}
-
-<div class="page-footer">
-  <span>{{ event.name }}</span>
-  <span>{{ rows|length }} {% if has_numbers %}{{ _('Starter') }}{% else %}{{ _('Anmeldungen') }}{% endif %}</span>
-</div>
+{% endfor %}
 
 </body>
 </html>

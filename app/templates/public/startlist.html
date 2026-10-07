@@ -3,52 +3,66 @@
 
 {% block content %}
 <div class="container py-4">
-  <p class="mb-2"><a href="{{ url_for('public_events.public_overview', event_id=event.id) }}">&larr; {{ _('Übersicht') }}</a></p>
+  <p class="mb-2">
+    {% if single_block %}
+    <a href="{{ url_for('public_events.public_startlist', event_id=event.id) }}">&larr; {{ _('Ganze Startliste') }}</a>
+    {% else %}
+    <a href="{{ url_for('public_events.public_overview', event_id=event.id) }}">&larr; {{ _('Übersicht') }}</a>
+    {% endif %}
+  </p>
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
     <h1 class="mb-0">{{ event.name }} – {% if has_numbers %}{{ _('Startliste') }}{% else %}{{ _('Meldeliste') }}{% endif %}</h1>
-    {% if rows %}
+    {% if groups %}
     <a class="btn btn-outline-primary" target="_blank" rel="noopener"
        href="{{ url_for('public_events.public_startlist_print', event_id=event.id) }}">
-      🖨️ {{ _('Drucken / PDF') }}
+      🖨️ {{ _('Alle drucken / PDF') }}
     </a>
     {% endif %}
   </div>
 
-  {% if not has_numbers and rows %}
+  {% if not has_numbers and groups %}
   <p class="text-muted">{{ _('Vorläufige Meldeliste – Startnummern sind noch nicht vergeben.') }}</p>
   {% endif %}
 
-  {% if rows %}
-  <div class="table-responsive">
-    <table class="table table-striped">
-      <thead class="table-light">
-        <tr>
-          {% if has_numbers %}<th>{{ _('Startnummer') }}</th>{% endif %}
-          <th>{{ _('Hund') }}</th>
-          <th>{{ _('Rasse') }}</th>
-          <th>{{ _('Führer/in') }}</th>
-          <th>{{ _('Verein') }}</th>
-          <th>{{ _('Kategorie') }}</th>
-          <th>{{ _('Klasse') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr>
-          {% if has_numbers %}<td>{{ row.start_no }}</td>{% endif %}
-          <td>{{ row.dog_name }}</td>
-          <td>{{ row.breed or '—' }}</td>
-          <td>{{ row.handler_name }}</td>
-          <td>{{ row.club_name or '—' }}</td>
-          <td>{{ row.category_code }}</td>
-          <td>{% if row.class_level %}{{ _('Klasse') }} {{ row.class_level }}{% else %}–{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  {% for group in groups %}
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <span>
+        <strong>{{ group.category_code }}{% if group.class_level %} – {{ _('Klasse') }} {{ group.class_level }}{% endif %}</strong>
+        <span class="text-muted ms-2">{{ _('Anzahl Teams') }}: {{ group.count }}</span>
+      </span>
+      <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
+         href="{{ url_for('public_events.public_startlist_print', event_id=event.id, cat=group.category_code, cls=group.class_level) }}">
+        🖨️ {{ _('Als PDF') }}
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead class="table-light">
+          <tr>
+            {% if has_numbers %}<th>{{ _('Start-Nr.') }}</th>{% endif %}
+            <th>{{ _('Hundeführer') }}</th>
+            <th>{{ _('Hund') }}</th>
+            <th>{{ _('Rasse') }}</th>
+            <th>{{ _('Verein') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in group.rows %}
+          <tr>
+            {% if has_numbers %}<td>{{ row.start_no }}</td>{% endif %}
+            <td>{{ row.handler_name }}</td>
+            <td>{{ row.dog_name }}</td>
+            <td>{{ row.breed or '—' }}</td>
+            <td>{{ row.club_name or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
   {% else %}
   <p class="text-muted">{{ _('Noch keine Anmeldungen vorhanden.') }}</p>
-  {% endif %}
+  {% endfor %}
 </div>
 {% endblock %}
