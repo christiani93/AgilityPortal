@@ -116,9 +116,10 @@ def test_startlist_print_page_returns_200_with_rows(app):
         # Eigenständige Druckseite, nicht in base.html eingebettet.
         assert "<!DOCTYPE html>" in body
 
-        # Normale Startliste verlinkt auf die Druckseite.
+        # Normale Startliste bietet den ZIP-Download (ein PDF pro Block) an;
+        # der Einzel-Druckbutton wurde zugunsten des ZIPs entfernt.
         list_resp = client.get(f"/events/{event.id}/startlist")
-        assert f"/events/{event.id}/startlist/print" in list_resp.get_data(as_text=True)
+        assert f"/events/{event.id}/startlists.zip" in list_resp.get_data(as_text=True)
 
 
 def test_startlist_print_page_404_when_unpublished(app):

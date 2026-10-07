@@ -314,6 +314,23 @@ def _event_logo_urls(event):
     return event_logo_url, club_logo_url
 
 
+def _event_logo_paths(event):
+    """(event_logo_path, club_logo_path) als Dateipfade für die PDF-Einbettung,
+    oder None wenn kein Logo hinterlegt ist."""
+    import os
+    from app.blueprints.club.routes import LOGO_UPLOAD_FOLDER
+
+    base = os.path.join(current_app.instance_path, LOGO_UPLOAD_FOLDER, str(event.id))
+
+    def _path(fname):
+        if not fname:
+            return None
+        p = os.path.join(base, fname)
+        return p if os.path.exists(p) else None
+
+    return _path(event.event_logo_filename), _path(event.club_logo_filename)
+
+
 @public_events_bp.get("/events/<int:event_id>/startlist")
 def public_startlist(event_id):
     event = Event.query.get_or_404(event_id)
@@ -365,4 +382,30 @@ def public_startlist_print(event_id):
         has_numbers=has_numbers,
         event_logo_url=event_logo_url,
         club_logo_url=club_logo_url,
+    )
+
+
+@public_events_bp.get("/events/<int:event_id>/startlists.zip")
+def public_startlist_zip(event_id):
+    """Alle Block-Startlisten als ZIP (ein PDF pro Kategorie/Klasse) – ein
+    einziger Download statt vieler Browser-Druckdialoge."""
+    from flask import Response
+
+    event = Event.query.get_or_404(event_id)
+    if not event.is_published and not _has_admin_key():
+        abort(404)
+
+    rows, has_numbers = _collect_startlist_rows(event_id)
+    groups = _group_startlist_rows(rows)
+    if not groups:
+        abort(404)
+
+    from app.services.startlist_pdf import build_startlist_zip
+    zip_bytes, filename = build_startlist_zip(
+        event, groups, has_numbers, _event_logo_paths(event)
+    )
+    return Response(
+        zip_bytes,
+        mimetype="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

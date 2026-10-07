@@ -94,3 +94,24 @@ def test_grouping_orders_blocks_and_filters(app):
         # Einzelblock-Filter für Einzel-PDF
         only = _group_startlist_rows(rows, only_cat="Large", only_cls=3)
         assert len(only) == 1 and only[0]["count"] == 2
+
+
+def test_zip_download_one_pdf_per_block(app):
+    import io
+    import zipfile
+    with app.app_context():
+        event, _ = _seed_event()
+        _add_reg(event, "1001", "Shy’m", "Large", 3, start_number=1301)
+        _add_reg(event, "1002", "Stellar", "Small", 1, start_number=4101)
+        db.session.commit()
+        client = app.test_client()
+        r = client.get(f"/events/{event.id}/startlists.zip")
+        assert r.status_code == 200
+        assert r.headers["Content-Type"] == "application/zip"
+        zf = zipfile.ZipFile(io.BytesIO(r.get_data()))
+        names = zf.namelist()
+        assert len(names) == 2  # ein PDF je Block
+        for n in names:
+            assert zf.read(n)[:4] == b"%PDF"
+        # S-M-I-L: Small-Block zuerst
+        assert names[0].startswith("01_") and "Small" in names[0]

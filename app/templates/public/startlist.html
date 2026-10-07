@@ -13,9 +13,9 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
     <h1 class="mb-0">{{ event.name }} – {% if has_numbers %}{{ _('Startliste') }}{% else %}{{ _('Meldeliste') }}{% endif %}</h1>
     {% if groups %}
-    <a class="btn btn-outline-primary" target="_blank" rel="noopener"
-       href="{{ url_for('public_events.public_startlist_print', event_id=event.id) }}">
-      🖨️ {{ _('Alle drucken / PDF') }}
+    <a class="btn btn-outline-primary"
+       href="{{ url_for('public_events.public_startlist_zip', event_id=event.id) }}">
+      ⬇️ {{ _('Alle als PDF (ZIP)') }}
     </a>
     {% endif %}
   </div>
@@ -31,10 +31,6 @@
         <strong>{{ group.category_code }}{% if group.class_level %} – {{ _('Klasse') }} {{ group.class_level }}{% endif %}</strong>
         <span class="text-muted ms-2">{{ _('Anzahl Teams') }}: {{ group.count }}</span>
       </span>
-      <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
-         href="{{ url_for('public_events.public_startlist_print', event_id=event.id, cat=group.category_code, cls=group.class_level) }}">
-        🖨️ {{ _('Als PDF') }}
-      </a>
     </div>
     <div class="table-responsive">
       <table class="table table-striped mb-0">

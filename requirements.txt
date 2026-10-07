@@ -14,4 +14,5 @@ requests==2.32.3
 Flask-Babel>=3.1.0
 beautifulsoup4==4.12.3
 openpyxl==3.1.5
+fpdf2==2.8.5
 tzdata>=2024.1; sys_platform == "win32"

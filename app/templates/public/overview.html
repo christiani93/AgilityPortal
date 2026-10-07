@@ -90,15 +90,21 @@
     </div>
     {% endif %}
     <div class="col-md-4">
-      <a href="{{ url_for('public_events.public_startlist', event_id=event.id) }}"
-         class="card h-100 text-decoration-none shadow-sm">
-        <div class="card-body">
+      <div class="card h-100 shadow-sm">
+        <a href="{{ url_for('public_events.public_startlist', event_id=event.id) }}"
+           class="card-body text-decoration-none text-reset d-block">
           <h3 class="h6 card-title">{% if start_numbers_assigned %}{{ _('Startliste') }}{% else %}{{ _('Meldeliste') }}{% endif %}</h3>
           <p class="card-text text-muted small mb-0">
             {% if start_numbers_assigned %}{{ _('Teilnehmer mit Startnummern') }}{% else %}{{ _('Angemeldete Teilnehmer') }}{% endif %}
           </p>
+        </a>
+        <div class="card-footer bg-transparent border-0 pt-0">
+          <a class="btn btn-sm btn-outline-primary"
+             href="{{ url_for('public_events.public_startlist_zip', event_id=event.id) }}">
+            ⬇️ {{ _('Alle als PDF (ZIP)') }}
+          </a>
         </div>
-      </a>
+      </div>
     </div>
 
     {% if event.schedule_public %}
