@@ -21,6 +21,8 @@ _LOGO_MAX_PX = 400
 
 
 def _shrink_logo(path):
+    """(buffer, breite_px, höhe_px) oder None. Pixel-Grösse wird gebraucht, um
+    das Logo später seitenrichtig (ohne Verzerrung) ins PDF einzupassen."""
     if not path:
         return None
     try:
@@ -29,9 +31,16 @@ def _shrink_logo(path):
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         buf.seek(0)
-        return buf
+        return buf, img.width, img.height
     except Exception:
-        return path
+        return None
+
+
+def _fit_box(px_w, px_h, max_w_mm, max_h_mm):
+    """Skaliert (px_w, px_h) proportional so gross wie möglich in die Box
+    max_w_mm x max_h_mm hinein, ohne das Seitenverhältnis zu verändern."""
+    scale = min(max_w_mm / px_w, max_h_mm / px_h)
+    return px_w * scale, px_h * scale
 
 # Kerntypografie → ASCII/Latin-1, damit die Core-Fonts (Latin-1) keine
 # Unicode-Zeichen aus Namen stolpern lassen (z.B. „Shy’m", Gedankenstriche).
@@ -68,15 +77,23 @@ def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
     pdf.add_page()
 
     # ── Kopf mit Logos ───────────────────────────────────────────────
+    # Box max. 30x16mm je Logo, Seitenverhältnis bleibt erhalten (_fit_box) –
+    # sonst verzerrt fpdf2 bei fix vorgegebenem w UND h.
     top = pdf.get_y()
     if club_logo:
+        buf, px_w, px_h = club_logo
+        buf.seek(0)
+        w, h = _fit_box(px_w, px_h, 30, 16)
         try:
-            pdf.image(club_logo, x=10, y=top, h=16)
+            pdf.image(buf, x=10, y=top, w=w, h=h)
         except Exception:
             pass
     if event_logo:
+        buf, px_w, px_h = event_logo
+        buf.seek(0)
+        w, h = _fit_box(px_w, px_h, 30, 16)
         try:
-            pdf.image(event_logo, x=210 - 10 - 30, y=top, h=16, w=30)
+            pdf.image(buf, x=210 - 10 - w, y=top, w=w, h=h)
         except Exception:
             pass
     pdf.set_font("Helvetica", "B", 15)
@@ -131,9 +148,6 @@ def build_startlist_zip(event, groups, has_numbers, logo_paths):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for i, group in enumerate(groups, start=1):
-            for logo in shrunk_logos:
-                if hasattr(logo, "seek"):
-                    logo.seek(0)
             pdf_bytes = _render_block_pdf(event, group, has_numbers, shrunk_logos)
             name = f"{i:02d}_{_slug(_block_label(group))}.pdf"
             zf.writestr(name, pdf_bytes)
