@@ -5,15 +5,16 @@
 
 Stand: 2026-10-07
 
-## Session 2026-10-07 (Teil 10) — i18n-Durchsicht Portal + Software — ⏳ LOKAL FERTIG, NICHT COMMITTED/DEPLOYED
+## Session 2026-10-07 (Teil 10) — i18n-Durchsicht Portal + Software — ✅ Portal DEPLOYED, Software committed (unreleased)
 
 Komplette Übersetzungs-Durchsicht aller nicht-Admin-Seiten (Portal) + Druck-Routen
-(Software), Auslöser war die Club-Startliste mit DE-Text auf FR/EN. Beide Projekte
-lokal fertig + verifiziert, **nichts committed, nichts deployed.** Memory:
+(Software), Auslöser war die Club-Startliste mit DE-Text auf FR/EN. Portal committed
+(`5d9216e`) + live deployed (Supervisor-Restart ok, 200 OK, keine Migration). Software
+committed (`9ea596b` auf `feature/ko-cup`), noch nicht gemerged/released. Memory:
 `project_i18n_review_20261007`, `feedback_pybabel_fuzzy_corruption`,
 `software_print_locale_routing_gotcha`.
 
-**Portal (`AgilityPortal`, `main`, uncommitted):**
+**Portal (`AgilityPortal`, `main`, committed `5d9216e`, DEPLOYED):**
 - [x] `club/startlist.html`, `club/event_live.html` (JS via `I18N`-Objekt),
       `club/event_results_print.html`, `club/template_list.html`,
       `club/template_create_event.html` komplett `_()`-gewrappt.
@@ -27,10 +28,10 @@ lokal fertig + verifiziert, **nichts committed, nichts deployed.** Memory:
       Fuzzy-Match verfälscht (LIVE: "Rasse"→FR "Classe"/EN "Class"!). Alle neu/korrekt
       übersetzt, fuzzy=0 empty=0, `.mo` kompiliert, gettext in fr/en/de smoke-getestet.
 - [x] PDF-ZIP-Generierung mit FR-Locale getestet (Dateiname korrekt gesluggt).
-- [ ] **TODO: committen + Portal-Deploy** (`supervisorctl -c … restart agilityportal`).
-      Keine Migration. ⚠️ Fix der verfälschten Live-Übersetzungen sollte zeitnah raus.
+- [x] Committed + deployed 2026-10-07 (`supervisorctl -c … restart agilityportal`,
+      keine Migration, Head bleibt `f6a7b8c9d0e1`). Fix der verfälschten Live-Übersetzungen ist live.
 
-**Software (`AgilitySoftware`, `feature/ko-cup`, uncommitted):**
+**Software (`AgilitySoftware`, `feature/ko-cup`, committed `9ea596b`):**
 - [x] `web_app/app.py` `_select_locale()` erweitert: erfasst jetzt auch Rangliste-PDF
       (`/live/preview_ranking_pdf/`, `/live/upload_ranking_pdf/`) + KO-Druck
       (`/ko-cup/rings_print/`, `*/print`) — vorher IMMER DE (Gotcha-Memory).
@@ -39,7 +40,7 @@ lokal fertig + verifiziert, **nichts committed, nichts deployed.** Memory:
       `has_request_context()`-DE-Fallback, bricht Tests ohne App-Kontext nicht).
 - [x] SOURCE_LABELS + Rundennamen sind dynamische Lookups → msgids manuell in .po;
       fr/en gefüllt, fuzzy=0 empty=0, kompiliert, Locale-Routing 9/9 Testfälle grün.
-- [ ] **TODO: committen; geht erst mit `feature/ko-cup`→`main`-Merge + EXE-Rebuild live.**
+- [x] Committed 2026-10-07; geht erst mit `feature/ko-cup`→`main`-Merge + EXE-Rebuild live.
 
 **Bewusst DE belassen (Risiko>Nutzen vor Event):** `models.py`-Label-Dicts (als Strings
 verglichen/exportiert), Lizenzcheck-Diagnosemeldungen, VAR-Beamer-Fallback,
