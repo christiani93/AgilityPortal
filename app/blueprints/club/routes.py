@@ -1920,7 +1920,14 @@ def event_assign_startnumbers(event_id):
         abort(404)
     _assert_event_access(event)
 
-    MIN_GAP = 20   # Mindest-Lücke zwischen zwei Hunden desselben Handlers
+    # Ziel: gleichmässige Pausen für Handler mit mehreren Hunden im selben Block.
+    # Massgeblich ist die SPREIZUNG Block/N (N = eigene Hunde im Block), nicht die
+    # Blockgrösse: ergibt die gleichmässige Verteilung schon >= EVEN_THRESHOLD
+    # Startplätze Abstand, wird gleichmässig verteilt (Soll-Lücke Block/N). Reicht
+    # das nicht, werden die eigenen Hunde maximal gespreizt (Soll-Lücke Block/(N-1),
+    # d.h. auf die Block-Extreme) → grösstmöglicher Abstand.
+    EVEN_THRESHOLD = 20   # ab dieser Spreizung (Block/N) gleichmässig statt maximal spreizen
+    NEG_INF = -10_000     # Sentinel: Handler hatte in diesem Event noch keinen Hund
 
     # ── Alle bestätigten Anmeldungen ─────────────────────────────────────────
     confirmed = db.session.execute(
@@ -1991,14 +1998,33 @@ def event_assign_startnumbers(event_id):
 
         for reg in sorted_regs:
             hid        = reg.handler_id
-            last_global = handler_last_global.get(hid, -(MIN_GAP * 100))
+            last_global = handler_last_global.get(hid, NEG_INF)
 
-            # Ersten freien Slot suchen, der die Mindestlücke einhält
+            # Soll-Lücke zwischen zwei eigenen Hunden desselben Handlers – massgeblich
+            # ist die gleichmässige Spreizung Block/N:
+            #   Block/N >= EVEN_THRESHOLD → Block/N: gleichmässig verteilen, die
+            #     Pause ist schon genügend gross.
+            #   Block/N <  EVEN_THRESHOLD → Block/(N-1): Hunde maximal auf die
+            #     Block-Extreme spreizen (N=2 → ganzer Block zwischen den Läufen),
+            #     um den grösstmöglichen Abstand herauszuholen.
+            # Einzelhund-Handler haben keine Soll-Lücke (0) und füllen die
+            # restlichen Slots. Lässt sich die Lücke nicht einhalten (zu wenige
+            # Starter), greift unten der Best-effort-Fallback (max. Abstand).
+            own_count = handler_count.get(hid, 1)
+            if own_count > 1:
+                if n / own_count >= EVEN_THRESHOLD:
+                    desired_gap = n // own_count
+                else:
+                    desired_gap = n // (own_count - 1)
+            else:
+                desired_gap = 0
+
+            # Ersten freien Slot suchen, der die Soll-Lücke einhält
             placed_ok = False
             for p in range(n):
                 if placed[p] is not None:
                     continue
-                if global_offset + p - last_global >= MIN_GAP:
+                if global_offset + p - last_global >= desired_gap:
                     placed[p] = reg
                     handler_last_global[hid] = global_offset + p
                     placed_ok = True

@@ -134,6 +134,99 @@ def test_organiser_toggle_in_season_keeps_startnumber(app):
         assert reg_a.start_number == 5000
 
 
+def _seed_event_multidog(n, handler_dog_count, base=5000):
+    """Ein Block mit `n` Startern; ein Handler besitzt `handler_dog_count`
+    Hunde, der Rest je einen. Gibt (event_id, admin_id, multi_reg_ids) zurück.
+    """
+    club = M.Club(vereinsnummer="V1", name="Club")
+    admin = M.User(email="admin@test.ch", role="superadmin")
+    db.session.add_all([club, admin])
+    db.session.flush()
+
+    event = M.Event(
+        name="Gap-Test",
+        organiser_club_id=club.id,
+        startnumber_schema=json.dumps({"Large-1": base}),
+        allows_bitches_in_season=True,
+        bitches_in_season_start_last=False,
+    )
+    db.session.add(event)
+    db.session.flush()
+
+    # Multi-Hund-Handler (eine Person, mehrere Hunde)
+    multi = M.Person(first_name="Multi", last_name="Handler")
+    db.session.add(multi)
+    db.session.flush()
+
+    multi_reg_ids = []
+    for i in range(handler_dog_count):
+        dog = M.Dog(name=f"MultiDog_{i}", license_no=f"{30000 + i}",
+                    license_kind=M.LicenseKind.CH)
+        db.session.add(dog)
+        db.session.flush()
+        reg = M.Registration(
+            event_id=event.id, dog_id=dog.id, handler_id=multi.id,
+            status=M.RegistrationStatus.CONFIRMED,
+            class_level=1, category_code="Large",
+        )
+        db.session.add(reg)
+        db.session.flush()
+        multi_reg_ids.append(reg.id)
+
+    # Rest: Einzelhund-Handler, bis der Block `n` Starter hat
+    for i in range(n - handler_dog_count):
+        dog = M.Dog(name=f"SoloDog_{i}", license_no=f"{40000 + i}",
+                    license_kind=M.LicenseKind.CH)
+        person = M.Person(first_name=f"Solo{i}", last_name="Handler")
+        db.session.add_all([dog, person])
+        db.session.flush()
+        reg = M.Registration(
+            event_id=event.id, dog_id=dog.id, handler_id=person.id,
+            status=M.RegistrationStatus.CONFIRMED,
+            class_level=1, category_code="Large",
+        )
+        db.session.add(reg)
+
+    db.session.commit()
+    return event.id, admin.id, multi_reg_ids
+
+
+def test_tight_spread_pushes_multidog_handler_to_extremes(app):
+    # Spreizung Block/N < 20 (hier 20/2 = 10): die beiden Hunde desselben
+    # Handlers werden maximal gespreizt → Abstand = Block-Länge - 1 (erster/
+    # letzter Slot), nicht nur Block/N.
+    with app.app_context():
+        n = 20
+        event_id, admin_id, multi_ids = _seed_event_multidog(n, handler_dog_count=2)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/events/{event_id}/assign-startnumbers")
+        assert resp.status_code == 302
+
+        nums = sorted(db.session.get(M.Registration, rid).start_number
+                      for rid in multi_ids)
+        assert nums[1] - nums[0] == n - 1      # Block/(N-1) bei N=2 → Extreme
+
+
+def test_roomy_block_distributes_multidog_handler_evenly(app):
+    # Spreizung Block/N >= 20 (hier 40/2 = 20): gleichmässige Verteilung → Abstand
+    # Block/N, NICHT maximal gespreizt (kein Zwang auf ersten/letzten Slot).
+    with app.app_context():
+        n = 40
+        event_id, admin_id, multi_ids = _seed_event_multidog(n, handler_dog_count=2)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/events/{event_id}/assign-startnumbers")
+        assert resp.status_code == 302
+
+        nums = sorted(db.session.get(M.Registration, rid).start_number
+                      for rid in multi_ids)
+        assert nums[1] - nums[0] == n // 2     # Block/N bei N=2 → 20
+        assert nums[1] - nums[0] < n - 1       # gerade NICHT auf die Extreme
+
+
 def test_export_zip_reflects_assigned_startnumbers(app):
     with app.app_context():
         event_id, admin_id, reg_a_id, reg_season_id, reg_c_id, reg_pending_id = _seed_event_with_schema()
