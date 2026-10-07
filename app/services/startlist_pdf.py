@@ -11,6 +11,27 @@ import zipfile
 
 from fpdf import FPDF
 from fpdf.fonts import FontFace
+from PIL import Image
+
+# Logos werden nur klein (16mm/30mm hoch) im PDF-Kopf gezeigt. Ohne Downscale
+# bettet fpdf2 die Originaldatei 1:1 ein (hier z.B. 5907x5059px) → >1MB pro
+# PDF allein durchs Logo. Ziel-Auflösung grosszügig für Druckqualität bei
+# ~30mm Breite (300dpi ≈ 350px), danach als PNG neu komprimiert.
+_LOGO_MAX_PX = 400
+
+
+def _shrink_logo(path):
+    if not path:
+        return None
+    try:
+        img = Image.open(path)
+        img.thumbnail((_LOGO_MAX_PX, _LOGO_MAX_PX), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        return buf
+    except Exception:
+        return path
 
 # Kerntypografie → ASCII/Latin-1, damit die Core-Fonts (Latin-1) keine
 # Unicode-Zeichen aus Namen stolpern lassen (z.B. „Shy’m", Gedankenstriche).
@@ -104,10 +125,16 @@ def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
 
 def build_startlist_zip(event, groups, has_numbers, logo_paths):
     """Gibt (zip_bytes, filename) zurück – ein PDF je Block im Archiv."""
+    event_logo, club_logo = logo_paths
+    shrunk_logos = (_shrink_logo(event_logo), _shrink_logo(club_logo))
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for i, group in enumerate(groups, start=1):
-            pdf_bytes = _render_block_pdf(event, group, has_numbers, logo_paths)
+            for logo in shrunk_logos:
+                if hasattr(logo, "seek"):
+                    logo.seek(0)
+            pdf_bytes = _render_block_pdf(event, group, has_numbers, shrunk_logos)
             name = f"{i:02d}_{_slug(_block_label(group))}.pdf"
             zf.writestr(name, pdf_bytes)
     buf.seek(0)
