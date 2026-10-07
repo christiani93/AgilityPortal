@@ -57,6 +57,17 @@
 
   {# ── Links zu Unterseiten ────────────────────────────────── #}
   <div class="row g-3">
+    {% if is_event_day %}
+    <div class="col-md-4">
+      <a href="{{ url_for('club.event_live', event_id=event.id) }}"
+         class="card h-100 text-decoration-none shadow-sm border-danger">
+        <div class="card-body">
+          <h3 class="h6 card-title">🔴 {{ _('Live') }}</h3>
+          <p class="card-text text-muted small mb-0">{{ _('Aktuelle Startliste und Ranglisten') }}</p>
+        </div>
+      </a>
+    </div>
+    {% endif %}
     <div class="col-md-4">
       <a href="{{ url_for('public_events.public_startlist', event_id=event.id) }}"
          class="card h-100 text-decoration-none shadow-sm">

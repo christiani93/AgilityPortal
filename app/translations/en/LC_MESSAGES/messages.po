@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AgilityPortal 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 12:34+0200\n"
+"POT-Creation-Date: 2026-10-07 13:01+0200\n"
 "PO-Revision-Date: 2026-04-18 00:00+0000\n"
 "Last-Translator: \n"
 "Language: en\n"
@@ -13,7 +13,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: app/blueprints/auth/forms.py:8 app/blueprints/auth/forms.py:17
 #: app/blueprints/club/forms.py:10 app/templates/club/event_detail.html:459
@@ -376,7 +376,9 @@ msgstr "Password for %(name)s has been changed."
 #: app/blueprints/club/routes.py:420
 #, python-format
 msgid "Testturnier «%(name)s» erstellt: %(runs)s Läufe, %(regs)s Anmeldungen."
-msgstr "Test tournament \"%(name)s\" created: %(runs)s runs, %(regs)s registrations."
+msgstr ""
+"Test tournament \"%(name)s\" created: %(runs)s runs, %(regs)s "
+"registrations."
 
 #: app/blueprints/club/routes.py:479
 #, python-format
@@ -474,7 +476,9 @@ msgstr "Invalid license number: %(error)s"
 
 #: app/blueprints/club/routes.py:1043
 #, python-format
-msgid "Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden aktualisiert."
+msgid ""
+"Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden "
+"aktualisiert."
 msgstr "Class/category saved. %(n)s open registration(s) have been updated."
 
 #: app/blueprints/club/routes.py:1045
@@ -711,7 +715,9 @@ msgid "Fehler beim Synchronisieren: %(error)s"
 msgstr "Error syncing: %(error)s"
 
 #: app/blueprints/club/routes_website_sync.py:113
-msgid "Es besteht bereits eine Reservationsanfrage. Verwende 'Daten aktualisieren'."
+msgid ""
+"Es besteht bereits eine Reservationsanfrage. Verwende 'Daten "
+"aktualisieren'."
 msgstr "A reservation request already exists. Use 'Update data'."
 
 #: app/blueprints/club/routes_website_sync.py:126
@@ -875,7 +881,9 @@ msgid "Ich bin Teilnehmer"
 msgstr "I am a Participant"
 
 #: app/templates/home.html:24
-msgid "Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde zu verwalten."
+msgid ""
+"Melde dich für offene Turniere an oder erstelle ein Konto, um deine Hunde"
+" zu verwalten."
 msgstr "Register for open tournaments or create an account to manage your dogs."
 
 #: app/templates/home.html:29
@@ -1015,8 +1023,12 @@ msgstr "No result exports received yet."
 
 # club/dashboard.html
 #: app/templates/club/dashboard.html:15
-msgid "Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den Administrator."
-msgstr "Your account is not assigned to any club. Please contact the administrator."
+msgid ""
+"Dein Account ist keinem Verein zugeordnet. Bitte kontaktiere den "
+"Administrator."
+msgstr ""
+"Your account is not assigned to any club. Please contact the "
+"administrator."
 
 #: app/templates/club/dashboard.html:24
 #: app/templates/club/participant_dashboard.html:12
@@ -1147,7 +1159,7 @@ msgstr "failed"
 # ────────────────────────────────────────────────
 # event_detail.html — Header-Buttons
 #: app/templates/club/event_detail.html:34 app/templates/club/schedule.html:2
-#: app/templates/club/schedule.html:7 app/templates/public/overview.html:77
+#: app/templates/club/schedule.html:7 app/templates/public/overview.html:88
 #: app/templates/public/schedule.html:2 app/templates/public/schedule.html:7
 msgid "Zeitplan"
 msgstr "Schedule"
@@ -1176,8 +1188,12 @@ msgstr "Edit"
 
 #: app/templates/club/event_detail.html:51
 #, python-format
-msgid "Turnier «%(name)s» wirklich löschen? Alle Anmeldungen und Zeitpläne werden unwiderruflich gelöscht."
-msgstr "Really delete tournament «%(name)s»? All registrations and schedules will be permanently deleted."
+msgid ""
+"Turnier «%(name)s» wirklich löschen? Alle Anmeldungen und Zeitpläne "
+"werden unwiderruflich gelöscht."
+msgstr ""
+"Really delete tournament «%(name)s»? All registrations and schedules will"
+" be permanently deleted."
 
 #: app/templates/club/event_detail.html:53
 #: app/templates/club/event_detail.html:382
@@ -1274,7 +1290,9 @@ msgid "Zahlungsinfos für Bestätigungsmail"
 msgstr "Payment Info for Confirmation Email"
 
 #: app/templates/club/event_detail.html:212
-msgid "IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail angezeigt."
+msgid ""
+"IBAN, Empfänger, Verwendungszweck etc. — wird in der Bestätigungsmail "
+"angezeigt."
 msgstr "IBAN, recipient, purpose etc. — shown in the confirmation email."
 
 # event_detail.html — TKAMO-Import
@@ -1342,8 +1360,12 @@ msgid "Zuerst TKAMO-Import ausführen."
 msgstr "Run the TKAMO import first."
 
 #: app/templates/club/event_detail.html:306
-msgid "Der Inserat-Text übernimmt die TKAMO-Felder (Wettbewerbe, Kategorien, Richter). Ohne Import bleiben diese Zeilen auf Standardtexten."
-msgstr "The listing text uses the TKAMO fields (competitions, categories, judges). Without an import, these lines keep their default texts."
+msgid ""
+"Der Inserat-Text übernimmt die TKAMO-Felder (Wettbewerbe, Kategorien, "
+"Richter). Ohne Import bleiben diese Zeilen auf Standardtexten."
+msgstr ""
+"The listing text uses the TKAMO fields (competitions, categories, "
+"judges). Without an import, these lines keep their default texts."
 
 #: app/templates/club/event_detail.html:307
 msgid "Empfohlener Ablauf: 1. TKAMO-Import → 2. Website-Sync."
@@ -1441,7 +1463,9 @@ msgid "Im Admin öffnen"
 msgstr "Open in Admin"
 
 #: app/templates/club/event_detail.html:446
-msgid "Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an admin.z-b.tech."
+msgid ""
+"Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an "
+"admin.z-b.tech."
 msgstr "Sends a reservation request for the timekeeping service to admin.z-b.tech."
 
 #: app/templates/club/event_detail.html:447
@@ -1490,8 +1514,12 @@ msgid "Reservationsanfrage senden"
 msgstr "Send reservation request"
 
 #: app/templates/club/event_detail.html:506
-msgid "Oder dieses Turnier einer bestehenden Reservation anhängen (ein Veranstalter bucht mehrere Turniere in einer Anfrage)."
-msgstr "Or attach this tournament to an existing reservation (an organizer books several tournaments in one request)."
+msgid ""
+"Oder dieses Turnier einer bestehenden Reservation anhängen (ein "
+"Veranstalter bucht mehrere Turniere in einer Anfrage)."
+msgstr ""
+"Or attach this tournament to an existing reservation (an organizer books "
+"several tournaments in one request)."
 
 #: app/templates/club/event_detail.html:512
 msgid "Bestehende Reservation"
@@ -1519,8 +1547,12 @@ msgid "dieses Turnier"
 msgstr "this tournament"
 
 #: app/templates/club/event_detail.html:544
-msgid "Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die bestehende Anfrage."
-msgstr "Transfers current tournament data (name, date, location, participants) to the existing request."
+msgid ""
+"Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die "
+"bestehende Anfrage."
+msgstr ""
+"Transfers current tournament data (name, date, location, participants) to"
+" the existing request."
 
 #: app/templates/club/event_detail.html:545
 msgid "Es werden alle Turniere dieser Reservation gemeinsam gesendet."
@@ -1711,7 +1743,7 @@ msgid "Startnummern vergeben"
 msgstr "Assign start numbers"
 
 #: app/templates/club/event_detail.html:829
-#: app/templates/public/overview.html:64 app/templates/public/startlist.html:2
+#: app/templates/public/overview.html:75 app/templates/public/startlist.html:2
 #: app/templates/public/startlist.html:8
 #: app/templates/public/startlist_print.html:6
 #: app/templates/public/startlist_print.html:103
@@ -1849,8 +1881,12 @@ msgid "Von TKAMO laden"
 msgstr "Load from TKAMO"
 
 #: app/templates/club/event_form.html:44
-msgid "Bei Mehrtage-Events: weitere AIS-Nummern (kommagetrennt). Alle Tage teilen eine Reservation und einen Website-Eintrag."
-msgstr "For multi-day events: additional AIS numbers (comma-separated). All days share one reservation and one website entry."
+msgid ""
+"Bei Mehrtage-Events: weitere AIS-Nummern (kommagetrennt). Alle Tage "
+"teilen eine Reservation und einen Website-Eintrag."
+msgstr ""
+"For multi-day events: additional AIS numbers (comma-separated). All days "
+"share one reservation and one website entry."
 
 #: app/templates/club/event_form.html:81
 msgid "Danach keine neuen Anmeldungen mehr."
@@ -1865,8 +1901,12 @@ msgid "Läufige Hündinnen werden am Ende ihrer Kategorie eingeteilt."
 msgstr "Bitches in season are placed at the end of their category."
 
 #: app/templates/club/event_form.html:138
-msgid "Testveranstaltungen sind nur für Superadmin sichtbar und erscheinen nicht in der öffentlichen Turnierübersicht."
-msgstr "Test events are only visible to superadmins and don't appear in the public tournament overview."
+msgid ""
+"Testveranstaltungen sind nur für Superadmin sichtbar und erscheinen nicht"
+" in der öffentlichen Turnierübersicht."
+msgstr ""
+"Test events are only visible to superadmins and don't appear in the "
+"public tournament overview."
 
 #: app/templates/club/event_form.html:151
 msgid "Bitte AIS-Nummer eingeben."
@@ -1885,6 +1925,7 @@ msgid "Netzwerkfehler — AdminPortal nicht erreichbar?"
 msgstr "Network error — AdminPortal not reachable?"
 
 #: app/templates/club/event_info.html:29 app/templates/club/event_info.html:203
+#: app/templates/public/overview.html:65
 msgid "Live"
 msgstr "Live"
 
@@ -1898,8 +1939,13 @@ msgid "Meine Anmeldung"
 msgstr "My registration"
 
 #: app/templates/club/event_info.html:97
-msgid "Startnummern wurden bereits vergeben. Eine Abmeldung oder Läufig-Meldung wird dem Veranstalter angezeigt — die Startnummer bleibt reserviert."
-msgstr "Start numbers have already been assigned. A withdrawal or in-season report will be shown to the organiser — the start number remains reserved."
+msgid ""
+"Startnummern wurden bereits vergeben. Eine Abmeldung oder Läufig-Meldung "
+"wird dem Veranstalter angezeigt — die Startnummer bleibt reserviert."
+msgstr ""
+"Start numbers have already been assigned. A withdrawal or in-season "
+"report will be shown to the organiser — the start number remains "
+"reserved."
 
 #: app/templates/club/event_info.html:106
 msgid "Kat. / Kl."
@@ -2250,16 +2296,24 @@ msgid "CH = nur Ziffern (z.B. 12345) · FOREIGN = AAA-12345 (Länderkürzel-Numm
 msgstr "CH = digits only (e.g. 12345) · FOREIGN = AAA-12345 (country code-number)"
 
 #: app/templates/club/profile_dogs.html:129
-msgid "Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), wirst du automatisch als Hundeführer verknüpft."
-msgstr "If the dog is already registered in the system (same licence number), you will be automatically linked as handler."
+msgid ""
+"Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), "
+"wirst du automatisch als Hundeführer verknüpft."
+msgstr ""
+"If the dog is already registered in the system (same licence number), you"
+" will be automatically linked as handler."
 
 #: app/templates/club/request_club.html:6
 msgid "Verein hinzufügen lassen"
 msgstr "Request Club Addition"
 
 #: app/templates/club/request_club.html:13
-msgid "Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen ein — der Administrator prüft die Angaben und legt den Verein an."
-msgstr "Your club missing from the list? Enter the SKG club number and name — the administrator will verify the details and add the club."
+msgid ""
+"Dein Verein fehlt in der Liste? Trage die SKG-Vereinsnummer und den Namen"
+" ein — der Administrator prüft die Angaben und legt den Verein an."
+msgstr ""
+"Your club missing from the list? Enter the SKG club number and name — the"
+" administrator will verify the details and add the club."
 
 #: app/templates/club/request_club.html:32
 #: app/templates/club/request_judge.html:39
@@ -2271,8 +2325,12 @@ msgid "Neuen Richter beantragen"
 msgstr "Request New Judge"
 
 #: app/templates/club/request_judge.html:13
-msgid "Fehlt ein Richter in der Liste? Trage die Daten ein — der Administrator prüft die AIS-Nummer und legt den Richter an."
-msgstr "A judge missing from the list? Enter the details — the administrator will verify the AIS number and add the judge."
+msgid ""
+"Fehlt ein Richter in der Liste? Trage die Daten ein — der Administrator "
+"prüft die AIS-Nummer und legt den Richter an."
+msgstr ""
+"A judge missing from the list? Enter the details — the administrator will"
+" verify the AIS number and add the judge."
 
 #: app/templates/club/reset_password.html:13
 msgid "Passwort für"
@@ -2320,16 +2378,28 @@ msgid "Kl. 3"
 msgstr "Cl. 3"
 
 #: app/templates/club/schedule.html:115
-msgid "Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102 usw."
-msgstr "Example: 1101 → first Large Cl.1 starter gets no. 1101, second gets 1102 etc."
+msgid ""
+"Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102"
+" usw."
+msgstr ""
+"Example: 1101 → first Large Cl.1 starter gets no. 1101, second gets 1102 "
+"etc."
 
 #: app/templates/club/schedule.html:120
 msgid "Einstellungen speichern"
 msgstr "Save settings"
 
 #: app/templates/club/schedule.html:129
-msgid "Tipp: Beim ersten Lauf jeder Gruppe kannst du mit den Schaltern Umbau / Briefing festlegen, ob diese für die Gruppe eingerechnet werden (grün = eingerechnet). So lässt sich z. B. vor dem Open der Klasse 1 der Umbau und das Briefing weglassen."
-msgstr "Tip: On the first run of each group, use the Ring change / Briefing switches to decide whether these are counted for the group (green = counted). This lets you, for example, skip the ring change and briefing before the Open of class 1."
+msgid ""
+"Tipp: Beim ersten Lauf jeder Gruppe kannst du mit den Schaltern Umbau / "
+"Briefing festlegen, ob diese für die Gruppe eingerechnet werden (grün = "
+"eingerechnet). So lässt sich z. B. vor dem Open der Klasse 1 der Umbau "
+"und das Briefing weglassen."
+msgstr ""
+"Tip: On the first run of each group, use the Ring change / Briefing "
+"switches to decide whether these are counted for the group (green = "
+"counted). This lets you, for example, skip the ring change and briefing "
+"before the Open of class 1."
 
 #: app/templates/club/schedule.html:136
 msgid "Blöcke"
@@ -2356,8 +2426,12 @@ msgid "Für diese Gruppe ein-/ausrechnen"
 msgstr "Include/exclude for this group"
 
 #: app/templates/club/schedule.html:201
-msgid "Hier eigenen Umbau/Briefing erzwingen (z.B. getrennte Gruppe innerhalb der Klasse)"
-msgstr "Force a separate course change/briefing here (e.g. a separate group within the class)"
+msgid ""
+"Hier eigenen Umbau/Briefing erzwingen (z.B. getrennte Gruppe innerhalb "
+"der Klasse)"
+msgstr ""
+"Force a separate course change/briefing here (e.g. a separate group "
+"within the class)"
 
 #: app/templates/club/schedule.html:202
 msgid "Split"
@@ -2368,8 +2442,12 @@ msgid "kein"
 msgstr "none"
 
 #: app/templates/club/schedule.html:246
-msgid "Manuelle Teilnehmerzahl (überschreibt Online-Anmeldungen). Leer = automatisch."
-msgstr "Manual participant count (overrides online registrations). Empty = automatic."
+msgid ""
+"Manuelle Teilnehmerzahl (überschreibt Online-Anmeldungen). Leer = "
+"automatisch."
+msgstr ""
+"Manual participant count (overrides online registrations). Empty = "
+"automatic."
 
 #: app/templates/club/schedule.html:258 app/templates/club/schedule.html:518
 #: app/templates/club/schedule.html:521 app/templates/club/schedule.html:524
@@ -2389,8 +2467,12 @@ msgid "Nicht eingeplante Läufe"
 msgstr "Unscheduled runs"
 
 #: app/templates/club/schedule.html:335
-msgid "Klicke auf einen Lauf um ihn zu Ring 1 hinzuzufügen. Ring und Richter können danach geändert werden."
-msgstr "Click on a run to add it to ring 1. Ring and judge can be changed afterwards."
+msgid ""
+"Klicke auf einen Lauf um ihn zu Ring 1 hinzuzufügen. Ring und Richter "
+"können danach geändert werden."
+msgstr ""
+"Click on a run to add it to ring 1. Ring and judge can be changed "
+"afterwards."
 
 #: app/templates/club/schedule.html:349
 msgid "Lauf-Block hinzufügen"
@@ -2422,8 +2504,12 @@ msgid "z. B. Rangverkündigung Large"
 msgstr "e.g. Award ceremony Large"
 
 #: app/templates/club/schedule.html:457
-msgid "Rangverkündigungen sind rein informativ und verbrauchen keine Zeit. Sie unterbrechen Gruppen: danach beginnt ein neuer Umbau."
-msgstr "Award ceremonies are purely informational and consume no time. They interrupt groups: a new ring change starts afterwards."
+msgid ""
+"Rangverkündigungen sind rein informativ und verbrauchen keine Zeit. Sie "
+"unterbrechen Gruppen: danach beginnt ein neuer Umbau."
+msgstr ""
+"Award ceremonies are purely informational and consume no time. They "
+"interrupt groups: a new ring change starts afterwards."
 
 #: app/templates/club/schedule.html:472
 msgid "Zeitplan-Übersicht"
@@ -2477,8 +2563,14 @@ msgid "Testturnier erstellen"
 msgstr "Create test tournament"
 
 #: app/templates/club/superadmin_dashboard.html:117
-msgid "Erstellt eine Testveranstaltung mit allen Standard-Läufen (Agility + Jumping, alle Kategorien, Kl. 1–3) und befüllt sie direkt mit Testanmeldungen. Nur für Superadmin sichtbar."
-msgstr "Creates a test event with all standard runs (Agility + Jumping, all categories, Cl. 1–3) and populates it with test registrations. Only visible to superadmin."
+msgid ""
+"Erstellt eine Testveranstaltung mit allen Standard-Läufen (Agility + "
+"Jumping, alle Kategorien, Kl. 1–3) und befüllt sie direkt mit "
+"Testanmeldungen. Nur für Superadmin sichtbar."
+msgstr ""
+"Creates a test event with all standard runs (Agility + Jumping, all "
+"categories, Cl. 1–3) and populates it with test registrations. Only "
+"visible to superadmin."
 
 #: app/templates/club/superadmin_dashboard.html:121
 #: app/templates/club/users.html:16
@@ -2549,7 +2641,8 @@ msgid "Vergangene"
 msgstr "Past"
 
 #: app/templates/public/finalists.html:2 app/templates/public/finalists.html:7
-#: app/templates/public/finalists.html:17 app/templates/public/overview.html:89
+#: app/templates/public/finalists.html:17
+#: app/templates/public/overview.html:100
 msgid "Finalisten"
 msgstr "Finalists"
 
@@ -2600,26 +2693,30 @@ msgstr "Max. participants"
 msgid "Anmeldedetails folgen."
 msgstr "Registration details to follow."
 
-#: app/templates/public/overview.html:64 app/templates/public/startlist.html:2
+#: app/templates/public/overview.html:66
+msgid "Aktuelle Startliste und Ranglisten"
+msgstr "Live start list and rankings"
+
+#: app/templates/public/overview.html:75 app/templates/public/startlist.html:2
 #: app/templates/public/startlist.html:8
 #: app/templates/public/startlist_print.html:6
 #: app/templates/public/startlist_print.html:103
 msgid "Meldeliste"
 msgstr "Entry list"
 
-#: app/templates/public/overview.html:66
+#: app/templates/public/overview.html:77
 msgid "Teilnehmer mit Startnummern"
 msgstr "Participants with start numbers"
 
-#: app/templates/public/overview.html:66
+#: app/templates/public/overview.html:77
 msgid "Angemeldete Teilnehmer"
 msgstr "Registered participants"
 
-#: app/templates/public/overview.html:78
+#: app/templates/public/overview.html:89
 msgid "Ringe, Läufe und Startzeiten"
 msgstr "Rings, runs and start times"
 
-#: app/templates/public/overview.html:90
+#: app/templates/public/overview.html:101
 msgid "Qualifizierte Teams"
 msgstr "Qualified teams"
 
@@ -2808,8 +2905,12 @@ msgid "Noch keine Teams qualifiziert."
 msgstr "No teams qualified yet."
 
 #: app/templates/public/cups/standings.html:137
-msgid "Die Qualifikationsliste ist noch nicht verfügbar – sie wird nach jedem Meeting aktualisiert."
-msgstr "The qualification list is not available yet – it is updated after each meeting."
+msgid ""
+"Die Qualifikationsliste ist noch nicht verfügbar – sie wird nach jedem "
+"Meeting aktualisiert."
+msgstr ""
+"The qualification list is not available yet – it is updated after each "
+"meeting."
 
 # base.html
 #~ msgid "Vereinsportal"

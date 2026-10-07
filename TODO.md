@@ -3,7 +3,99 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-10-06
+Stand: 2026-10-07
+
+## Session 2026-10-07 (Teil 3) — Rangliste-Layout + Live-Link + Prod-Vorlagen
+
+**UNCOMMITTED — am Ende der Session noch NICHT committed/deployed:**
+- [ ] **Portal (`main`, lokal uncommitted):** öffentliche Event-Landingpage
+      `app/templates/public/overview.html` + `app/blueprints/public/routes_events.py`
+      (`public_overview`) — am **Event-Tag** (`is_event_day`: starts≤heute≤ends) erscheint
+      jetzt eine rote „🔴 Live"-Karte → `club.event_live`. + FR/EN-Übersetzung des neuen
+      Strings „Aktuelle Startliste und Ranglisten" (`.mo` neu kompiliert). 94 Tests grün.
+      → committen + beim nächsten Portal-Deploy mitnehmen.
+- [ ] **Software (`feature/ko-cup`, lokal uncommitted):** Rangliste-Upload-PDF
+      `web_app/templates/print_ranking_pdf.html` an SportyDog-Vorlage angeglichen
+      (2×3-Laufvorgaben-Box, Spalten Liz/Rasse/Verein/Kl/m/s, kompaktere Zeilen,
+      Statistik mit %); `web_app/blueprints/routes_live.py` refactored
+      (`_render_ranking_pdf_html` + neue Preview-Route `/live/preview_ranking_pdf`).
+      12 Tests grün. Details+Quirks: Memory `project_design_pdf_siegerehrung`.
+      → committen; kommt mit dem feature/ko-cup→main-Merge + EXE-Rebuild.
+
+**ERLEDIGT auf Prod (kein Deploy nötig, Feature war live):**
+- [x] Turnier-Vorlagen **Halloween Cup** (EventTemplate ID 2) + **Edelweiss Challenge**
+      (ID 3) auf portal.z-b.tech angelegt; Club 295 = **LyTiWee**. HCS: Fr Tunnellauf /
+      Sa A+J+Final / So A+J. Edelweiss: tägl. A+J + So Final. ⚠️ Platzhalter-Annahmen
+      (Tunnellauf-Lauf category=L/class=1, Finale=Agility/Kl.3, Ring-Anzahl, Entry-Fee)
+      vor echtem Event-Erzeugen im Admin-UI gegenchecken. Memory
+      `project_prod_deploy_20261007_templates_teamdemo`.
+- [x] **Edelweiss-Team-Challenge-Demo** auf Prod: Testevent **ID 15** (`is_test`),
+      24 Dummy-Anmeldungen (pro Kat. 2×Kl.1 + 2×Kl.2 „soft" + 2×Kl.3 „expert").
+      Veranstalter-Pick-UI: `/admin/events/15/teams`. Teilnehmer-Selbstauswahl erst
+      zukünftig (wenn Anmeldung übers Portal läuft, dann P3+).
+
+**OFFEN (Folge):**
+- [ ] AIS-ID↔Lauf-Zuordnung: A+J zwingend pro AIS-ID (Memory `project_ais_turnier_id_pairing`);
+      beim Event-Erzeugen aus Vorlage prüfen; HCS-Fr (nur Tunnel) eigene AIS-Nr? Reglement klären.
+
+## Offen aus Session 2026-10-07 (Druck/i18n/Tunnellauf/AOA)
+
+Erledigt (Software `feature/ko-cup`): Drucken-Buttons auf allen Druckseiten (geteilter
+Partial `print/_print_button.html`); Einweiserliste L-I-M-S + Laufvorgaben-Tabelle (TKAMO);
+EN als 3. Drucksprache + FR komplettiert; Tunnellauf-Ring-Schnellbutton in `/plan_schedule`.
+Erledigt (Portal `main`): AOA-„nur Stammdaten"-Import `/admin/aoa-import/stammdaten`;
+Drucken-Button in `club/startlist.html`.
+
+Session 2026-10-07 (Teil 2) — Fortschritt an den 4 User-Punkten:
+- [x] **Punkt 1 — Public Startliste als PDF mit Logos:** FERTIG. Neue Druckseite
+      `GET /events/<id>/startlist/print` + `public/startlist_print.html` (A4, Event-+Vereinslogo-
+      Kopf wie Software, Druck-Button → Browser „Als PDF speichern"), Button in `public/startlist.html`.
+      Portal `main` Commit `d937db5` (NICHT deployed). Memory `public-startlist-print`.
+      Offen/optional: echter Ein-Klick-`.pdf`-Download bräuchte reportlab (kein PDF-Engine da) — mit User klären.
+- [x] **Punkt 3 — Zeitplan zu viele Briefings/Umbauten:** FERTIG (Software `feature/ko-cup`
+      Commit `1636e88`). `schedule_planner._compute_timeline_for_ring` gruppiert jetzt pro
+      (Disziplin, Laufformat, Klasse) → 1 Umbau+1 Briefing+Läufe statt pro Kategorie. +2 Tests.
+      Memory `schedule-briefing-grouping-fix`. Offen: Portal-Flags skip_changeover/skip_briefing/
+      force_new_group werden nicht exportiert → Software kann sie nicht honorieren (Follow-up).
+- [x] **Punkt 2 — Portal-Tunnellauf:** FERTIG (Portal `main` `9a37642`, Software
+      `feature/ko-cup` `40c485b`). **60 Sek/Starter** (User-Entscheid: inkl. Ringwechsel).
+      KEINE Migration. Export mappt `tunnel → "Tunnellauf"` in BEIDEN Export-Pfaden
+      (club-Route `event_export_zip` UND `services/exchange_service`!), Software
+      `_normalize_timing_run_type` liefert „tunnellauf". Neuer `discipline_label`-Jinja-
+      Filter. Tests beidseitig grün (Portal 94 / Software 149). Memory `tunnellauf-portal-plan`.
+      NICHT deployed (kommt mit ko-cup-Merge + Portal-Deploy).
+- [x] **Punkt 4 — Portal FR+EN komplett:** FERTIG (Portal `main` `bd276a7`, NICHT deployed).
+      Alle öffentlichen Templates (`public/*` inkl. `cups/`) + Superadmin-Nav gewrappt; Katalog
+      556→621 msgids, FR+EN komplett (115 Einträge, 0 leer/0 fuzzy, `.mo` committed). Sprach-
+      Umschalter existierte schon (base.html + `/lang/<code>`). 94 Tests grün. Memory `portal-i18n`.
+      **Quirk:** `pybabel extract` mit Root `.` (nicht `app`!), sonst 0 Treffer + Übersetzungs-
+      verlust in `#~`-Obsolet. Rest-Lücke: `club/*`-Veranstalter-UI teils noch DE (niedrige Prio).
+- [ ] **Teilnehmer-Startliste „fehlt komplett":** `public/startlist.html` `is_published`-Gate
+      klären (nur unveröffentlicht oder echter Bug).
+- [x] Toten Code löschen (Software): `print_marshall_list.html`, `startlist_print*.html`
+      — GELÖSCHT (`feature/ko-cup` `bc9ac1d`, repo-weit null Referenzen).
+- [ ] Restliche Druck-Listen: Logo-Übergabe + `position:fixed`-Overlap-Fix (Einzel-Review).
+- [ ] `feature/ko-cup` → `main` mergen + EXE-Rebuild + Deploy (bringt Datenverlust-Fix 6d57db4,
+      Zeitplan-Fix 1636e88, Tunnellauf 40c485b, **CDN-Vendoring 07ead9b** etc.). EXE-Rebuild
+      zwingend für die vendored Assets.
+
+
+## Rangliste Software → Portal (offizielle Ergebnisse) — ⏳ OFFEN, MUST-DO (User 2026-10-07)
+
+**Ziel (User-Zitat):** „die Rangliste aus der Software ins Portal (die Offiziellen)" —
+offizielle End-Ranglisten aus AgilitySoftware ins Portal publizieren und öffentlich anzeigen.
+Das ist der `resultexport`-Rücksync-Pfad (Software → Portal), NICHT der Event-Export.
+
+**Status/Kontext (noch zu planen, kein Code):**
+- Es existiert bereits ein PDF-Weg: Software lädt `print_ranking_pdf.html` via
+  `/live/upload_ranking_pdf/<event>/<run>` → Portal `POST /api/resultpdf` (Header `X-Api-Key`).
+  Das ist nur ein PDF-Upload, KEINE strukturierten Rangdaten.
+- Schemata dokumentiert in Memory `project_exchange_schema` (eventexport / resultexport / liveupdate).
+- Offene Fragen für den Plan: strukturierte Ergebnisse (für sortier-/filterbare öffentliche
+  Rangliste) vs. nur PDF? Welcher Key (`RESULTS_API_KEY`)? Öffentliche Anzeige-Route
+  (`public/`-Ranglistenseite analog startlist)? Team-Challenge-/KO-Ranglisten mit abdecken?
+- **Nächster Schritt:** Plan erstellen (Datenvertrag `resultexport.v1` prüfen + Portal-Import +
+  öffentliche Anzeige + Phasen), DANN implementieren. User-Entscheide einholen.
 
 ## Turnier-Vorlagen — ✅ UMGESETZT (2026-09-19)
 
@@ -127,6 +219,8 @@ Deploy (`44bb7df`). SQLite-Tests hatten den Bug nicht gefangen (MySQL-only-Synta
 - [x] Mit Reservation #42 verknüpft (ohne Sync)
 - [x] TKAMO-Import gemacht
 - [ ] Chris trägt Mi/Do (07./08.10.) Teilnehmer ein
+- [ ] **Startlisten** (User-Plan 2026-10-07): morgen Do 08.10. die Freitag-Startliste,
+      am Fr 10.10. dann die fürs Wochenende (Events 10/11) — gemeinsam mit Claude
 
 ## Halloween Cup KO-System (30.10.–01.11.2026)
 
@@ -165,6 +259,11 @@ TIMY (siehe AgilitySoftware `TODO.md`, Branch `feature/ko-cup`). Portal-Rolle is
 
 ## Edelweiss Challenge (Deadline 08.–10.01.2027)
 
+- [ ] **Edelweiss-TESTEVENT auf dem Portal — User braucht es bis Freitag 10.10.2026.**
+      Offene Abstimmung (am 2026-10-07 an User gestellt, Antwort steht aus): (a) auf prod
+      portal.z-b.tech als `is_test`-Event oder erstmal lokal? (b) volles LiTyWee-3-Tage-Setup
+      oder schlankes Gerüst zum Anmelde-Test? (c) Dummy-Teilnehmer oder leer? Software hat bereits
+      ein Demo-Event `DEMO_EDELWEISS`. Vorschlag: Do/Fr anlegen (nach Jump-Into-Fall-Startlisten).
 - [ ] Reglement besorgen/klären (u.a.: ist Klasse 3 auch ein Quali-Lauf?)
 - [x] Team-Challenge (2er-Teams) Reglement bestätigt (DIS-Team hinter Nicht-DIS via Sentinel
       999, Zeitfehler normal eingerechnet); Software P1+2 + Portal P5 fertig & getestet
@@ -189,6 +288,36 @@ läuft, Collector (AdminPortal) empfängt Reports (verifiziert). Debug-Tools auf
 (`ENABLE_DEBUG_TOOLS` nicht gesetzt).
 
 Anleitung: `~/.claude/playbooks/crashguard-deploy.md`
+
+## Layout / Design der Druck-/PDF-Dokumente — ⏳ OFFEN (kartiert 2026-10-07)
+
+Design-Vorgaben noch offen → zuerst mit Chris klären (Design-Richtung, gemeinsames
+Look&Feel Software↔Portal, Logo/Farben, Top-3 vs. volle Liste, Hoch-/Querformat).
+Detail-Inventar in Memory `project_design_pdf_siegerehrung`.
+
+**Schon gut (nicht grundlos anfassen):**
+- Portal `app/templates/club/event_results_print.html` — sauber (Logos, Klassenblöcke,
+  Zebra, @page A4, Flexbox, Browser-Druck).
+- AgilitySoftware `web_app/templates/print_ranking_pdf.html` — durchdesignt, bewusst
+  `display:table` (via **xhtml2pdf/pisa**, NICHT WeasyPrint); wird von
+  `/live/upload_ranking_pdf/<event_id>/<run_id>` an Portal `POST /api/resultpdf`
+  (Header `X-Api-Key`) hochgeladen.
+
+**Offen (Priorität in dieser Reihenfolge):**
+- [ ] **Siegerehrungsliste** `AgilitySoftware/web_app/templates/print_award_list.html`:
+      zieht Bootstrap über **CDN** → am Event ohne Internet unformatiert (Bug). Grosse
+      Schrift, Default nur Top 3, kein Logo-Kopf. Routes `/print/select_award_list` +
+      `/print/award_list` (routes_print.py ~305-341), Kopf `templates/print/_print_header.html`.
+- [ ] **KO-Druck** `AgilitySoftware` `ko_cup_rankings.html` + `ko_cup_print.html`
+      (Standard-Bootstrap) aufs HCS-/Druck-Design abstimmen (vor 30.10.).
+- [x] **CDN→lokal** FERTIG (Software `feature/ko-cup` `07ead9b`). User bestätigt: Venue hat
+      LAN, Internet soll kein Zwang sein. Bootstrap 5.3.3 + FA 6.5.2 (inkl. woff2) + socket.io
+      4.7.5 + Tailwind-Play-JS nach `web_app/static/vendor/` vendored, `layout.html` +
+      `ring_pc_dashboard.html` (doppelter socket.io raus) + `ko_cup_ring.html` umgebogen.
+      Smoke: 9 Vendor-URLs 200, Startseite ohne CDN. Spec bundelt `static/` schon → braucht nur
+      EXE-Rebuild. Bewusst CDN belassen: `crashguard.py` Pico-CSS (Crash-Seite, braucht eh Internet).
+- [ ] Weitere Druck-Listen (Startlisten, Steward/Marshall, Teilnehmer, Zeitplan) auf
+      gemeinsames Design-System vereinheitlichen.
 
 ## Architektur-Notiz
 

@@ -57,6 +57,13 @@ def public_overview(event_id):
         StartNumber.query.filter_by(event_id=event_id).first() is not None
     )
 
+    from datetime import datetime
+    today = datetime.utcnow().date()
+    start_date = event.starts_at.date() if event.starts_at else None
+    end_date = (event.ends_at or event.starts_at)
+    end_date = end_date.date() if end_date else None
+    is_event_day = bool(start_date and end_date and start_date <= today <= end_date)
+
     type_label = None
     if event.type and event.type != "regular":
         type_label = Event.TYPE_LABELS.get(event.type, event.type)
@@ -72,6 +79,7 @@ def public_overview(event_id):
         ruleset_label=ruleset_label,
         has_finalists=has_finalists,
         start_numbers_assigned=start_numbers_assigned,
+        is_event_day=is_event_day,
     )
 
 
