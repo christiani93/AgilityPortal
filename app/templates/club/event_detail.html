@@ -44,6 +44,10 @@
       ⬇ {{ _('Export ZIP') }}
     </a>
     {% endif %}
+    {% if current_user.is_superadmin and event.special_ruleset == 'edelweiss_challenge' %}
+    <a href="{{ url_for('team_admin.team_config', event_id=event.id) }}"
+       class="btn btn-sm btn-outline-success">👥 {{ _('Team-Challenge') }}</a>
+    {% endif %}
     <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
     <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
     {% if current_user.is_superadmin %}

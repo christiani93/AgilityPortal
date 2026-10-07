@@ -111,6 +111,41 @@ function renderRings(rings) {
         + ${moreCount} weitere Starter ausstehend
       </div>` : '';
 
+    const fmtTime = v => (typeof v === 'number') ? v.toFixed(2) + 's' : null;
+
+    // Top 5 der aktuellen Rangliste dieses Rings
+    const top5 = ring.top5 || [];
+    const top5Html = top5.length ? `
+      <div class="mt-3 pt-2 border-top">
+        <div class="fw-semibold small text-muted mb-1">🏆 Top 5</div>
+        ${top5.map(r => `
+          <div class="d-flex align-items-center gap-2 py-1 border-bottom">
+            <span class="fw-bold text-center" style="min-width:1.6rem;">${r.rank}.</span>
+            <div class="flex-grow-1">
+              <span class="fw-semibold">${r.dog_name || '—'}</span>
+              <span class="text-muted ms-1 small">${r.handler_name || ''}</span>
+            </div>
+            <span class="font-monospace small text-muted">${fmtTime(r.time_s) || '—'}</span>
+          </div>`).join('')}
+      </div>` : '';
+
+    // Letzte 5 gespeicherte Ergebnisse (ohne DNS), neueste zuerst
+    const last5 = ring.last_results || [];
+    const last5Html = last5.length ? `
+      <div class="mt-3 pt-2 border-top">
+        <div class="fw-semibold small text-muted mb-1">🕑 Letzte 5 Ergebnisse</div>
+        ${last5.map(r => `
+          <div class="d-flex align-items-center gap-2 py-1 border-bottom">
+            <span class="text-muted" style="min-width:3rem;white-space:nowrap;">#${r.start_no ?? ''}</span>
+            <div class="flex-grow-1">
+              <span class="fw-semibold">${r.dog_name || '—'}</span>
+              <span class="text-muted ms-1 small">${r.handler_name || ''}</span>
+            </div>
+            ${r.platz ? `<span class="badge bg-light text-dark">Pl. ${r.platz}</span>` : ''}
+            <span class="font-monospace small text-muted">${fmtTime(r.zeit_total) || (r.disqualifikation || '—')}</span>
+          </div>`).join('')}
+      </div>` : '';
+
     return `
       <div class="col-md-6 col-lg-4">
         <div class="card h-100">
@@ -124,6 +159,8 @@ function renderRings(rings) {
             ${nextHtml}
             ${upcomingHtml}
             ${moreHtml}
+            ${top5Html}
+            ${last5Html}
           </div>
         </div>
       </div>`;

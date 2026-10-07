@@ -711,6 +711,7 @@ def event_edit(event_id):
         event.registration_url = form.registration_url.data.strip() if form.registration_url.data else None
         event.notes_public = form.notes_public.data.strip() if form.notes_public.data else None
         event.is_test = form.is_test.data
+        event.special_ruleset = form.special_ruleset.data or None
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
         db.session.commit()
@@ -2467,7 +2468,8 @@ def event_live_json(event_id):
 
     # Neuesten Update pro Ring extrahieren
     ring_state: dict = {}
-    for upd in all_updates:
+    ring_last: dict = {}   # ring -> {"rows": [...], "seen": set()}
+    for upd in all_updates:   # all_updates ist nach created_at.desc() sortiert
         try:
             p = _j.loads(upd.payload_json or "{}")
         except Exception:
@@ -2482,7 +2484,22 @@ def event_live_json(event_id):
                 "class_level":     p.get("class_level") or 0,
                 "startlist":       p.get("startlist") or {},
                 "updated_at":      upd.created_at.isoformat() + "Z",
+                "last_results":    [],
+                "top5":            [],
             }
+        # Letzte 5 gespeicherte Resultate pro Ring (ohne DNS), neueste zuerst,
+        # dedupliziert nach Lizenznummer (spätere Korrektur gewinnt).
+        res = p.get("result")
+        if res and (p.get("update_type") or "result") == "result":
+            disq = (res.get("disqualifikation") or "").strip().upper()
+            if disq != "DNS":
+                bucket = ring_last.setdefault(ring, {"rows": [], "seen": set()})
+                lic = res.get("license_no") or ""
+                if lic not in bucket["seen"] and len(bucket["rows"]) < 5:
+                    bucket["seen"].add(lic)
+                    bucket["rows"].append(res)
+    for _ring, _vals in ring_state.items():
+        _vals["last_results"] = (ring_last.get(_ring) or {}).get("rows", [])
 
     # Aktuellste Ergebnisse aus Result-Import
     from zoneinfo import ZoneInfo
@@ -2607,6 +2624,19 @@ def event_live_json(event_id):
         }
         for p in pdfs_db
     ]
+
+    # Top 5 pro Ring aus der aktuellsten Rangliste (passende Klasse zum Ring-Lauf)
+    def _norm_key(v):
+        return str(v if v is not None else "").strip().lower()
+    _top5_lookup = {}
+    for _rc in result_classes:
+        _k = (_norm_key(_rc["ring"]), _norm_key(_rc["discipline"]),
+              _norm_key(_rc["category_code"]), _norm_key(_rc["class_level"]))
+        _top5_lookup[_k] = [r for r in _rc["results"] if r.get("rank")][:5]
+    for _vals in ring_state.values():
+        _k = (_norm_key(_vals["ring"]), _norm_key(_vals["discipline"]),
+              _norm_key(_vals["category_code"]), _norm_key(_vals["class_level"]))
+        _vals["top5"] = _top5_lookup.get(_k, [])
 
     return jsonify({
         "event_name":     event.name,

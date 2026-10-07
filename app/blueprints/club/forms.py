@@ -58,6 +58,16 @@ class EventForm(FlaskForm):
     bitches_in_season_start_last = BooleanField(_("Läufige Hündinnen starten am Schluss der Kategorie"))
     notes_public = TextAreaField(_("Bemerkungen (öffentlich)"), validators=[Optional()])
     is_test = BooleanField(_("Testveranstaltung (nicht öffentlich sichtbar)"))
+    special_ruleset = SelectField(
+        _("Spezialturnier / Zusatzreglement"),
+        choices=[
+            ("", _("— Kein Spezialturnier —")),
+            ("halloween_cup", "Halloween Cup"),
+            ("advents_cup", "Advents Cup"),
+            ("edelweiss_challenge", "Edelweiss Challenge"),
+        ],
+        validators=[Optional()],
+    )
     # Nur für Superadmin befüllt — choices werden in der Route gesetzt
     club_id = SelectField(_("Verein"), coerce=int, validators=[Optional()])
     submit = SubmitField(_("Speichern"))

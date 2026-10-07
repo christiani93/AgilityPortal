@@ -129,6 +129,14 @@
         {{ form.notes_public(class="form-control", rows=3) }}
       </div>
 
+      <div class="mb-3">
+        {{ form.special_ruleset.label(class="form-label") }}
+        {{ form.special_ruleset(class="form-select") }}
+        <div class="form-text text-muted">
+          {{ _('Markiert das Turnier als Spezialformat (z.B. Edelweiss Challenge für die Team-Challenge). Blendet die passenden Zusatzfunktionen frei.') }}
+        </div>
+      </div>
+
       <div class="mb-4 p-3 border border-warning rounded bg-warning bg-opacity-10">
         <div class="form-check">
           {{ form.is_test(class="form-check-input") }}
