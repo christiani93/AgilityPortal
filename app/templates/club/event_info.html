@@ -85,6 +85,213 @@
   </div>
 </div>
 
+{# ── TKAMO-Agenda ─────────────────────────────────────────────────────────── #}
+{% if event.ais_turniernummer or event.tkamo_disciplines or event.tkamo_categories or event.tkamo_contact_email %}
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>🔗 {{ _('TKAMO-Agenda') }}</span>
+    {% if event.ais_turniernummer %}
+    <div class="d-flex gap-2">
+      <a href="https://www.tkamo.ch/?lang=de&amp;n0=agenda&amp;n1=&amp;detail={{ event.ais_turniernummer }}"
+         target="_blank" class="btn btn-sm btn-outline-secondary">🌐 {{ _('Tag 1') }}</a>
+      {% if event.ais_turniernummer_extra %}
+        {% for ais_extra in event.ais_turniernummer_extra.split(',') %}
+          {% set ais_n = ais_extra.strip() %}
+          {% if ais_n %}
+          <a href="https://www.tkamo.ch/?lang=de&amp;n0=agenda&amp;n1=&amp;detail={{ ais_n }}"
+             target="_blank" class="btn btn-sm btn-outline-secondary">🌐 {{ _('Tag') }} {{ loop.index + 1 }}</a>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0 small" style="row-gap:.25rem;">
+      {% if event.tkamo_disciplines %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Wettbewerbe') }}</dt>
+      <dd class="col-sm-7 mb-0">{{ event.tkamo_disciplines }}</dd>
+      {% endif %}
+      {% if event.tkamo_categories %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Kategorien') }}</dt>
+      <dd class="col-sm-7 mb-0">{{ event.tkamo_categories }}</dd>
+      {% endif %}
+      {% if event.tkamo_contact_email %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Kontakt-E-Mail') }}</dt>
+      <dd class="col-sm-7 mb-0"><a href="mailto:{{ event.tkamo_contact_email }}">{{ event.tkamo_contact_email }}</a></dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+{% endif %}
+
+{# ── Richter ──────────────────────────────────────────────────────────────── #}
+{% if event.event_judges %}
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-header">{{ _('Richter') }}</div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for ej in event.event_judges %}
+      <span class="badge bg-primary fs-6 px-3 py-2">
+        {{ ej.judge.full_name }}
+        {% if ej.judge.ais_judge_id %}
+          <span class="opacity-75 small ms-1">({{ ej.judge.ais_judge_id }})</span>
+        {% endif %}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Ablaufplan ───────────────────────────────────────────────────────────── #}
+{% set has_sched = namespace(found=false) %}
+{% for r in rings %}{% if sched_by_ring.get(r) %}{% set has_sched.found = true %}{% endif %}{% endfor %}
+
+{% if not has_sched.found and event.runs %}
+<div class="card mb-4">
+  <div class="card-header">{{ _('Startende Kategorien & Klassen') }}</div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for run in sorted_runs %}
+      <span class="badge border px-3 py-2 fs-6
+        {% if run.run_type == 'agility' %}bg-primary
+        {% elif run.run_type == 'jumping' %}bg-success
+        {% else %}bg-warning text-dark{% endif %}">
+        {{ run.RUN_TYPE_LABELS.get(run.run_type, run.run_type) }}
+        · {{ run.CATEGORY_LABELS.get(run.category, run.category) }}
+        · {{ _('Kl.') }} {{ run.class_level }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if has_sched.found %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>📅 {{ _('Ablaufplan') }}</span>
+    {% if has_start_numbers %}
+      <span class="badge bg-success">{{ _('Mit Zeiten') }}</span>
+    {% else %}
+      <span class="badge bg-light text-dark border">{{ _('Reihenfolge') }}</span>
+    {% endif %}
+  </div>
+
+  {% if has_start_numbers %}
+  {# ── MIT ZEITEN (5-Min-Raster, sobald Startnummern vergeben) ─────────── #}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>{{ _('Ring') }}</th>
+          <th>{{ _('Start') }}</th>
+          <th>{{ _('Ende') }}</th>
+          <th>{{ _('Segment') }}</th>
+          <th>{{ _('Richter') }}</th>
+          <th class="text-end text-muted small">{{ _('Starter') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ring in rings %}
+        {% set ring_segs = sched_timeline.get(ring, []) %}
+        {% if ring_segs %}
+        {% for item in ring_segs %}
+        <tr class="
+          {% if item.segment == 'changeover' %}table-light text-muted
+          {% elif item.segment == 'briefing' %}table-warning
+          {% elif item.segment == 'prep_pause' %}table-secondary text-muted
+          {% elif item.segment == 'rank_announcement' %}table-info fw-semibold
+          {% endif %}">
+          {% if loop.first %}
+          <td rowspan="{{ ring_segs | length }}" class="fw-semibold align-middle">{{ ring }}</td>
+          {% endif %}
+          <td class="fw-semibold text-nowrap">{{ item.start_time }}</td>
+          <td class="text-muted text-nowrap">
+            {% if item.segment != 'rank_announcement' and item.start_time != item.end_time %}
+              {{ item.end_time }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if item.segment == 'changeover' %}
+              <span class="text-muted">🔧 {{ _('Umbau') }}</span>
+            {% elif item.segment == 'briefing' %}
+              📋 {{ item.label }}
+            {% elif item.segment == 'run' %}
+              <span class="badge
+                {% if item.block.discipline == 'agility' %}bg-primary
+                {% elif item.block.discipline == 'jumping' %}bg-success
+                {% else %}bg-warning text-dark{% endif %}"
+                style="font-size:.65rem;">
+                {{ item.block.discipline | discipline_label if item.block.discipline else '' }}
+              </span>
+              {{ item.label }}
+            {% elif item.segment == 'prep_pause' %}
+              <span class="text-muted">🚶 {{ item.label }}</span>
+            {% elif item.segment == 'rank_announcement' %}
+              🏆 {{ item.label }}
+            {% else %}
+              {{ item.label }}
+            {% endif %}
+          </td>
+          <td class="text-muted small text-nowrap">
+            {% if item.segment in ('run', 'briefing') %}
+              {{ item.block.judge.full_name if item.block.judge else "—" }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end text-muted small">
+            {% if item.participants > 0 %}{{ item.participants }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  {# ── OHNE ZEITEN (Reihenfolge, bevor Startnummern vergeben) ──────────── #}
+  <div class="card-body">
+    <div class="row g-3">
+      {% for ring in rings %}
+      {% set ring_blocks = sched_by_ring.get(ring, []) | sort(attribute='sort_index') %}
+      {% if ring_blocks %}
+      <div class="col-md-auto" style="min-width:220px;">
+        <div class="fw-semibold text-muted small text-uppercase mb-2">{{ ring }}</div>
+        <ol class="list-group list-group-numbered list-group-flush" style="font-size:.88rem;">
+          {% for block in ring_blocks %}
+          <li class="list-group-item d-flex align-items-start gap-2 px-0 py-1 border-0">
+            <div>
+              <span class="badge
+                {% if block.discipline == 'agility' %}bg-primary
+                {% elif block.discipline == 'jumping' %}bg-success
+                {% else %}bg-warning text-dark{% endif %} me-1"
+                style="font-size:.6rem;">
+                {{ block.discipline | discipline_label }}
+              </span>
+              {{ block._display_title }}
+              {% if block.judge %}
+              <div class="text-muted" style="font-size:.75rem;">{{ block.judge.full_name }}</div>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="form-text text-muted mt-3">
+      {{ _('Zeiten werden sichtbar sobald die Startnummern vergeben sind.') }}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+
 {# ── Meine Anmeldung ──────────────────────────────────────────────────────── #}
 <div class="card mb-4" style="max-width:680px;">
   <div class="card-header fw-semibold">{{ _('Meine Anmeldung') }}</div>

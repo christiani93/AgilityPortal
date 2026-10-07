@@ -1123,6 +1123,38 @@ def event_info(event_id):
     event_logo_url = url_for("club.event_logo_serve", event_id=event_id, logo_type="event_logo") if event.event_logo_filename else None
     club_logo_url  = url_for("club.event_logo_serve", event_id=event_id, logo_type="club_logo")  if event.club_logo_filename  else None
 
+    # Ablaufplan (TKAMO-Agenda-Pendant): gleiche Darstellung wie event_view/public/schedule
+    from .schedule_utils import (compute_detailed_segments, parse_ring_start_times,
+                                  ring_names as _ring_names, auto_title)
+    sched_blocks = db.session.execute(
+        db.select(ScheduleBlock).filter_by(event_id=event_id)
+        .order_by(ScheduleBlock.ring, ScheduleBlock.sort_index)
+    ).scalars().all()
+    counts = _participant_counts_for_event(event_id)
+    for b in sched_blocks:
+        b._participant_count = _effective_participant_count(b, counts)
+        b._display_title = b.title or auto_title(b.discipline, b.category_code, b.class_level)
+    rings = _ring_names(event.ring_count or 1)
+    start_times = parse_ring_start_times(event.ring_start_times)
+    for r in rings:
+        start_times.setdefault(r, "08:00")
+    sched_by_ring = {r: [] for r in rings}
+    for b in sched_blocks:
+        if b.ring in sched_by_ring:
+            sched_by_ring[b.ring].append(b)
+    sched_timeline = (
+        compute_detailed_segments(sched_by_ring, start_times,
+                                  event.starts_at.strftime("%Y-%m-%d") if event.starts_at
+                                  else datetime.utcnow().strftime("%Y-%m-%d"),
+                                  round_minutes=5,
+                                  run_time_config=_get_run_time_config(event))
+        if has_start_numbers else {}
+    )
+    sorted_runs = sorted(
+        event.runs,
+        key=lambda r: (r.run_type, _CATEGORY_SORT.get(r.category, 9), r.class_level)
+    )
+
     return render_template("club/event_info.html",
                            event=event,
                            my_registrations=my_registrations,
@@ -1133,7 +1165,11 @@ def event_info(event_id):
                            pdf_by_class=pdf_by_class,
                            result_pdfs=result_pdfs,
                            event_logo_url=event_logo_url,
-                           club_logo_url=club_logo_url)
+                           club_logo_url=club_logo_url,
+                           sched_by_ring=sched_by_ring,
+                           rings=rings,
+                           sched_timeline=sched_timeline,
+                           sorted_runs=sorted_runs)
 
 
 # ---------------------------------------------------------------------------
