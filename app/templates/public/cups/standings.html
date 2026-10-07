@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ cup.name }} – Qualifikation{% endblock %}
+{% block title %}{{ cup.name }} – {{ _('Qualifikation') }}{% endblock %}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -11,19 +11,19 @@
     <p class="text-muted">{{ cup.description }}</p>
     {% endif %}
   </div>
-  <a href="{{ url_for('public_cups.cup_index') }}" class="btn btn-outline-secondary">← Alle Cups</a>
+  <a href="{{ url_for('public_cups.cup_index') }}" class="btn btn-outline-secondary">← {{ _('Alle Cups') }}</a>
 </div>
 
 {# Veröffentlichte Finale #}
 {% if finals %}
 <div class="card mb-4 border-warning">
-  <div class="card-header bg-warning fw-semibold">🥊 Finale – Bracket</div>
+  <div class="card-header bg-warning fw-semibold">🥊 {{ _('Finale – Bracket') }}</div>
   <div class="card-body">
     <div class="d-flex gap-2 flex-wrap">
       {% for f in finals %}
       <a href="{{ url_for('public_cups.cup_final_bracket', cup_id=cup.id, final_id=f.id) }}"
          class="btn btn-warning">
-        {{ f.group_label }} → Bracket
+        {{ f.group_label }} → {{ _('Bracket') }}
       </a>
       {% endfor %}
     </div>
@@ -33,7 +33,7 @@
 
 {# Saison-Punktewertung (WiMeSma & Co.) #}
 {% if season_standings %}
-<h3 class="mb-3">Saison-Rangliste</h3>
+<h3 class="mb-3">{{ _('Saison-Rangliste') }}</h3>
 {% for group, dogs in season_standings.items() %}
 <div class="card mb-3 shadow-sm">
   <div class="card-header fw-semibold">{{ group }}
@@ -43,9 +43,9 @@
     <table class="table table-striped mb-0 align-middle">
       <thead class="table-dark">
         <tr>
-          <th>#</th><th>Hund</th><th>Hundeführer/in</th>
-          <th class="text-end">Punkte</th>
-          <th class="text-center text-muted small">gewertete Meetings</th>
+          <th>#</th><th>{{ _('Hund') }}</th><th>{{ _('Hundeführer/in') }}</th>
+          <th class="text-end">{{ _('Punkte') }}</th>
+          <th class="text-center text-muted small">{{ _('gewertete Meetings') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -86,7 +86,7 @@
   <div class="group-section" id="group-{{ loop.index }}"
        {% if not loop.first and qualification | length > 1 %}style="display:none"{% endif %}>
     <h4>{{ group }}
-      <span class="badge bg-dark ms-2">{{ teams | length }} qualifiziert</span>
+      <span class="badge bg-dark ms-2">{{ teams | length }} {{ _('qualifiziert') }}</span>
     </h4>
     {% if teams %}
     <div class="table-responsive">
@@ -94,11 +94,11 @@
         <thead class="table-dark">
           <tr>
             <th>#</th>
-            <th>Hund</th>
-            <th>Hundeführer</th>
-            <th>Qualifikation</th>
-            <th class="text-center">Rang</th>
-            <th class="text-muted small">Kl.</th>
+            <th>{{ _('Hund') }}</th>
+            <th>{{ _('Hundeführer') }}</th>
+            <th>{{ _('Qualifikation') }}</th>
+            <th class="text-center">{{ _('Rang') }}</th>
+            <th class="text-muted small">{{ _('Kl.') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -109,32 +109,32 @@
             <td class="text-muted">{{ qt.handler_name }}</td>
             <td>
               {% if qt.qualification_source == 'title_defender' %}
-                <span class="badge bg-warning text-dark">👑 Titelverteidiger</span>
+                <span class="badge bg-warning text-dark">👑 {{ _('Titelverteidiger') }}</span>
               {% elif qt.qualification_source == 'wildcard' %}
                 <span class="badge bg-info text-dark">🃏 Wildcard</span>
                 {% if qt.seeding_note %}<small class="text-muted ms-1">{{ qt.seeding_note }}</small>{% endif %}
               {% elif qt.qualification_source == 'fillup' %}
-                <span class="badge bg-secondary">Auffüller</span>
+                <span class="badge bg-secondary">{{ _('Auffüller') }}</span>
               {% else %}
                 <span class="badge bg-success">✅ {{ qt.qual_run.display_label if qt.qual_run else '–' }}</span>
               {% endif %}
             </td>
             <td class="text-center text-muted">{{ qt.qualified_rank or '–' }}</td>
-            <td class="text-muted small">{% if qt.class_level %}Kl. {{ qt.class_level }}{% else %}–{% endif %}</td>
+            <td class="text-muted small">{% if qt.class_level %}{{ _('Kl.') }} {{ qt.class_level }}{% else %}–{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <p class="text-muted">Noch keine Teams qualifiziert.</p>
+    <p class="text-muted">{{ _('Noch keine Teams qualifiziert.') }}</p>
     {% endif %}
   </div>
   {% endfor %}
 
 {% else %}
 <div class="alert alert-info mt-3">
-  Die Qualifikationsliste ist noch nicht verfügbar – sie wird nach jedem Meeting aktualisiert.
+  {{ _('Die Qualifikationsliste ist noch nicht verfügbar – sie wird nach jedem Meeting aktualisiert.') }}
 </div>
 {% endif %}
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Veranstaltungen{% endblock %}
+{% block title %}{{ _('Veranstaltungen') }}{% endblock %}
 
 {% macro event_row(ev) %}
 <a href="{{ url_for('public_events.public_overview', event_id=ev.id) }}"
@@ -21,19 +21,19 @@
 
 {% block content %}
 <div class="container py-4">
-  <h1 class="mb-4">Veranstaltungen</h1>
+  <h1 class="mb-4">{{ _('Veranstaltungen') }}</h1>
 
-  <h2 class="h5">Kommende</h2>
+  <h2 class="h5">{{ _('Kommende') }}</h2>
   {% if upcoming %}
   <div class="list-group mb-4 shadow-sm">
     {% for ev in upcoming %}{{ event_row(ev) }}{% endfor %}
   </div>
   {% else %}
-  <p class="text-muted mb-4">Aktuell keine kommenden Veranstaltungen.</p>
+  <p class="text-muted mb-4">{{ _('Aktuell keine kommenden Veranstaltungen.') }}</p>
   {% endif %}
 
   {% if past %}
-  <h2 class="h5">Vergangene</h2>
+  <h2 class="h5">{{ _('Vergangene') }}</h2>
   <div class="list-group shadow-sm">
     {% for ev in past %}{{ event_row(ev) }}{% endfor %}
   </div>

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Finalisten – {{ event.name }}{% endblock %}
+{% block title %}{{ _('Finalisten') }} – {{ event.name }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-  <p class="mb-2"><a href="{{ url_for('public_events.public_overview', event_id=event.id) }}">&larr; Übersicht</a></p>
-  <h1 class="mb-3">{{ event.name }} – Finalisten</h1>
+  <p class="mb-2"><a href="{{ url_for('public_events.public_overview', event_id=event.id) }}">&larr; {{ _('Übersicht') }}</a></p>
+  <h1 class="mb-3">{{ event.name }} – {{ _('Finalisten') }}</h1>
 
   {% for key, items in groups.items() %}
     {% set category = key[0] %}
@@ -14,7 +14,7 @@
         <strong>
           {% if category %}{{ category }}{% endif %}
           {% if division %}<span class="text-muted">– {{ division_labels.get(division, division) }}</span>{% endif %}
-          {% if not category and not division %}Finalisten{% endif %}
+          {% if not category and not division %}{{ _('Finalisten') }}{% endif %}
         </strong>
         <span class="text-muted small">({{ items|length }})</span>
       </div>
@@ -23,12 +23,12 @@
           <thead class="table-light">
             <tr>
               <th>#</th>
-              <th>Hund</th>
-              <th>Hundeführer/in</th>
-              <th>Lizenz</th>
-              <th>Quelle</th>
-              <th>Aus Klasse</th>
-              <th>Quali-Rang</th>
+              <th>{{ _('Hund') }}</th>
+              <th>{{ _('Hundeführer/in') }}</th>
+              <th>{{ _('Lizenz') }}</th>
+              <th>{{ _('Quelle') }}</th>
+              <th>{{ _('Aus Klasse') }}</th>
+              <th>{{ _('Quali-Rang') }}</th>
             </tr>
           </thead>
           <tbody>

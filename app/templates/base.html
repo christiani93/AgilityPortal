@@ -101,27 +101,27 @@
       {% endif %}
       {% endif %}
       {% if current_user.is_superadmin %}
-      <div class="nav-section">Cups</div>
+      <div class="nav-section">{{ _('Cups') }}</div>
       <a href="{{ url_for('cups_admin.cup_list') }}"
          class="{% if request.endpoint == 'cups_admin.cup_list' or request.endpoint == 'cups_admin.cup_new' or request.endpoint == 'cups_admin.cup_detail' or request.endpoint == 'cups_admin.cup_edit' %}active{% endif %}">
-        🏆 Cup-Verwaltung
+        🏆 {{ _('Cup-Verwaltung') }}
       </a>
       <a href="{{ url_for('cups_admin.cup_club_assignments') }}"
          class="{% if request.endpoint == 'cups_admin.cup_club_assignments' %}active{% endif %}">
-        🔒 Vereins-Freigaben
+        🔒 {{ _('Vereins-Freigaben') }}
       </a>
-      <div class="nav-section">Vorlagen</div>
+      <div class="nav-section">{{ _('Vorlagen') }}</div>
       <a href="{{ url_for('templates_admin.template_list') }}"
          class="{% if request.endpoint and 'templates_admin' in request.endpoint %}active{% endif %}">
-        📋 Turnier-Vorlagen
+        📋 {{ _('Turnier-Vorlagen') }}
       </a>
-      <div class="nav-section">Import</div>
+      <div class="nav-section">{{ _('Import') }}</div>
       <a href="{{ url_for('aoa_import.aoa_import_home') }}"
          class="{% if 'aoa_import' in request.endpoint %}active{% endif %}">
-        ⬆ AOA-Import
+        ⬆ {{ _('AOA-Import') }}
       </a>
       {% endif %}
-      <div class="nav-section">Feedback</div>
+      <div class="nav-section">{{ _('Feedback') }}</div>
       <a href="/feedback"
          class="{% if request.path == '/feedback' %}active{% endif %}">
         🐞 {{ _('Bug / Wunsch melden') }}
