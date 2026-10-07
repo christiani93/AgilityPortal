@@ -629,13 +629,27 @@ def aoa_import_execute():
             # 2. Person (Hundeführer) finden oder anlegen
             person = None
             if first_name or last_name:
-                # Suche nach Name + E-Mail, sonst neu anlegen
-                if email:
-                    person = Person.query.filter_by(email=email).first()
-                if not person and first_name and last_name:
+                # Name hat Vorrang vor E-Mail: Familienmitglieder (Ehepaar,
+                # Eltern+Kind) teilen sich oft eine Kontakt-E-Mail in der
+                # Startliste. Würde man zuerst per E-Mail matchen, landen
+                # verschiedene Personen fälschlich auf demselben Handler
+                # (Prod-Befund Event 9/16: Océane + Pascal Mauroux, beide
+                # kudelski.irene@bluewin.ch → 7 Meldungen auf 1 Handler statt
+                # 2 getrennte Personen — verfälscht auch die Startnummern-
+                # Lückenberechnung, siehe event_assign_startnumbers).
+                if first_name and last_name:
                     person = Person.query.filter_by(
                         first_name=first_name, last_name=last_name
                     ).first()
+                if not person and email:
+                    # E-Mail nur als Fallback – und nur übernehmen, wenn der
+                    # gespeicherte Name nicht widerspricht (keine blinde
+                    # Zusammenführung verschiedener Personen).
+                    candidate = Person.query.filter_by(email=email).first()
+                    if candidate and \
+                       (not first_name or candidate.first_name == first_name) and \
+                       (not last_name or candidate.last_name == last_name):
+                        person = candidate
                 if not person:
                     person = Person(
                         first_name=first_name,
