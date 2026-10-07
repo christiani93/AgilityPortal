@@ -87,6 +87,50 @@ def test_startlist_page_visible_even_when_not_flagged_public(app):
         assert b"Meldeliste" in response.data
 
 
+def test_startlist_print_page_returns_200_with_rows(app):
+    # Druckseite rendert die gleichen Zeilen wie die normale Startliste,
+    # als eigenständige A4-Seite mit Logo-Kopf (ohne base.html-Navigation).
+    with app.app_context():
+        event = Event(name="Druck Event", is_published=True, startlist_public=True)
+        db.session.add(event)
+        db.session.flush()
+
+        dog = Dog(name="Rex", license_no="12345", license_kind=LicenseKind.CH)
+        handler = Person(first_name="Anna", last_name="Muster")
+        db.session.add_all([dog, handler])
+        db.session.flush()
+        db.session.add(Registration(
+            event_id=event.id, dog_id=dog.id, handler_id=handler.id,
+            class_level=1, category_code="Large",
+            status=RegistrationStatus.CONFIRMED,
+        ))
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get(f"/events/{event.id}/startlist/print")
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert "Rex" in body
+        assert "Anna Muster" in body
+        assert "window.print()" in body
+        # Eigenständige Druckseite, nicht in base.html eingebettet.
+        assert "<!DOCTYPE html>" in body
+
+        # Normale Startliste verlinkt auf die Druckseite.
+        list_resp = client.get(f"/events/{event.id}/startlist")
+        assert f"/events/{event.id}/startlist/print" in list_resp.get_data(as_text=True)
+
+
+def test_startlist_print_page_404_when_unpublished(app):
+    with app.app_context():
+        event = Event(name="Entwurf", is_published=False)
+        db.session.add(event)
+        db.session.commit()
+
+        client = app.test_client()
+        assert client.get(f"/events/{event.id}/startlist/print").status_code == 404
+
+
 def test_events_index_lists_only_published_nontest(app):
     with app.app_context():
         pub = Event(name="Sichtbar", is_published=True)

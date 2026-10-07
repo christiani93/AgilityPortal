@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, current_app, render_template, request
+from flask import Blueprint, abort, current_app, render_template, request, url_for
 
 from app.models import (Event, EventFinalist, Registration, RegistrationStatus,
                         ScheduleBlock, StartNumber)
@@ -161,14 +161,13 @@ def public_finalists(event_id):
     )
 
 
-@public_events_bp.get("/events/<int:event_id>/startlist")
-def public_startlist(event_id):
-    event = Event.query.get_or_404(event_id)
-    if not event.is_published and not _has_admin_key():
-        abort(404)
-    # Meldeliste/Startliste ist für publizierte Events öffentlich sichtbar –
-    # gleich wie für eingeloggte Nutzer (kein startlist_public-Gate mehr).
+def _collect_startlist_rows(event_id):
+    """Sammelt Startlisten-Zeilen für ein Event.
 
+    Mit vergebenen Startnummern → echte Startliste (nach Startnummer sortiert).
+    Ohne Startnummern → vorläufige Meldeliste (nach Kategorie/Klasse/Hund).
+    Rückgabe: (rows, has_numbers)
+    """
     numbers = (
         StartNumber.query.filter_by(event_id=event_id)
         .order_by(StartNumber.start_no)
@@ -177,7 +176,6 @@ def public_startlist(event_id):
 
     rows = []
     if numbers:
-        # Startnummern vergeben → echte Startliste
         for entry in numbers:
             registration = Registration.query.get(entry.registration_id)
             if not registration:
@@ -194,7 +192,6 @@ def public_startlist(event_id):
                 }
             )
     else:
-        # Noch keine Startnummern → read-only Meldeliste aus den Anmeldungen
         registrations = (
             Registration.query.filter_by(event_id=event_id)
             .filter(Registration.status != RegistrationStatus.CANCELLED)
@@ -218,9 +215,58 @@ def public_startlist(event_id):
             r["dog_name"].lower(),
         ))
 
+    return rows, bool(numbers)
+
+
+def _event_logo_urls(event):
+    """(event_logo_url, club_logo_url) für die öffentliche Logo-Serve-Route."""
+    event_logo_url = (
+        url_for("club.event_logo_serve", event_id=event.id, logo_type="event_logo")
+        if event.event_logo_filename else None
+    )
+    club_logo_url = (
+        url_for("club.event_logo_serve", event_id=event.id, logo_type="club_logo")
+        if event.club_logo_filename else None
+    )
+    return event_logo_url, club_logo_url
+
+
+@public_events_bp.get("/events/<int:event_id>/startlist")
+def public_startlist(event_id):
+    event = Event.query.get_or_404(event_id)
+    if not event.is_published and not _has_admin_key():
+        abort(404)
+    # Meldeliste/Startliste ist für publizierte Events öffentlich sichtbar –
+    # gleich wie für eingeloggte Nutzer (kein startlist_public-Gate mehr).
+
+    rows, has_numbers = _collect_startlist_rows(event_id)
+
     return render_template(
         "public/startlist.html",
         event=event,
         rows=rows,
-        has_numbers=bool(numbers),
+        has_numbers=has_numbers,
+    )
+
+
+@public_events_bp.get("/events/<int:event_id>/startlist/print")
+def public_startlist_print(event_id):
+    """Druckfertige, login-freie Startliste/Meldeliste mit Logo-Kopf.
+
+    Gleiche Daten wie die öffentliche Startliste, aber als eigenständige
+    A4-Druckseite (Browser → „Als PDF speichern")."""
+    event = Event.query.get_or_404(event_id)
+    if not event.is_published and not _has_admin_key():
+        abort(404)
+
+    rows, has_numbers = _collect_startlist_rows(event_id)
+    event_logo_url, club_logo_url = _event_logo_urls(event)
+
+    return render_template(
+        "public/startlist_print.html",
+        event=event,
+        rows=rows,
+        has_numbers=has_numbers,
+        event_logo_url=event_logo_url,
+        club_logo_url=club_logo_url,
     )
