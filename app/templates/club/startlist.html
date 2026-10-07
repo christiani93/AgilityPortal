@@ -21,7 +21,10 @@
     </small>
   </div>
   <div class="d-flex gap-2">
-    <button type="button" class="btn btn-sm btn-success" onclick="window.print()">🖨️ Drucken</button>
+    {% if sorted_groups %}
+    <a href="{{ url_for('club.event_startlist_zip', event_id=event.id) }}"
+       class="btn btn-sm btn-success">⬇️ Alle als PDF (ZIP)</a>
+    {% endif %}
     {% if current_user.is_authenticated and current_user.is_superadmin %}
     <a href="{{ url_for('club.event_detail', event_id=event.id) }}"
        class="btn btn-sm btn-outline-secondary">← Turnierverwaltung</a>

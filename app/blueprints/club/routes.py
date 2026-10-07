@@ -2299,6 +2299,36 @@ def event_startlist(event_id):
     )
 
 
+@club_bp.get("/events/<int:event_id>/startlists.zip")
+def event_startlist_zip(event_id):
+    """Alle Block-Startlisten als ZIP (ein PDF pro Kategorie/Klasse) – gleich wie
+    die öffentliche Variante, aber ohne Publiziert-Guard (diese Seite ist auch
+    für noch nicht publizierte Turniere erreichbar)."""
+    from flask import Response
+    from app.blueprints.public.routes_events import (
+        _collect_startlist_rows, _group_startlist_rows, _event_logo_paths,
+    )
+    from app.services.startlist_pdf import build_startlist_zip
+
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+
+    rows, has_numbers = _collect_startlist_rows(event_id)
+    groups = _group_startlist_rows(rows)
+    if not groups:
+        abort(404)
+
+    zip_bytes, filename = build_startlist_zip(
+        event, groups, has_numbers, _event_logo_paths(event)
+    )
+    return Response(
+        zip_bytes,
+        mimetype="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @club_bp.post("/events/<int:event_id>/reset-startnumbers")
 @login_required
 def event_reset_startnumbers(event_id):
