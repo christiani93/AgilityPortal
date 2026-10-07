@@ -122,7 +122,9 @@
     <tr>
       {% if has_numbers %}<th class="cent">{{ _('Startnummer') }}</th>{% endif %}
       <th>{{ _('Hund') }}</th>
+      <th>{{ _('Rasse') }}</th>
       <th>{{ _('Führer/in') }}</th>
+      <th>{{ _('Verein') }}</th>
       <th>{{ _('Kategorie') }}</th>
       <th>{{ _('Klasse') }}</th>
     </tr>
@@ -132,7 +134,9 @@
     <tr>
       {% if has_numbers %}<td class="cent">{{ row.start_no }}</td>{% endif %}
       <td>{{ row.dog_name }}</td>
+      <td>{{ row.breed or '—' }}</td>
       <td>{{ row.handler_name }}</td>
+      <td>{{ row.club_name or '—' }}</td>
       <td>{{ row.category_code }}</td>
       <td>{% if row.class_level %}{{ _('Klasse') }} {{ row.class_level }}{% else %}–{% endif %}</td>
     </tr>

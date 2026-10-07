@@ -72,6 +72,7 @@
           <th style="width:70px;">Nr.</th>
           <th>Name</th>
           <th>Hund</th>
+          <th>Rasse</th>
           <th>Verein</th>
         </tr>
       </thead>
@@ -88,7 +89,8 @@
             {% endif %}
           </td>
           <td>{{ reg.dog.name if reg.dog else '—' }}</td>
-          <td class="text-muted small">{{ reg.club_name or '—' }}</td>
+          <td class="text-muted small">{{ (reg.dog.breed if reg.dog else none) or '—' }}</td>
+          <td class="text-muted small">{{ reg.club_display_name or '—' }}</td>
         </tr>
         {% endfor %}
       </tbody>

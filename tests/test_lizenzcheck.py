@@ -63,7 +63,9 @@ def test_dog_name_mismatch_updates_via_license_in_line(app):
         )
         name_changes, _, _ = _parse_and_apply_tkamo(event, report_text)
         assert len(name_changes) == 1
-        assert dogs[0].name == "Roy"
+        # tka_name wird gesetzt, der AOA-Name (name) bleibt für normale Listen
+        assert dogs[0].tka_name == "Roy"
+        assert dogs[0].name == "Dog0"
 
 
 def test_dog_name_mismatch_via_zeile_uses_stable_order(app):
@@ -82,5 +84,5 @@ def test_dog_name_mismatch_via_zeile_uses_stable_order(app):
         name_changes, _, _ = _parse_and_apply_tkamo(event, report_text)
         assert len(name_changes) == 1
         # Zeile 3 = zweiter Datensatz (Zeile 1 ist der Header)
-        assert dogs[1].name == "Piwie"
-        assert dogs[0].name == "Dog0"  # unverändert
+        assert dogs[1].tka_name == "Piwie"
+        assert dogs[0].tka_name is None  # unverändert

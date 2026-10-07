@@ -209,7 +209,7 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                     current = _round_to_minutes(current, round_minutes)
 
                 # Gemeinsames Briefing
-                _bs, briefing_end_str, current = _advance(current, brief_s, round_minutes)
+                _bs, _be, current = _advance(current, brief_s, round_minutes)
 
                 # Preppause (nur wenn 1 Briefing-Block)
                 if prep_s:
@@ -230,11 +230,15 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                     count  = getattr(b, "_participant_count", 0)
                     secs   = _secs_per_starter(b.discipline, run_time_config)
                     run_s  = count * secs
-                    _, r_end = run_times[b.id]
+                    r_start, r_end = run_times[b.id]
 
+                    # Erster Block: Start = Gruppenbeginn (Umbau/Briefing gehören
+                    # in seine Zeile). Folgeblöcke: ihre eigene Lauf-Startzeit
+                    # (nicht das Briefing-Ende — das war der Render-Fehler, bei
+                    # dem alle Folgezeilen dieselbe Startzeit zeigten).
                     items.append({
                         "block":           b,
-                        "start_time":      co_start.strftime("%H:%M") if first else briefing_end_str,
+                        "start_time":      co_start.strftime("%H:%M") if first else r_start,
                         "end_time":        r_end,
                         "participants":    count,
                         "changeover_min":  changeover_s // 60 if first else 0,

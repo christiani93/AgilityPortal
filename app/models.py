@@ -193,6 +193,12 @@ class Dog(db.Model):
     category = db.Column(db.String(1), nullable=True)   # L / I / M / S
     class_level = db.Column(db.Integer, nullable=True)  # 1 / 2 / 3
     breed = db.Column(db.String(120), nullable=True)    # Rasse (aus AOA-Import)
+    # Offizieller Name laut TKAMO-Lizenzcheck (nur dort geschrieben, s.
+    # _parse_and_apply_tkamo). AOA-Re-Importe überschreiben dieses Feld NICHT
+    # — `name` bleibt der normale AOA-Name und wird auf allen "normalen"
+    # Listen gezeigt; `tka_name` nur im TKAMO-CSV-Export (Fallback: `name`,
+    # falls noch kein Lizenzcheck gelaufen ist).
+    tka_name = db.Column(db.String(120), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     owners = db.relationship("DogOwner", back_populates="dog", cascade="all, delete-orphan")
@@ -704,6 +710,25 @@ class Registration(db.Model):
     event = db.relationship("Event")
     dog = db.relationship("Dog")
     handler = db.relationship("Person")
+
+    @property
+    def club_display_name(self):
+        """Anzeigename des Vereins für Listen/Druck.
+
+        `club_name` selbst bleibt unverändert die SKG-Vereinsnummer (aus dem
+        AOA-Import, wird für die TKAMO-CSV gebraucht) — hier wird sie nur für
+        die Anzeige über die Club-Tabelle zum Namen aufgelöst. Kein Treffer
+        (z.B. Gastverein ohne Portal-Account) oder Freitext (z.B. der
+        Ausland-Marker) → unveränderter Rohwert, wie bisher.
+        """
+        value = (self.club_name or "").strip()
+        if not value:
+            return None
+        if value.isdigit():
+            club = Club.query.filter_by(vereinsnummer=value).first()
+            if club:
+                return club.name
+        return value
 
     __table_args__ = (
         CheckConstraint("class_level in (1, 2, 3)", name="ck_registrations_class_level"),

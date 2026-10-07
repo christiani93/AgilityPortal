@@ -5,6 +5,77 @@
 
 Stand: 2026-10-07
 
+## Session 2026-10-07 (Teil 8) — TKAMO-Name + Verein-Name + Rasse + Zeitplan-Renderfix — ⏳ LOKAL FERTIG, UNCOMMITTED
+
+112/112 Tests grün, **noch NICHT committed/deployed** (Prod-Head bleibt `e3f4g5h6i7j8`).
+Details in Memory `project_local_20261007_tkaname_verein_schedulefix`.
+- [x] **`Dog.tka_name`** (neue Migration `f6a7b8c9d0e1`, down `e3f4g5h6i7j8`, additiv add_column):
+      Lizenzcheck (`_parse_and_apply_tkamo`) schreibt offiziellen TKAMO-Namen in `tka_name`
+      statt `dog.name`; TKAMO-CSV (`event_lizenzcheck_csv`) nutzt `tka_name or name`.
+      AOA-Name bleibt auf allen normalen Listen. (User-Entscheid: Zusatzfeld, Fallback AOA.)
+- [x] **Verein als Name statt Nummer** (nur Anzeige): Property `Registration.club_display_name`
+      löst numerische `club_name` (=Vereinsnummer) über `Club.vereinsnummer` zum Namen auf;
+      Gastverein ohne Portal-Account / Freitext → Rohwert bleibt. `club_name`-Feld UNVERÄNDERT
+      (TKAMO-CSV braucht Nummer). User: Namen NICHT importieren, nur anzeigen.
+- [x] **Rasse-Spalte** (`Dog.breed`) in club/startlist.html, public/startlist.html,
+      public/startlist_print.html; `_collect_startlist_rows` liefert breed + club_name.
+- [x] **Zeitplan-Startzeiten-Renderfix** `schedule_utils.py::compute_timeline`: Folgezeilen
+      einer Gruppe zeigten alle das Briefing-Ende als Start; jetzt eigene fortlaufende
+      Lauf-Startzeit (`run_times[b.id][0]`). Nur Editor-Ansicht betroffen, nicht
+      compute_detailed_segments. Verifiziert 16:30→16:45→16:48→16:50→16:54.
+### Handler-Gap-Verteilung — NEU umgesetzt 2026-10-07 (Details Memory `project_startnumber_gap_algorithm`)
+- [x] **MIN_GAP ENTFERNT**, neue Soll-Lücke je **Spreizung** `n/own_count` (N=eigene Hunde im Block):
+      `n/own_count >= 20` → `Block/N` (gleichmässig); sonst → `Block/(N-1)` (Extreme spreizen,
+      grösstmöglicher Abstand). Einzelhund → keine Lücke. In `event_assign_startnumbers`.
+      6/6 `tests/test_club_startnumbers.py` grün (neu: tight→Extreme, roomy→Block/N).
+- [x] **VERWORFEN — gleichmässige even-Formel** (alt): an Turnier-16-Daten Regression.
+      Die neue Block/(N-1)-Spreizung senkt NICHTS unter ein Minimum → nicht dasselbe.
+- [x] **Nebenbefund behoben:** die alte (deployte) MIN_GAP-Logik liess in gesättigten kleinen
+      Blöcken eine Registration komplett ohne Startnummer (Best-effort-Loop); NEU platziert alle.
+- [!] **Physikalisch unlösbar bei kleinen Blöcken bleibt:** Handler mit vielen Hunden in
+      kurzem Block → Pause unvermeidbar knapp. Nummernvergabe kann das nicht heilen.
+- [ ] **OPTIONAL — erkennen & melden** statt lösen — nach „Startnummern vergeben" dem
+      Veranstalter die Handler mit Startabstand < X min anzeigen (zeitbasiert via
+      compute_detailed_segments). Mit User abstimmen + bauen.
+
+### AOA-Import Handler-E-Mail-Merge-Bug — GEFIXT 2026-10-07 (Memory `project_aoa_import_handler_email_merge_bug`)
+- [x] **Person-Matching: Name vor E-Mail.** Verschiedene Personen mit gemeinsamer Familien-
+      E-Mail (Océane + Pascal Mauroux, beide kudelski.irene@bluewin.ch) wurden auf einen
+      Handler gemappt → verfälschte Startnummern-Gaps. Fix in `routes_aoa_import.py`
+      (`aoa_import_execute`) + Regressionstest `tests/test_aoa_import_handler_merge.py`.
+      **Muss vor dem echten Event-9-Import (09.10.) live sein** (Event 9 hat aktuell 0 Regs).
+- [ ] **Account↔Person-Verknüpfung** (vom User angestossen, SPÄTER): wie werden importierte
+      Personen mit bestehenden Portal-Accounts/Lizenzen verbunden? Siehe AdminPortal-Gap-Memory.
+
+## Session 2026-10-07 (Teil 7) — Testkopie + Anmelde-Guard + Bundle-Deploy — ✅ DEPLOYED
+
+Commit `d461ac1` live, **NEUER Prod-Alembic-Head `e3f4g5h6i7j8`** (additiv, nur Tabelle
+`special_ruleset_allowed_clubs`). DB-Backup `~/backups/agilityportal_xahizivi_main_20261007_164354.sql`.
+Verifiziert: alle Routen 200, Wettbewerbe-Karte rendert, keine Logfehler. 112/112 Tests grün.
+- [x] **Testkopie-Funktion** `club.event_duplicate_as_test` (POST /club/events/<id>/duplicate-as-test)
+      + Button „🧪 Testkopie" auf event_detail. Kopiert Läufe/Richter/Zeitplan/Anmeldungen,
+      is_test=True, AIS/external_id geleert, Startnummern NICHT kopiert.
+- [x] **Anmelde-Guard** in `event_view`: Selbst-Anmeldung nur in angebotene (category,class).
+      (Vorher KEINE Prüfung — man konnte sich in jede Kl.1-3 anmelden.)
+- [x] **Testevent-Sicht**: `event_info` zeigt Testevents auch dem Veranstalter des eigenen Vereins.
+- [x] **Wettbewerbe-Infokarte** in public/overview.html (Disziplinen/Kategorien/Klassen).
+- [x] Gebündelt mitdeployed: Spezialturnier-Freigabe + Vorlagen-Self-Service + „Meine Angaben"
+      (siehe Teil 5 unten — ist damit erledigt/live).
+
+### ⏳ OFFEN — Test-Startliste von Event 9 (Dry-Run)
+Event 9 = „Jump Into Fall – Vendredi 09.10.2026" (AIS **11338**, Club **295**=LyTiWee, 1 Ring,
+**24 Läufe, 24 Zeitplan-Blöcke, 1 Richter, 0 Anmeldungen**, 0 Startnummern). Struktur ist da,
+aber **0 Teilnehmer** → reine Kopie hätte leere Startliste. **Entscheid beim User offen:**
+(A) Testkopie + Dummy-Teilnehmer (Default 8/Klasse, `TEST_`/`TST-`-Lizenzen wie
+create_test_event_web) → Startnummern + Startliste als Dry-Run; (B) warten auf echten Import.
+
+### ⏳ OFFEN — Multi-Club-Mitgliedschaft (als Nächstes, local-first)
+4 Design-Entscheide vom User beantwortet (2026-10-07): (1) Auto-Mitgliedschaft = **manuell**
+(Teilnehmer trägt sich bei Verein ein; TKAMO-Lizenzkontrolle liefert ab 2027 Verein-Abgleich),
+(2) `User.club_id` als Hauptverein **behalten**, (3) Verein-Picker bei event_new **ja**,
+(4) Promotion member→admin bleibt **über AdminPortal**. Umbau: M:N `ClubMembership(user_id,
+club_id, role)`. User-Freigabe: **jetzt bauen, aber local-first testen, nur Claude selbst.**
+
 ## Session 2026-10-07 (Teil 6) — event_info-Ausbau + externe Anmeldung — ✅ DEPLOYED
 
 Drei Deploys live, keine Migration (Head bleibt `d1e2f3a4b5c6`), keine neuen Crashes:
@@ -23,10 +94,10 @@ Handler in mehreren Vereinen → Auto-Mitgliederrolle; Superadmin promotet zu Cl
 (3) Verein-Picker bei event_new, (4) Promotion-UI Portal vs AdminPortal. DB-Migration
 local-first, NICHT am Jump-Into-Fall-Wochenende.
 
-## Session 2026-10-07 (Teil 5) — Spezialturnier-Freigabe + Self-Service — ⏳ LOKAL FERTIG, NICHT DEPLOYED
+## Session 2026-10-07 (Teil 5) — Spezialturnier-Freigabe + Self-Service — ✅ DEPLOYED (im Bundle Teil 7)
 
-104/104 Tests grün. **Prod-Alembic-Head bleibt `d1e2f3a4b5c6`** — neuer lokaler Head
-`e3f4g5h6i7j8` (Migration `special_ruleset_allowed_clubs`). Alles uncommitted.
+Live via `d461ac1`, **Prod-Alembic-Head `e3f4g5h6i7j8`** (Migration `special_ruleset_allowed_clubs`).
+Verhaltensneutral solange Allowlist leer (`special_ruleset_restricts()`=False).
 
 - [x] **Spezialturnier-Freigabe** (`SpecialRulesetAllowedClub`, Migration `e3f4g5h6i7j8`):
       eigenständige Allowlist Ruleset↔Verein, unabhängig vom Cup-System. Model-Helper
@@ -296,9 +367,13 @@ Deploy (`44bb7df`). SQLite-Tests hatten den Bug nicht gefangen (MySQL-only-Synta
 - [x] Publiziert, Richter pro Lauf zugeordnet + anwesend, Starterzahlen genullt
 - [x] Mit Reservation #42 verknüpft (ohne Sync)
 - [x] TKAMO-Import gemacht
-- [ ] Chris trägt Mi/Do (07./08.10.) Teilnehmer ein
+- [ ] Teilnehmer eintragen via **kompletter AOA-Import** (echte Teilnehmer, KEINE Dummies) —
+      User-Entscheid 2026-10-07. Flow `/admin/aoa-import` (Event wählen → CSV/xlsx → preview →
+      execute, legt CONFIRMED-Regs an). Details Memory `project_aoa_import_event9_dryrun`.
+      Entscheid lokal vs. Prod für den Trockenlauf offen; Exportdatei-Pfad vom User noch ausstehend.
 - [ ] **Startlisten** (User-Plan 2026-10-07): morgen Do 08.10. die Freitag-Startliste,
-      am Fr 10.10. dann die fürs Wochenende (Events 10/11) — gemeinsam mit Claude
+      am Fr 10.10. dann die fürs Wochenende (Events 10/11) — gemeinsam mit Claude.
+      ⚠️ Vorher Teil-8-Bündel deployen, sonst Startliste noch mit Vereinsnummern/ohne Rasse.
 
 ## Halloween Cup KO-System (30.10.–01.11.2026)
 

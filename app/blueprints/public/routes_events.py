@@ -224,9 +224,11 @@ def _collect_startlist_rows(event_id):
                 {
                     "start_no": entry.start_no,
                     "dog_name": dog.name if dog else "",
+                    "breed": (dog.breed if dog else "") or "",
                     "handler_name": f"{handler.first_name} {handler.last_name}" if handler else "",
                     "category_code": registration.category_code,
                     "class_level": registration.class_level,
+                    "club_name": registration.club_display_name or "",
                 }
             )
     else:
@@ -242,9 +244,11 @@ def _collect_startlist_rows(event_id):
                 {
                     "start_no": None,
                     "dog_name": dog.name if dog else "",
+                    "breed": (dog.breed if dog else "") or "",
                     "handler_name": f"{handler.first_name} {handler.last_name}" if handler else "",
                     "category_code": registration.category_code,
                     "class_level": registration.class_level,
+                    "club_name": registration.club_display_name or "",
                 }
             )
         rows.sort(key=lambda r: (

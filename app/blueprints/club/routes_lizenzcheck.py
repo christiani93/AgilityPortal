@@ -103,7 +103,7 @@ def event_lizenzcheck_csv(event_id):
             dog.license_no or "",
             cat_csv,
             reg.class_level or "",
-            dog.name or "",
+            dog.tka_name or dog.name or "",
             vereinsnummer,
             handler.first_name or "",
             handler.last_name or "",
@@ -280,8 +280,11 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
                 )
             continue
 
-        # ── Hundename → immer TKAMO-System-Namen übernehmen ─────────────────
-        # Lizenz ist NIE in dieser Zeile — immer nur Zeile N
+        # ── Hundename → TKAMO-System-Namen in tka_name übernehmen ───────────
+        # Lizenz ist NIE in dieser Zeile — immer nur Zeile N.
+        # Schreibt NICHT mehr in dog.name (das bleibt der AOA-Name für alle
+        # normalen Listen) — sondern in das eigene tka_name-Feld, das nur
+        # beim TKAMO-CSV-Export verwendet wird.
         if 'Hundename' in line:
             m_name = re.search(r'Im System\s+(.+)$', line, re.IGNORECASE)
             if not m_name:
@@ -302,15 +305,15 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
                     db.select(Dog).filter_by(license_no=license_no)
                 ).scalar_one_or_none()
                 if dog:
-                    old_name = dog.name
-                    dog.name = system_name  # immer übernehmen
-                    if old_name != system_name:
+                    old_tka_name = dog.tka_name
+                    dog.tka_name = system_name  # immer übernehmen
+                    if old_tka_name != system_name:
                         name_changes.append(
-                            f"✏️ Hundename: {license_no} '{old_name}' → '{system_name}'"
+                            f"✏️ TKAMO-Name: {license_no} '{old_tka_name or dog.name}' → '{system_name}'"
                         )
                     else:
                         name_changes.append(
-                            f"✏️ Hundename: {license_no} '{system_name}' (Schreibweise bestätigt)"
+                            f"✏️ TKAMO-Name: {license_no} '{system_name}' (Schreibweise bestätigt)"
                         )
 
     db.session.commit()
