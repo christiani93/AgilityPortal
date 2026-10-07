@@ -50,10 +50,36 @@
   {% endif %}
 </div>
 
+{# ── Externe Anmeldung ────────────────────────────────────────────────────── #}
+{% if event.registration_external %}
+<div class="card mb-4 border-primary" style="max-width:680px;">
+  <div class="card-header bg-primary text-white">{{ _('Anmeldung über externes Portal') }}</div>
+  <div class="card-body">
+    <p class="mb-3">{{ _('Die Anmeldung für dieses Turnier läuft über ein externes Anmeldeportal des Veranstalters — nicht über dieses Portal.') }}</p>
+    {% if event.registration_url %}
+    <a href="{{ event.registration_url }}" target="_blank" rel="noopener" class="btn btn-primary">
+      {{ _('Zur externen Anmeldung') }} →
+    </a>
+    {% else %}
+    <p class="text-muted mb-0">{{ _('Der Veranstalter hat noch keinen Anmeldelink hinterlegt.') }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 {# ── Turnierinfos ─────────────────────────────────────────────────────────── #}
 <div class="card mb-4" style="max-width:680px;">
   <div class="card-body">
     <dl class="row mb-0" style="row-gap:.4rem;">
+      {% if event.organiser_club %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Veranstalter') }}</dt>
+      <dd class="col-sm-7 mb-0">
+        {{ event.organiser_club.name }}
+        {% if event.organiser_club.vereinsnummer %}
+          <span class="text-muted small">({{ event.organiser_club.vereinsnummer }})</span>
+        {% endif %}
+      </dd>
+      {% endif %}
       {% if event.pruefungsleiter %}
       <dt class="col-sm-5 text-muted fw-normal">{{ _('Prüfungsleiter') }}</dt>
       <dd class="col-sm-7 mb-0">{{ event.pruefungsleiter }}</dd>
@@ -62,9 +88,21 @@
       <dt class="col-sm-5 text-muted fw-normal">{{ _('Ort') }}</dt>
       <dd class="col-sm-7 mb-0">{{ event.location }}</dd>
       {% endif %}
+      {% if event.registration_open_at %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Anmeldebeginn') }}</dt>
+      <dd class="col-sm-7 mb-0">{{ event.registration_open_at.strftime("%d.%m.%Y") }}</dd>
+      {% endif %}
       {% if event.entry_fee %}
       <dt class="col-sm-5 text-muted fw-normal">{{ _('Startgeld') }}</dt>
       <dd class="col-sm-7 mb-0">CHF {{ "%.2f"|format(event.entry_fee|float) }}</dd>
+      {% endif %}
+      {% if event.max_participants %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Max. Teilnehmer') }}</dt>
+      <dd class="col-sm-7 mb-0">{{ event.max_participants }}</dd>
+      {% endif %}
+      {% if event.ring_count %}
+      <dt class="col-sm-5 text-muted fw-normal">{{ _('Anzahl Ringe') }}</dt>
+      <dd class="col-sm-7 mb-0">{{ event.ring_count }}</dd>
       {% endif %}
       <dt class="col-sm-5 text-muted fw-normal">{{ _('Läufige Hündinnen') }}</dt>
       <dd class="col-sm-7 mb-0">

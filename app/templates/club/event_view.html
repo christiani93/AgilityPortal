@@ -270,7 +270,21 @@
 {% endif %}
 
 {# Anmeldung #}
-{% if event.status == 'open' and not deadline_passed %}
+{% if event.registration_external %}
+  <div class="card mb-4 border-primary" style="max-width:520px;">
+    <div class="card-header bg-primary text-white">{{ _('Anmeldung über externes Portal') }}</div>
+    <div class="card-body">
+      <p class="mb-3">{{ _('Die Anmeldung für dieses Turnier läuft nicht über dieses Portal, sondern über ein externes Anmeldeportal des Veranstalters.') }}</p>
+      {% if event.registration_url %}
+      <a href="{{ event.registration_url }}" target="_blank" rel="noopener" class="btn btn-primary">
+        {{ _('Zur externen Anmeldung') }} →
+      </a>
+      {% else %}
+      <p class="text-muted mb-0">{{ _('Der Veranstalter hat noch keinen Anmeldelink hinterlegt.') }}</p>
+      {% endif %}
+    </div>
+  </div>
+{% elif event.status == 'open' and not deadline_passed %}
   <div class="card mb-4" style="max-width:520px;">
     <div class="card-header">{{ _('Für dieses Turnier anmelden') }}</div>
     <div class="card-body">

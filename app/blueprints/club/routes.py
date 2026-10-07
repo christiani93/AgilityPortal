@@ -1302,6 +1302,9 @@ def event_view(event_id):
     )
 
     if form.validate_on_submit():
+        if event.registration_external:
+            flash(_("Die Anmeldung für dieses Turnier läuft über ein externes Portal."), "danger")
+            return redirect(url_for("club.event_view", event_id=event_id))
         if event.status != "open" or deadline_passed:
             flash(_("Anmeldungen sind nicht mehr offen."), "danger")
             return redirect(url_for("club.event_view", event_id=event_id))
