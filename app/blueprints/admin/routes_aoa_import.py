@@ -354,6 +354,189 @@ def aoa_import_preview():
     )
 
 
+## ── Stammdaten-Import (nur Dog-Stammdaten, kein Event, keine Registrierung) ────
+
+@aoa_import_bp.get("/admin/aoa-import/stammdaten")
+@_require_admin_key
+def aoa_import_stammdaten_home():
+    return render_template(
+        "admin/aoa_import/stammdaten_home.html",
+        admin_key=_admin_key(),
+    )
+
+
+@aoa_import_bp.post("/admin/aoa-import/stammdaten/preview")
+@_require_admin_key
+def aoa_import_stammdaten_preview():
+    """CSV/xlsx hochladen und Vorschau der Dog-Stammdaten-Änderungen zeigen.
+    Berührt KEINE Registrierung und braucht KEIN Event — reiner DB-Abgleich
+    (Name, Rasse, Kategorie, Klasse) für den Lizenz-Bestand."""
+    file = request.files.get("csv_file")
+    if not file or not file.filename:
+        flash("Bitte eine Datei hochladen.", "danger")
+        return redirect(url_for("aoa_import.aoa_import_stammdaten_home", key=_admin_key()))
+
+    try:
+        rows, headers = _read_upload(file)
+    except Exception as e:
+        flash(f"Datei konnte nicht gelesen werden: {e}", "danger")
+        return redirect(url_for("aoa_import.aoa_import_stammdaten_home", key=_admin_key()))
+
+    cols = _detect_columns(headers)
+    col_license = cols["license"]
+    col_dog_name = cols["dog_name"]
+    col_category = cols["category"]
+    col_class = cols["class"]
+    col_breed = cols["breed"]
+
+    missing = [n for n, c in [
+        ("Lizenz", col_license), ("Hundename", col_dog_name),
+        ("Kategorie", col_category), ("Klasse", col_class),
+    ] if not c]
+    if missing:
+        flash(f"Pflichtspalten nicht gefunden: {', '.join(missing)}. "
+              f"Gefundene Spalten: {', '.join(headers)}", "danger")
+        return redirect(url_for("aoa_import.aoa_import_stammdaten_home", key=_admin_key()))
+
+    previews = []
+    for i, row in enumerate(rows):
+        license_no = _normalize_license((row.get(col_license) or "").strip())
+        if not license_no:
+            continue
+        dog_name = _unescape((row.get(col_dog_name) or "").strip())
+        cat_raw = (row.get(col_category) or "").strip()
+        category = CATEGORY_MAP.get(cat_raw.lower(), cat_raw)
+        try:
+            class_level = int((row.get(col_class) or "").strip())
+        except ValueError:
+            class_level = None
+        breed = _unescape((row.get(col_breed) or "").strip()) if col_breed else ""
+
+        dog = Dog.query.filter_by(license_no=license_no).first()
+        changes = []
+        if not dog:
+            changes.append("Neuer Hund wird angelegt")
+        else:
+            if dog_name and dog.name != dog_name:
+                changes.append(f"Name: „{dog.name}“ → „{dog_name}“")
+            if breed and dog.breed != breed:
+                changes.append(f"Rasse: „{dog.breed or '—'}“ → „{breed}“")
+            if category and dog.category != (category[0].upper() if category else None):
+                changes.append(f"Kategorie: „{dog.category or '—'}“ → „{category}“")
+            if class_level and dog.class_level != class_level:
+                changes.append(f"Klasse: „{dog.class_level or '—'}“ → „{class_level}“")
+
+        previews.append({
+            "row_no": i + 1,
+            "license_no": license_no,
+            "dog_name": dog_name,
+            "category": category,
+            "class_level": class_level,
+            "breed": breed,
+            "existing_dog": dog is not None,
+            "changes": changes,
+        })
+
+    import base64
+    payload = json.dumps({"headers": headers, "rows": rows})
+    csv_b64 = base64.b64encode(payload.encode("utf-8")).decode()
+
+    return render_template(
+        "admin/aoa_import/stammdaten_preview.html",
+        previews=previews,
+        csv_b64=csv_b64,
+        admin_key=_admin_key(),
+    )
+
+
+@aoa_import_bp.post("/admin/aoa-import/stammdaten/execute")
+@_require_admin_key
+def aoa_import_stammdaten_execute():
+    """Führt den reinen Stammdaten-Abgleich durch: legt fehlende Hunde an bzw.
+    aktualisiert Name/Rasse/Kategorie/Klasse. Keine Registration, kein Event."""
+    import base64
+
+    csv_b64 = request.form.get("csv_b64", "")
+    try:
+        payload = json.loads(base64.b64decode(csv_b64.encode()).decode("utf-8"))
+        rows = payload["rows"]
+        headers = payload["headers"]
+    except Exception as e:
+        flash(f"Import-Daten fehlerhaft: {e}", "danger")
+        return redirect(url_for("aoa_import.aoa_import_stammdaten_home", key=_admin_key()))
+
+    cols = _detect_columns(headers)
+    col_license = cols["license"]
+    col_dog_name = cols["dog_name"]
+    col_category = cols["category"]
+    col_class = cols["class"]
+    col_breed = cols["breed"]
+
+    created = 0
+    updated = 0
+    errors = []
+
+    for i, row in enumerate(rows):
+        try:
+            license_no = _normalize_license((row.get(col_license) or "").strip())
+            if not license_no:
+                continue
+            dog_name = _unescape((row.get(col_dog_name) or "").strip())
+            cat_raw = (row.get(col_category) or "").strip()
+            category = CATEGORY_MAP.get(cat_raw.lower(), cat_raw)
+            try:
+                class_level = int((row.get(col_class) or "").strip())
+            except ValueError:
+                class_level = None
+            breed = _unescape((row.get(col_breed) or "").strip()) if col_breed else ""
+
+            dog = Dog.query.filter_by(license_no=license_no).first()
+            if not dog:
+                dog = Dog(
+                    name=dog_name,
+                    license_no=license_no,
+                    license_kind=_detect_license_kind(license_no),
+                    category=category[0].upper() if category else None,
+                    class_level=class_level,
+                    breed=breed or None,
+                )
+                db.session.add(dog)
+                created += 1
+            else:
+                changed = False
+                if dog_name and dog.name != dog_name:
+                    dog.name = dog_name
+                    changed = True
+                if breed and dog.breed != breed:
+                    dog.breed = breed
+                    changed = True
+                cat_code = category[0].upper() if category else None
+                if cat_code and dog.category != cat_code:
+                    dog.category = cat_code
+                    changed = True
+                if class_level and dog.class_level != class_level:
+                    dog.class_level = class_level
+                    changed = True
+                if changed:
+                    updated += 1
+        except Exception as exc:
+            errors.append(f"Zeile {i + 2}: {exc}")
+            db.session.rollback()
+            continue
+
+    db.session.commit()
+
+    if errors:
+        for err in errors[:10]:
+            flash(err, "warning")
+    flash(
+        f"Stammdaten-Abgleich abgeschlossen: {created} Hunde neu angelegt, "
+        f"{updated} aktualisiert.",
+        "success" if not errors else "warning",
+    )
+    return redirect(url_for("aoa_import.aoa_import_stammdaten_home", key=_admin_key()))
+
+
 @aoa_import_bp.post("/admin/aoa-import/execute")
 @_require_admin_key
 def aoa_import_execute():

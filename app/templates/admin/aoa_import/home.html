@@ -4,6 +4,10 @@
 <div class="d-flex align-items-center gap-3 mb-4">
   <h2 class="mb-0">⬆ AOA-Import</h2>
   <span class="text-muted small">SportyDog CSV-Export → Portal</span>
+  <a href="{{ url_for('aoa_import.aoa_import_stammdaten_home', key=admin_key) }}"
+     class="btn btn-outline-secondary btn-sm ms-auto">
+    Nur Stammdaten aktualisieren (kein Event) →
+  </a>
 </div>
 
 <div class="row">

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}AOA-Import – Stammdaten{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <h2 class="mb-0">⬆ AOA-Import – reine Stammdaten-Aktualisierung</h2>
+  <span class="text-muted small">SportyDog CSV-Export → DB (kein Event)</span>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header fw-semibold">CSV/xlsx importieren</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('aoa_import.aoa_import_stammdaten_preview', key=admin_key) }}"
+              enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Export-Datei * <span class="text-muted small">(SportyDog .xlsx oder .csv)</span></label>
+            <input type="file" name="csv_file" class="form-control" accept=".xlsx,.xlsm,.csv,.txt" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Vorschau anzeigen →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-info">
+      <div class="card-header text-info fw-semibold">ℹ Hinweise</div>
+      <div class="card-body small">
+        <ul class="mb-0">
+          <li><strong>Kein Event nötig</strong> — dieser Import gleicht nur den Hunde-Bestand (DB) ab</li>
+          <li>Aktualisiert je Lizenz: <strong>Name, Rasse, Kategorie, Klasse</strong></li>
+          <li>Fehlende Hunde werden neu angelegt (Lizenz, Name, Kategorie, Klasse, Rasse)</li>
+          <li><strong>Es wird KEINE Registrierung angelegt oder verändert</strong></li>
+          <li>Kein Lizenzcheck, keine E-Mails, keine Personendaten</li>
+          <li>Für Event-Anmeldungen den normalen <a href="{{ url_for('aoa_import.aoa_import_home', key=admin_key) }}">AOA-Import</a> verwenden</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

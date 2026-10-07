@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}AOA-Import Stammdaten Vorschau{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('aoa_import.aoa_import_stammdaten_home', key=admin_key) }}"
+     class="btn btn-outline-secondary btn-sm">← Zurück</a>
+  <h2 class="mb-0">⬆ AOA-Import Stammdaten Vorschau</h2>
+  <span class="badge bg-secondary fs-6">kein Event</span>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">{{ previews | length }} Zeilen erkannt</span>
+    <div class="d-flex gap-3 align-items-center small text-muted">
+      <span>
+        <span class="badge bg-success">{{ previews | rejectattr('existing_dog') | list | length }}</span> neu
+      </span>
+      <span>
+        <span class="badge bg-warning text-dark">{{ previews | selectattr('existing_dog') | selectattr('changes') | list | length }}</span> Änderung
+      </span>
+      <span>
+        <span class="badge bg-light text-dark border">{{ previews | selectattr('existing_dog') | rejectattr('changes') | list | length }}</span> unverändert
+      </span>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div style="max-height: 500px; overflow-y: auto;">
+      <table class="table table-sm table-bordered mb-0" style="font-size:.85rem">
+        <thead class="table-light sticky-top">
+          <tr>
+            <th>#</th>
+            <th>Lizenz</th>
+            <th>Hund</th>
+            <th>Kat / Kl</th>
+            <th>Rasse</th>
+            <th>Änderungen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in previews %}
+          <tr class="{% if not p.existing_dog %}table-success{% elif p.changes %}table-warning{% endif %}">
+            <td class="text-muted">{{ p.row_no }}</td>
+            <td><code>{{ p.license_no }}</code></td>
+            <td>{{ p.dog_name }}</td>
+            <td>{{ p.category }} / {{ p.class_level }}</td>
+            <td>{{ p.breed or '—' }}</td>
+            <td>
+              {% if not p.existing_dog %}
+              <span class="badge bg-success">Neu</span>
+              {% elif p.changes %}
+                {% for c in p.changes %}
+                  <div class="small">{{ c }}</div>
+                {% endfor %}
+              {% else %}
+              <span class="text-muted">unverändert</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('aoa_import.aoa_import_stammdaten_execute', key=admin_key) }}">
+  <input type="hidden" name="csv_b64" value="{{ csv_b64 }}">
+  <div class="card">
+    <div class="card-body">
+      <p class="small text-muted">
+        Legt fehlende Hunde an und aktualisiert Name/Rasse/Kategorie/Klasse bei bestehenden.
+        Es wird <strong>keine Registrierung</strong> angelegt oder verändert.
+      </p>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success"
+                onclick="return confirm('{{ previews | length }} Stammdaten-Einträge abgleichen?')">
+          ✅ Abgleich durchführen
+        </button>
+        <a href="{{ url_for('aoa_import.aoa_import_stammdaten_home', key=admin_key) }}"
+           class="btn btn-outline-secondary">Abbrechen</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
