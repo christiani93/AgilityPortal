@@ -13,10 +13,11 @@ from fpdf import FPDF
 from fpdf.fonts import FontFace
 from PIL import Image
 
-# Logos werden nur klein (16mm/30mm hoch) im PDF-Kopf gezeigt. Ohne Downscale
-# bettet fpdf2 die Originaldatei 1:1 ein (hier z.B. 5907x5059px) → >1MB pro
-# PDF allein durchs Logo. Ziel-Auflösung grosszügig für Druckqualität bei
-# ~30mm Breite (300dpi ≈ 350px), danach als PNG neu komprimiert.
+# Logos werden nur klein im PDF-Kopf gezeigt (max. 30mm breit, siehe _HEADER_H
+# weiter unten für die Höhe). Ohne Downscale bettet fpdf2 die Originaldatei
+# 1:1 ein (hier z.B. 5907x5059px) → >1MB pro PDF allein durchs Logo.
+# Ziel-Auflösung grosszügig für Druckqualität bei ~30mm Breite (300dpi ≈
+# 350px), danach als PNG neu komprimiert.
 _LOGO_MAX_PX = 400
 
 
@@ -41,6 +42,16 @@ def _fit_box(px_w, px_h, max_w_mm, max_h_mm):
     max_w_mm x max_h_mm hinein, ohne das Seitenverhältnis zu verändern."""
     scale = min(max_w_mm / px_w, max_h_mm / px_h)
     return px_w * scale, px_h * scale
+
+
+# Höhe des Kopfbereichs (Titel/Untertitel/Meta/Anzahl, siehe _render_block_pdf)
+# – Logos dürfen bis zu dieser Höhe gross sein (Breite bleibt separat begrenzt).
+_HEADER_H = 27
+
+# Zielgrösse ~30 Datenzeilen auf der ersten Seite (gleiche Grössenordnung wie
+# die Rangliste-PDF der AgilitySoftware). eph (272mm) - Kopfbereich (27mm) im
+# Verhältnis zur Zeilenzahl (Header-Zeile + 30 Datenzeilen) ergibt die Höhe.
+_LINE_HEIGHT = 7.9
 
 # Kerntypografie → ASCII/Latin-1, damit die Core-Fonts (Latin-1) keine
 # Unicode-Zeichen aus Namen stolpern lassen (z.B. „Shy’m", Gedankenstriche).
@@ -69,6 +80,81 @@ def _block_label(group) -> str:
     return f"{cat} - Klasse {cls}" if cls else cat
 
 
+# Spalten (key, Header, min-Breite mm, Schrumpf-Priorität – 1 schrumpft als
+# erstes). "start_no" schrumpft nicht mit (eigene kleine, feste Breite).
+_DATA_COLUMNS = [
+    ("handler_name", "Hundeführer", 30, 3),
+    ("dog_name", "Hund", 25, 3),
+    ("breed", "Rasse", 18, 2),
+    ("club_name", "Verein", 16, 1),
+]
+_COL_PAD = 4  # mm Puffer je Spalte (Zellenrand + Reserve für Kürzung)
+
+
+def _text_width(pdf, text, bold=False):
+    pdf.set_font("Helvetica", "B" if bold else "", 9)
+    return pdf.get_string_width(text)
+
+
+def _truncate(pdf, text, max_w):
+    """Kürzt text mit "..." auf max_w (mm), Font muss bereits gesetzt sein.
+    "…" (Unicode-Ellipse) kann der Helvetica-Core-Font nicht (nur Latin-1) –
+    deshalb drei ASCII-Punkte, wie auch _TYPO es für Fliesstext macht."""
+    if pdf.get_string_width(text) <= max_w:
+        return text
+    ell = "..."
+    while text and pdf.get_string_width(text + ell) > max_w:
+        text = text[:-1]
+    return (text + ell) if text else ell
+
+
+def _plan_columns(pdf, rows, has_numbers, available_mm):
+    """Berechnet Spaltenbreiten: Start-Nr. klein & fix, die übrigen Spalten
+    inhaltsbasiert ('dynamisch'), die Restbreite wird proportional verteilt.
+    Reicht der Platz nicht, wird in Prioritätsreihenfolge geschrumpft (Verein
+    zuerst) – der Text wird danach pro Zelle auf die finale Breite gekürzt,
+    damit keine Zeile umbricht (einheitliche Zeilenhöhe)."""
+    cols = []
+    if has_numbers:
+        nr_values = [_s(row["start_no"]) for row in rows]
+        nr_w = max([_text_width(pdf, "Nr.", bold=True)]
+                   + [_text_width(pdf, v) for v in nr_values]) + _COL_PAD
+        cols.append({"key": "start_no", "header": "Nr.", "width": nr_w,
+                     "fixed": True})
+
+    dynamic = []
+    for key, header, min_w, prio in _DATA_COLUMNS:
+        values = [_s(row[key] or "") for row in rows]
+        natural = max([_text_width(pdf, header, bold=True)]
+                      + [_text_width(pdf, v) for v in values]) + _COL_PAD
+        dynamic.append({"key": key, "header": header,
+                         "width": max(natural, min_w + _COL_PAD),
+                         "min": min_w + _COL_PAD, "prio": prio, "fixed": False})
+
+    fixed_total = sum(c["width"] for c in cols)
+    dyn_total = sum(c["width"] for c in dynamic)
+    remaining = available_mm - fixed_total
+
+    if dyn_total > remaining:
+        deficit = dyn_total - remaining
+        for prio in sorted({c["prio"] for c in dynamic}):
+            group = [c for c in dynamic if c["prio"] == prio]
+            while deficit > 0.01 and any(c["width"] > c["min"] for c in group):
+                shrinkable = [c for c in group if c["width"] > c["min"]]
+                share = min(deficit / len(shrinkable), *(c["width"] - c["min"] for c in shrinkable))
+                for c in shrinkable:
+                    c["width"] -= share
+                    deficit -= share
+            if deficit <= 0.01:
+                break
+    elif dyn_total < remaining:
+        extra = remaining - dyn_total
+        for c in dynamic:
+            c["width"] += extra * (c["width"] / dyn_total)
+
+    return cols + dynamic
+
+
 def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
     event_logo, club_logo = logo_paths
     pdf = FPDF(orientation="P", unit="mm", format="A4")
@@ -77,13 +163,13 @@ def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
     pdf.add_page()
 
     # ── Kopf mit Logos ───────────────────────────────────────────────
-    # Box max. 30x16mm je Logo, Seitenverhältnis bleibt erhalten (_fit_box) –
-    # sonst verzerrt fpdf2 bei fix vorgegebenem w UND h.
+    # Box max. 30mm breit, bis zu _HEADER_H hoch – Seitenverhältnis bleibt
+    # erhalten (_fit_box), sonst verzerrt fpdf2 bei fix vorgegebenem w UND h.
     top = pdf.get_y()
     if club_logo:
         buf, px_w, px_h = club_logo
         buf.seek(0)
-        w, h = _fit_box(px_w, px_h, 30, 16)
+        w, h = _fit_box(px_w, px_h, 30, _HEADER_H)
         try:
             pdf.image(buf, x=10, y=top, w=w, h=h)
         except Exception:
@@ -91,7 +177,7 @@ def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
     if event_logo:
         buf, px_w, px_h = event_logo
         buf.seek(0)
-        w, h = _fit_box(px_w, px_h, 30, 16)
+        w, h = _fit_box(px_w, px_h, 30, _HEADER_H)
         try:
             pdf.image(buf, x=210 - 10 - w, y=top, w=w, h=h)
         except Exception:
@@ -114,28 +200,25 @@ def _render_block_pdf(event, group, has_numbers, logo_paths) -> bytes:
     pdf.ln(2)
 
     # ── Tabelle ──────────────────────────────────────────────────────
-    if has_numbers:
-        headers = ["Start-Nr.", "Hundeführer", "Hund", "Rasse", "Verein"]
-        widths = (18, 50, 45, 40, 37)
-    else:
-        headers = ["Hundeführer", "Hund", "Rasse", "Verein"]
-        widths = (55, 50, 45, 40)
+    # Start-Nr. klein & fix, die übrigen Spalten inhaltsbasiert/dynamisch;
+    # Text wird je Zelle auf die finale Breite gekürzt (keine Zeile umbricht
+    # mehr → einheitliche Zeilenhöhe über die ganze Tabelle).
+    columns = _plan_columns(pdf, group["rows"], has_numbers, pdf.epw)
+    widths = [c["width"] for c in columns]
 
     pdf.set_font("Helvetica", "", 9)
-    with pdf.table(col_widths=widths, text_align="LEFT", line_height=6,
+    with pdf.table(col_widths=widths, text_align="LEFT", line_height=_LINE_HEIGHT,
                    first_row_as_headings=True,
                    headings_style=FontFace(emphasis="BOLD")) as table:
         head = table.row()
-        for h in headers:
-            head.cell(_s(h))
+        for col in columns:
+            head.cell(col["header"])
         for row in group["rows"]:
             tr = table.row()
-            if has_numbers:
-                tr.cell(_s(row["start_no"]))
-            tr.cell(_s(row["handler_name"]))
-            tr.cell(_s(row["dog_name"]))
-            tr.cell(_s(row["breed"] or ""))
-            tr.cell(_s(row["club_name"] or ""))
+            for col in columns:
+                pdf.set_font("Helvetica", "", 9)
+                value = _s(row["start_no"]) if col["key"] == "start_no" else _s(row[col["key"]] or "")
+                tr.cell(_truncate(pdf, value, col["width"] - _COL_PAD))
 
     return bytes(pdf.output())
 
