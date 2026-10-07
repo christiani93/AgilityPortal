@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Vereins-Freigaben für Spezialturniere{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>🔒 Vereins-Freigaben für Spezialturniere</h2>
+  <a href="{{ url_for('templates_admin.template_list', key=admin_key) }}" class="btn btn-outline-secondary">← Vorlagen</a>
+</div>
+
+<div class="alert alert-info">
+  <strong>Lesehilfe:</strong>
+  <span class="badge bg-success ms-1">✓ Erlaubt</span> = Verein darf Turniere mit diesem Ruleset anlegen (selbst oder via Vorlage).
+  <span class="badge bg-secondary ms-1">alle</span> = kein Verein konfiguriert → offen für alle.
+  <span class="badge bg-danger ms-1">✕ Gesperrt</span> = Verein ist nicht freigegeben.<br>
+  <span class="text-muted">Zum Ändern: Ruleset-Zeile unten → „Bearbeiten".</span>
+</div>
+
+{% if not rulesets %}
+<div class="alert alert-warning">Keine Spezialturnier-Rulesets definiert.</div>
+{% elif not clubs %}
+<div class="alert alert-warning">Noch keine Vereine im System.</div>
+{% else %}
+
+<div class="table-responsive mb-4">
+  <table class="table table-sm table-bordered align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th style="min-width:180px">Verein</th>
+        {% for code, label in rulesets %}
+        <th class="text-center" style="min-width:140px">
+          <a href="{{ url_for('special_rulesets_admin.special_ruleset_edit', ruleset=code, key=admin_key) }}"
+             class="text-white text-decoration-none">
+            {{ label }}
+          </a>
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for club in clubs %}
+      <tr>
+        <td>
+          <strong>{{ club.name }}</strong>
+          <div class="text-muted" style="font-size:.8em">{{ club.vereinsnummer }}</div>
+        </td>
+        {% for code, label in rulesets %}
+        {% set allowed = matrix[club.id][code] %}
+        <td class="text-center">
+          {% if code not in restricted %}
+            <span class="badge bg-secondary" title="Keine Einschränkung – alle Vereine erlaubt">alle</span>
+          {% elif allowed %}
+            <span class="badge bg-success" title="{{ club.name }} darf {{ label }} anlegen">✓</span>
+          {% else %}
+            <span class="badge bg-danger" title="{{ club.name }} darf {{ label }} NICHT anlegen">✕</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card mt-2">
+  <div class="card-body">
+    <h6 class="mb-3">Rulesets mit Veranstalter-Einschränkung</h6>
+    {% if restricted %}
+    <ul class="mb-0">
+      {% for code in restricted %}
+      <li>
+        <a href="{{ url_for('special_rulesets_admin.special_ruleset_edit', ruleset=code, key=admin_key) }}">
+          {{ rulesets | selectattr('0', 'equalto', code) | map(attribute='1') | first }}
+        </a>
+        — Erlaubt:
+        {% for club in clubs %}
+          {% if club.id in allowed_club_ids[code] %}
+            <span class="badge bg-success">{{ club.name }}</span>
+          {% endif %}
+        {% endfor %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted mb-0">Kein Ruleset hat aktuell eine Veranstalter-Einschränkung — alle Vereine dürfen alle Rulesets nutzen.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

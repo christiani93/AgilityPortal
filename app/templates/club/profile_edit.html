@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Meine Angaben') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">{{ _('Meine Angaben') }}</h2>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
+</div>
+
+<div class="card" style="max-width:480px;">
+  <div class="card-body">
+    <form method="post">
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        {{ form.first_name.label(class="form-label") }}
+        {{ form.first_name(class="form-control" + (" is-invalid" if form.first_name.errors else "")) }}
+        {% for err in form.first_name.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.last_name.label(class="form-label") }}
+        {{ form.last_name(class="form-control" + (" is-invalid" if form.last_name.errors else "")) }}
+        {% for err in form.last_name.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.phone.label(class="form-label") }}
+        {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else "")) }}
+        {% for err in form.phone.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="form-text text-muted mb-3">
+        {{ _('Der Name wird für Export/Startliste verwendet (z.B. Hundeführer-Angabe).') }}
+      </div>
+      {{ form.submit(class="btn btn-primary") }}
+    </form>
+  </div>
+</div>
+{% endblock %}

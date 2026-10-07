@@ -15,7 +15,10 @@
     {% set is_owner = owner_rec and owner_rec.role.value == 'OWNER' %}
     <div class="card mb-3" style="max-width:680px;">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold">{{ dog.name }}</span>
+        <span class="fw-semibold">
+          {{ dog.name }}
+          {% if dog.breed %}<span class="text-muted fw-normal">— {{ dog.breed }}</span>{% endif %}
+        </span>
         <span>
           {% if dog.license_kind.value == 'CH' %}
             <span class="badge bg-primary">CH</span>
@@ -108,6 +111,13 @@
         {{ form.name.label(class="form-label") }}
         {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
         {% for err in form.name.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.breed.label(class="form-label") }}
+        {{ form.breed(class="form-control" + (" is-invalid" if form.breed.errors else "")) }}
+        {% for err in form.breed.errors %}
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
       </div>

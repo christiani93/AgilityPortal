@@ -49,6 +49,13 @@
        class="btn btn-sm btn-outline-success">👥 {{ _('Team-Challenge') }}</a>
     {% endif %}
     <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
+    {% if not event.is_test %}
+    <form method="post" action="{{ url_for('club.event_duplicate_as_test', event_id=event.id) }}"
+          onsubmit='return confirm({{ _("Testkopie dieses Turniers erstellen? Läufe, Richter, Zeitplan und Anmeldungen werden übernommen; Startnummern werden in der Kopie neu vergeben.") | tojson }})'>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-warning">🧪 {{ _('Testkopie') }}</button>
+    </form>
+    {% endif %}
     <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
     {% if current_user.is_superadmin %}
     <form method="post" action="{{ url_for('club.event_delete', event_id=event.id) }}"

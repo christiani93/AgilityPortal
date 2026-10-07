@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, current_app, render_template, request, url_for
 
-from app.models import (Event, EventFinalist, Registration, RegistrationStatus,
-                        ScheduleBlock, StartNumber)
+from app.models import (Event, EventFinalist, EventRun, Registration,
+                        RegistrationStatus, ScheduleBlock, StartNumber)
 
 
 public_events_bp = Blueprint("public_events", __name__)
@@ -10,6 +10,33 @@ _DIVISION_LABELS = {"sm": "SM", "nachwuchs": "Nachwuchs"}
 _SOURCE_LABELS = {"agility": "Agility", "jumping": "Jumping",
                   "title_defender": "Titelverteidiger", "nachruecker": "Nachrücker"}
 _CATEGORY_ORDER = {"Small": 0, "Medium": 1, "Intermediate": 2, "Large": 3}
+_RUN_TYPE_ORDER = {"agility": 0, "jumping": 1, "open": 2, "tunnel": 3}
+_CATEGORY_CODE_ORDER = {"S": 0, "M": 1, "I": 2, "L": 3}
+
+
+def _competitions_for_event(event):
+    """Öffentliche Wettbewerbs-Übersicht: welche Disziplinen mit welchen
+    Kategorien/Klassen das Turnier anbietet (keine privaten Daten).
+
+    Rückgabe: Liste von {label, items:[{cat, cat_code, cls}]} je Disziplin.
+    """
+    by_type = {}
+    for run in event.runs:
+        by_type.setdefault(run.run_type, set()).add((run.category, run.class_level))
+    competitions = []
+    for run_type in sorted(by_type, key=lambda t: _RUN_TYPE_ORDER.get(t, 9)):
+        combos = sorted(
+            by_type[run_type],
+            key=lambda ck: (_CATEGORY_CODE_ORDER.get(ck[0], 9), ck[1]),
+        )
+        competitions.append({
+            "label": EventRun.RUN_TYPE_LABELS.get(run_type, run_type),
+            "combos": [
+                {"cat": EventRun.CATEGORY_LABELS.get(cat, cat), "cat_code": cat, "cls": cls}
+                for cat, cls in combos
+            ],
+        })
+    return competitions
 
 
 def _has_admin_key():
@@ -72,6 +99,8 @@ def public_overview(event_id):
         ruleset_label = Event.SPECIAL_RULESET_LABELS.get(
             event.special_ruleset, event.special_ruleset)
 
+    competitions = _competitions_for_event(event)
+
     return render_template(
         "public/overview.html",
         event=event,
@@ -80,6 +109,7 @@ def public_overview(event_id):
         has_finalists=has_finalists,
         start_numbers_assigned=start_numbers_assigned,
         is_event_day=is_event_day,
+        competitions=competitions,
     )
 
 

@@ -70,6 +70,10 @@
          class="{% if request.endpoint == 'club.event_new' %}active{% endif %}">
         + {{ _('Turnier erstellen') }}
       </a>
+      <a href="{{ url_for('club.template_list') }}"
+         class="{% if 'template' in request.endpoint %}active{% endif %}">
+        {{ _('Turnier-Vorlagen') }}
+      </a>
       {% endif %}
       {% if current_user.is_superadmin %}
       <div class="nav-section">{{ _('Anfragen') }}</div>
@@ -79,8 +83,12 @@
         {# Badge wird via JS nachgeladen oder per Template-Variable gesetzt #}
       </a>
       {% endif %}
-      {% if not current_user.can_manage_club and not current_user.is_superadmin %}
       <div class="nav-section">{{ _('Mein Profil') }}</div>
+      <a href="{{ url_for('club.profile_edit') }}"
+         class="{% if request.endpoint == 'club.profile_edit' %}active{% endif %}">
+        {{ _('Meine Angaben') }}
+      </a>
+      {% if not current_user.can_manage_club and not current_user.is_superadmin %}
       <a href="{{ url_for('club.profile_dogs') }}"
          class="{% if request.endpoint == 'club.profile_dogs' %}active{% endif %}">
         {{ _('Meine Hunde') }}

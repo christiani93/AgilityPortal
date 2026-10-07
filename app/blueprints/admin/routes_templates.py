@@ -7,7 +7,6 @@ wechselnden Felder abgefragt (Daten + AIS-Nummer(n)).
 
 Zugriff: via ADMIN_KEY (gleiche Authentifizierung wie die übrigen Admin-Routen).
 """
-from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from functools import wraps
 
@@ -16,7 +15,8 @@ from flask import (Blueprint, abort, flash, redirect, render_template, request,
 from flask_login import current_user
 
 from app.extensions import db
-from app.models import (Club, Event, EventRun, EventTemplate, EventTemplateRun)
+from app.models import (Club, Event, EventTemplate, EventTemplateRun)
+from app.services.template_service import create_event_from_template
 
 
 templates_admin_bp = Blueprint("templates_admin", __name__)
@@ -264,134 +264,13 @@ def template_create_event(tpl_id):
         abort(404)
 
     if request.method == "POST":
-        name = (request.form.get("name") or tpl.default_event_name or tpl.name).strip()
-        starts_raw = request.form.get("starts_at")
-        ends_raw = request.form.get("ends_at")
-        try:
-            starts_at = datetime.strptime(starts_raw, "%Y-%m-%d") if starts_raw else None
-        except ValueError:
-            starts_at = None
-        try:
-            ends_at = datetime.strptime(ends_raw, "%Y-%m-%d") if ends_raw else None
-        except ValueError:
-            ends_at = None
-
-        if not starts_at:
-            flash("Startdatum ist erforderlich.", "danger")
+        event, messages = create_event_from_template(tpl, request.form)
+        for text, category in messages:
+            flash(text, category)
+        if event is None:
             return render_template("admin/templates/create_event.html", tpl=tpl,
                                    day_range=range(1, tpl.day_count + 1),
                                    admin_key=_admin_key())
-
-        # AIS-Nummern: Feld ais_1 = Haupttag, ais_2.. = Folgetage (kommagetrennt)
-        ais_values = []
-        for i in range(1, tpl.day_count + 1):
-            v = (request.form.get(f"ais_{i}") or "").strip()
-            if v:
-                ais_values.append(v)
-        ais_haupt = _parse_int(ais_values[0]) if ais_values else None
-        ais_extra = ",".join(ais_values[1:]) if len(ais_values) > 1 else None
-
-        event = Event(
-            name=name,
-            location=tpl.location,
-            starts_at=starts_at,
-            ends_at=ends_at or starts_at,
-            type=tpl.type,
-            special_ruleset=tpl.special_ruleset,
-            status="draft",
-            organiser_club_id=tpl.organiser_club_id,
-            pruefungsleiter=tpl.pruefungsleiter,
-            entry_fee=tpl.entry_fee,
-            max_participants=tpl.max_participants,
-            allows_bitches_in_season=tpl.allows_bitches_in_season,
-            bitches_in_season_start_last=tpl.bitches_in_season_start_last,
-            ring_count=tpl.ring_count,
-            notes_public=tpl.notes_public,
-            event_description_de=tpl.event_description_de,
-            registration_external=tpl.registration_external,
-            registration_url=tpl.registration_url,
-            startnumber_schema=tpl.startnumber_schema,
-            run_time_config=tpl.run_time_config,
-            ring_start_times=tpl.ring_start_times,
-            ais_turniernummer=ais_haupt,
-            ais_turniernummer_extra=ais_extra,
-            source_template_id=tpl.id,
-        )
-        db.session.add(event)
-        db.session.flush()
-
-        for r in tpl.runs:
-            db.session.add(EventRun(
-                event_id=event.id, run_type=r.run_type, category=r.category,
-                class_level=r.class_level, is_final=r.is_final))
-
-        db.session.commit()
-        flash(f"Turnier «{event.name}» aus Vorlage erstellt (Status: Entwurf).", "success")
-
-        # Optionale Sync-Verknüpfungen direkt anstoßen
-        if request.form.get("do_website"):
-            try:
-                from app.services.website_sync import sync_to_website
-                ok, err = sync_to_website(event)
-                if ok:
-                    db.session.commit()
-                    flash("Webseiten-Event erstellt.", "success")
-                else:
-                    flash(f"Webseiten-Sync übersprungen: {err}", "warning")
-            except Exception as e:
-                db.session.rollback()
-                flash(f"Webseiten-Sync fehlgeschlagen: {e}", "warning")
-
-        if request.form.get("do_reservation"):
-            # Geteilte Reservation: an das zuletzt aus dieser Vorlage erzeugte
-            # Turnier mit Reservation anhängen, statt eine neue anzulegen.
-            prior = None
-            if tpl.reservation_shared:
-                prior = (Event.query
-                         .filter(Event.source_template_id == tpl.id,
-                                 Event.reservation_id.isnot(None),
-                                 Event.id != event.id)
-                         .order_by(Event.id.desc())
-                         .first())
-            if prior:
-                event.reservation_id = prior.reservation_id
-                db.session.flush()
-                try:
-                    from app.services.reservation_sync import update_reservation
-                    ok, err = update_reservation(event)
-                    if ok:
-                        db.session.commit()
-                        flash(f"An bestehende Reservation #{event.reservation_id} angehängt.", "success")
-                    else:
-                        db.session.rollback()
-                        flash(f"Anhängen an Reservation übersprungen: {err}", "warning")
-                except Exception as e:
-                    db.session.rollback()
-                    flash(f"Anhängen an Reservation fehlgeschlagen: {e}", "warning")
-            else:
-                contact_name = (request.form.get("contact_name") or tpl.contact_name or "").strip()
-                contact_email = (request.form.get("contact_email") or tpl.contact_email or "").strip()
-                if not contact_name or not contact_email:
-                    flash("Reservationsanfrage übersprungen: Kontakt-Name und E-Mail fehlen.", "warning")
-                else:
-                    try:
-                        from app.services.reservation_sync import create_reservation
-                        ok, err = create_reservation(
-                            event, contact_name, contact_email,
-                            (request.form.get("contact_phone") or tpl.contact_phone or "").strip(),
-                            tpl.organiser_club.name if tpl.organiser_club else "",
-                            tpl.reservation_notes or "",
-                            tpl.option_special_eval, tpl.option_website, tpl.option_event_support,
-                        )
-                        if ok:
-                            db.session.commit()
-                            flash("Reservationsanfrage gesendet.", "success")
-                        else:
-                            flash(f"Reservationsanfrage übersprungen: {err}", "warning")
-                    except Exception as e:
-                        db.session.rollback()
-                        flash(f"Reservationsanfrage fehlgeschlagen: {e}", "warning")
-
         return redirect(url_for("club.event_detail", event_id=event.id))
 
     return render_template("admin/templates/create_event.html", tpl=tpl,

@@ -120,11 +120,23 @@ class ClubRequestForm(FlaskForm):
 
 
 # ---------------------------------------------------------------------------
+# Teilnehmer: eigene Angaben
+# ---------------------------------------------------------------------------
+
+class ProfileForm(FlaskForm):
+    first_name = StringField(_("Vorname"), validators=[DataRequired(), Length(max=100)])
+    last_name = StringField(_("Nachname"), validators=[DataRequired(), Length(max=100)])
+    phone = StringField(_("Telefon"), validators=[Optional(), Length(max=50)])
+    submit = SubmitField(_("Speichern"))
+
+
+# ---------------------------------------------------------------------------
 # Teilnehmer: Hunde & Anmeldung
 # ---------------------------------------------------------------------------
 
 class DogForm(FlaskForm):
     name = StringField(_("Hundename"), validators=[DataRequired(), Length(max=120)])
+    breed = StringField(_("Rasse"), validators=[Optional(), Length(max=120)])
     license_kind = SelectField(_("Lizenz-Typ"), choices=[("CH", _("Schweiz (CH)")), ("FOREIGN", _("Ausland (FOREIGN)"))])
     license_no = StringField(_("Lizenznummer"), validators=[DataRequired(), Length(max=50)])
     submit = SubmitField(_("Hund speichern"))

@@ -13,8 +13,9 @@ from sqlalchemy import case
 from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
-from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF, StartNumber, TkaExportBatch, TkaExportRow, TkaImport, TkaFinding, ExchangeExportLog, EventFinalist, CupEvent, CupQualificationRun, CupQualifiedTeam, Document
-from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, DogForm, DogClassForm, EventRegistrationForm
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF, StartNumber, TkaExportBatch, TkaExportRow, TkaImport, TkaFinding, ExchangeExportLog, EventFinalist, CupEvent, CupQualificationRun, CupQualifiedTeam, Document, EventTemplate
+from app.services.template_service import create_event_from_template
+from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, ProfileForm, DogForm, DogClassForm, EventRegistrationForm
 
 
 def _send_notify(subject, body):
@@ -329,6 +330,26 @@ def _fill_club_choices(form):
     form.club_id.choices = [(0, "— Verein wählen —")] + [(c.id, c.name) for c in clubs]
 
 
+def _filter_special_ruleset_choices(form, club_id, keep_value=None):
+    """
+    Beschränkt form.special_ruleset.choices auf Rulesets, die für diesen Verein
+    freigegeben sind (Superadmin sieht immer alle). Muss vor validate_on_submit()
+    aufgerufen werden, damit WTForms nicht freigegebene Werte serverseitig ablehnt.
+
+    `keep_value` ist der aktuell in der DB gespeicherte Wert (nicht form.data! Bei
+    POST enthält form.data bereits den eingereichten, ggf. manipulierten Wert).
+    Er bleibt immer in den Choices — sonst würde eine nachträglich entzogene
+    Freigabe das Speichern des gesamten Event-Formulars blockieren, nicht nur die
+    Neuwahl des Rulesets.
+    """
+    if current_user.is_superadmin:
+        return
+    form.special_ruleset.choices = [
+        (code, label) for code, label in form.special_ruleset.choices
+        if not code or code == keep_value or Event.special_ruleset_allows_club(code, club_id)
+    ]
+
+
 @club_bp.post("/events/create-test")
 @login_required
 def create_test_event_web():
@@ -434,6 +455,7 @@ def event_new():
         _fill_club_choices(form)
     else:
         del form.club_id  # Feld nicht anzeigen/validieren
+        _filter_special_ruleset_choices(form, current_user.club_id)
     if form.validate_on_submit():
         if current_user.is_superadmin:
             club_id = form.club_id.data if form.club_id.data != 0 else None
@@ -483,6 +505,110 @@ def event_new():
 
 
 _CATEGORY_SORT = {"L": 0, "I": 1, "M": 2, "S": 3}
+
+
+@club_bp.post("/events/<int:event_id>/duplicate-as-test")
+@login_required
+def event_duplicate_as_test(event_id):
+    """Erzeugt eine Testkopie eines Turniers (is_test=True) inkl. Läufe,
+    Richter, Zeitplan und Anmeldungen — für gefahrlose Startlisten- und
+    Ablauf-Tests, ohne das Original zu berühren.
+
+    Nicht kopiert: Startnummern (werden im Test neu vergeben), Ergebnis-Importe,
+    sowie alle eindeutigen Kennungen (external_id, AIS-Nummer).
+    """
+    source = db.session.get(Event, event_id)
+    if not source:
+        abort(404)
+    _assert_event_access(source)
+
+    copy = Event(
+        name=f"{source.name} (TEST)",
+        location=source.location,
+        starts_at=source.starts_at,
+        ends_at=source.ends_at,
+        type=source.type,
+        special_ruleset=source.special_ruleset,
+        status=source.status,
+        organiser_club_id=source.organiser_club_id,
+        pruefungsleiter=source.pruefungsleiter,
+        allows_bitches_in_season=source.allows_bitches_in_season,
+        bitches_in_season_start_last=source.bitches_in_season_start_last,
+        ring_count=source.ring_count,
+        ring_start_times=source.ring_start_times,
+        is_breed_restricted=source.is_breed_restricted,
+        registration_open_at=source.registration_open_at,
+        registration_close_at=source.registration_close_at,
+        registration_external=source.registration_external,
+        registration_url=source.registration_url,
+        max_participants=source.max_participants,
+        entry_fee=source.entry_fee,
+        notes_public=source.notes_public,
+        startnumber_schema=source.startnumber_schema,
+        run_time_config=source.run_time_config,
+        event_logo_filename=source.event_logo_filename,
+        club_logo_filename=source.club_logo_filename,
+        ais_turniernummer_extra=source.ais_turniernummer_extra,
+        is_test=True,
+        is_published=False,
+        startlist_public=False,
+        schedule_public=False,
+        results_public=False,
+    )
+    db.session.add(copy)
+    db.session.flush()
+
+    # Läufe (Mapping source-run-id → copy-run-id für die Zeitplan-Verknüpfung)
+    run_map = {}
+    for r in source.runs:
+        nr = EventRun(
+            event_id=copy.id, run_type=r.run_type, category=r.category,
+            class_level=r.class_level, is_final=r.is_final, judge_id=r.judge_id,
+        )
+        db.session.add(nr)
+        db.session.flush()
+        run_map[r.id] = nr.id
+
+    # Anwesende Richter
+    for ej in source.event_judges:
+        db.session.add(EventJudge(event_id=copy.id, judge_id=ej.judge_id))
+
+    # Zeitplan-Blöcke (event_run_id auf die Kopie umbiegen)
+    source_blocks = db.session.execute(
+        db.select(ScheduleBlock).filter_by(event_id=source.id)
+    ).scalars().all()
+    for b in source_blocks:
+        db.session.add(ScheduleBlock(
+            event_id=copy.id, ring=b.ring, block_type=b.block_type,
+            discipline=b.discipline, category_code=b.category_code,
+            class_level=b.class_level, duration_minutes=b.duration_minutes,
+            skip_changeover=b.skip_changeover, skip_briefing=b.skip_briefing,
+            force_new_group=b.force_new_group,
+            participant_count_override=b.participant_count_override,
+            event_run_id=run_map.get(b.event_run_id),
+            title=b.title, notes=b.notes, sort_index=b.sort_index,
+        ))
+
+    # Anmeldungen (ohne Startnummern/eindeutige IDs)
+    source_regs = db.session.execute(
+        db.select(Registration).filter_by(event_id=source.id)
+        .filter(Registration.status != RegistrationStatus.CANCELLED)
+    ).scalars().all()
+    for reg in source_regs:
+        db.session.add(Registration(
+            event_id=copy.id, dog_id=reg.dog_id, handler_id=reg.handler_id,
+            category_code=reg.category_code, class_level=reg.class_level,
+            status=reg.status, club_name=reg.club_name,
+            is_in_season=reg.is_in_season,
+        ))
+
+    db.session.commit()
+    flash(_(
+        "Testkopie «%(name)s» erstellt: %(runs)s Läufe, %(regs)s Anmeldungen. "
+        "Startnummern bitte in der Kopie neu vergeben.",
+        name=copy.name, runs=len(run_map), regs=len(source_regs),
+    ), "success")
+    return redirect(url_for("club.event_detail", event_id=copy.id))
 
 
 @club_bp.get("/events/<int:event_id>")
@@ -676,6 +802,7 @@ def event_edit(event_id):
         _fill_club_choices(form)
     else:
         del form.club_id
+        _filter_special_ruleset_choices(form, current_user.club_id, keep_value=event.special_ruleset)
     # DateField erwartet date, nicht datetime
     if request.method == "GET":
         form.starts_at.data = event.starts_at.date() if event.starts_at else None
@@ -719,6 +846,56 @@ def event_edit(event_id):
         return redirect(url_for("club.event_detail", event_id=event.id))
     return render_template("club/event_form.html", form=form, event=event,
                            is_superadmin=current_user.is_superadmin)
+
+
+# ---------------------------------------------------------------------------
+# Turnier-Vorlagen (Veranstalter-Self-Service)
+# ---------------------------------------------------------------------------
+
+def _assert_template_access(tpl):
+    """Nur der Veranstalter-Verein der Vorlage (oder Superadmin) darf sie nutzen."""
+    if current_user.is_superadmin:
+        return
+    if not current_user.club_id or tpl.organiser_club_id != current_user.club_id:
+        abort(403)
+
+
+@club_bp.get("/templates")
+@login_required
+def template_list():
+    if current_user.is_superadmin:
+        templates = EventTemplate.query.order_by(EventTemplate.name).all()
+    elif current_user.club_id:
+        templates = (EventTemplate.query
+                     .filter_by(organiser_club_id=current_user.club_id)
+                     .order_by(EventTemplate.name).all())
+    else:
+        abort(403)
+    return render_template("club/template_list.html", templates=templates)
+
+
+@club_bp.route("/templates/<int:tpl_id>/create-event", methods=["GET", "POST"])
+@login_required
+def template_create_event(tpl_id):
+    tpl = db.session.get(EventTemplate, tpl_id)
+    if not tpl:
+        abort(404)
+    _assert_template_access(tpl)
+    # Defensiv: falls die Freigabe nach dem Anlegen der Vorlage entzogen wurde.
+    if not current_user.is_superadmin and tpl.special_ruleset and \
+            not Event.special_ruleset_allows_club(tpl.special_ruleset, tpl.organiser_club_id):
+        abort(403)
+
+    if request.method == "POST":
+        event, messages = create_event_from_template(tpl, request.form)
+        for text, category in messages:
+            flash(text, category)
+        if event is None:
+            return render_template("club/template_create_event.html", tpl=tpl,
+                                   day_range=range(1, tpl.day_count + 1))
+        return redirect(url_for("club.event_detail", event_id=event.id))
+    return render_template("club/template_create_event.html", tpl=tpl,
+                           day_range=range(1, tpl.day_count + 1))
 
 
 @club_bp.post("/events/<int:event_id>/status")
@@ -956,6 +1133,43 @@ def test_mail():
 
 
 # ---------------------------------------------------------------------------
+# Teilnehmer: eigene Angaben
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/profile")
+@club_bp.post("/profile")
+@login_required
+def profile_edit():
+    """
+    Eigene Angaben (Name, Telefon). Hält User und Person synchron, da beide
+    unabhängig vom Login-Datensatz ihre eigenen first_name/last_name führen —
+    Person.first_name/last_name ist das, was eventexport.v1 an die
+    AgilitySoftware schickt und letztlich im TKAMO-Export als "Hundefuehrer"
+    landet.
+    """
+    if not current_user.person:
+        p = Person(first_name=current_user.first_name or "", last_name=current_user.last_name or "", email=current_user.email)
+        db.session.add(p)
+        db.session.flush()
+        current_user.person_id = p.id
+        db.session.commit()
+
+    form = ProfileForm(obj=current_user)
+    if request.method == "GET":
+        form.phone.data = current_user.person.phone
+    if form.validate_on_submit():
+        current_user.first_name = form.first_name.data.strip()
+        current_user.last_name = form.last_name.data.strip()
+        current_user.person.first_name = form.first_name.data.strip()
+        current_user.person.last_name = form.last_name.data.strip()
+        current_user.person.phone = form.phone.data.strip() if form.phone.data else None
+        db.session.commit()
+        flash(_("Angaben gespeichert."), "success")
+        return redirect(url_for("club.profile_edit"))
+    return render_template("club/profile_edit.html", form=form)
+
+
+# ---------------------------------------------------------------------------
 # Teilnehmer: Hunde verwalten
 # ---------------------------------------------------------------------------
 
@@ -991,6 +1205,7 @@ def profile_dogs():
                 return redirect(url_for("club.profile_dogs"))
             else:
                 dog = Dog(name=form.name.data.strip())
+                dog.breed = form.breed.data.strip() if form.breed.data else None
                 dog.license_kind = license_kind
                 dog.license_no = license_no
                 db.session.add(dog)
@@ -1058,8 +1273,15 @@ def event_info(event_id):
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
         abort(404)
-    if event.is_test and not current_user.is_superadmin:
-        abort(404)
+    if event.is_test:
+        # Testevents sieht nur der Superadmin oder der Veranstalter des eigenen Vereins.
+        is_own_organiser = (
+            current_user.can_manage_club
+            and current_user.club_id is not None
+            and current_user.club_id == event.organiser_club_id
+        )
+        if not current_user.is_superadmin and not is_own_organiser:
+            abort(404)
 
     my_registrations = []
     if current_user.person_id:
@@ -1315,6 +1537,19 @@ def event_view(event_id):
         if not dog or not dog.category:
             flash(_("Bitte hinterlege zuerst die Kategorie für diesen Hund in deinem Profil."), "warning")
             return redirect(url_for("club.profile_dogs"))
+        # Prüfen ob das Turnier überhaupt einen passenden Lauf anbietet
+        # (Kategorie des Hundes + gewählte Klasse). Ohne definierte Läufe wird
+        # nicht blockiert, da manche Events die Läufe erst später erfassen.
+        chosen_class = int(form.class_level.data)
+        offered = {(r.category, r.class_level) for r in event.runs}
+        if offered and (dog.category, chosen_class) not in offered:
+            flash(_(
+                "Für dieses Turnier gibt es keinen Lauf in Kategorie %(cat)s "
+                "Klasse %(cls)s. Bitte eine angebotene Klasse wählen.",
+                cat=_CATEGORY_CODE_MAP.get(dog.category, dog.category),
+                cls=chosen_class,
+            ), "danger")
+            return redirect(url_for("club.event_view", event_id=event_id))
         # Prüfen ob bereits angemeldet (gleicher Hund)
         existing = db.session.execute(
             db.select(Registration).filter_by(event_id=event_id, dog_id=form.dog_id.data)

@@ -5,6 +5,84 @@
 
 Stand: 2026-10-07
 
+## Session 2026-10-07 (Teil 6) — event_info-Ausbau + externe Anmeldung — ✅ DEPLOYED
+
+Drei Deploys live, keine Migration (Head bleibt `d1e2f3a4b5c6`), keine neuen Crashes:
+- [x] **event_info** TKAMO-Agenda-Link + Ablaufplan + Richter (`67ce554`)
+- [x] „Nennschluss"→„Anmeldeschluss"; TKAMO-Karte = nur Link (**Kontaktmail raus**, Spam);
+      Meldeliste/Startliste-Link (`58e81fc`)
+- [x] Infokarte-Felder Veranstalter/Meldebeginn/Max.Teilnehmer/Anzahl Ringe; **externe
+      Anmeldung**: bei `registration_external` externer Link statt Self-Registration auf
+      event_info+event_view, POST lehnt ab, Veranstalter-Manuell-Add unberührt (`1d840df`)
+
+### ⏳ OFFEN — Multi-Club-Mitgliedschaft (Wunsch 2026-10-07, Design)
+Handler in mehreren Vereinen → Auto-Mitgliederrolle; Superadmin promotet zu Club-Admin
+(darf Events eröffnen). Braucht M:N `ClubMembership(user_id, club_id, role)` statt
+`User.club_id`. **4 Entscheide offen beim User**: (1) Auto-Mitgliedschaft-Trigger
+(Lizenz-Vereinsnr / Event-Teilnahme / manuell), (2) club_id als Hauptverein behalten?,
+(3) Verein-Picker bei event_new, (4) Promotion-UI Portal vs AdminPortal. DB-Migration
+local-first, NICHT am Jump-Into-Fall-Wochenende.
+
+## Session 2026-10-07 (Teil 5) — Spezialturnier-Freigabe + Self-Service — ⏳ LOKAL FERTIG, NICHT DEPLOYED
+
+104/104 Tests grün. **Prod-Alembic-Head bleibt `d1e2f3a4b5c6`** — neuer lokaler Head
+`e3f4g5h6i7j8` (Migration `special_ruleset_allowed_clubs`). Alles uncommitted.
+
+- [x] **Spezialturnier-Freigabe** (`SpecialRulesetAllowedClub`, Migration `e3f4g5h6i7j8`):
+      eigenständige Allowlist Ruleset↔Verein, unabhängig vom Cup-System. Model-Helper
+      `Event.special_ruleset_allows_club/_restricts/_allowed_club_ids`. Admin-UI
+      `/admin/special-ruleset-assignments` (+ `/<ruleset>/edit`), verlinkt von Vorlagen-Liste.
+      Durchsetzung club-seitig: `EventForm.special_ruleset`-Choices in `event_new`/`event_edit`
+      serverseitig gefiltert (nicht nur UI). Edge-Case: nachträglich entzogener, bereits
+      gesetzter Wert blockiert nicht das ganze Formular (`keep_value` in
+      `_filter_special_ruleset_choices`).
+- [x] **Vorlagen-Self-Service für Veranstalter** (der „Grundstein"): `/club/templates` +
+      `/club/templates/<id>/create-event` — nur Veranstalter-Verein der Vorlage (oder
+      Superadmin). Erzeugungslogik aus `routes_templates.py` nach
+      `app/services/template_service.py::create_event_from_template` extrahiert (Admin + Club
+      teilen sie). Nav-Link „Turnier-Vorlagen" ergänzt.
+- [x] **`Dog.breed` im Self-Service** (`DogForm` / `/club/profile/dogs`): Rasse-Feld fehlte,
+      obwohl Spalte seit AOA-Migration existiert — ergänzt (Formular + Anzeige in Hundekarte).
+- [x] **Neue Seite „Meine Angaben"** (`/club/profile`, `club.profile_edit`): erster
+      Self-Service-Ort für eigenen Namen/Telefon (vorher nur bei `/auth/register`). Hält
+      `User.*name` und `Person.*name` synchron. E-Mail bewusst NICHT editierbar (Login-Identität).
+      Nav-Link „Mein Profil → Meine Angaben" für ALLE eingeloggten Rollen.
+- [ ] Committen + beim nächsten Portal-Deploy mitnehmen (Migration `e3f4g5h6i7j8` dann laufen).
+
+**TKAMO-Export-Recherche (Befund, kein Code nötig):** Der echte TKAMO-Ergebnis-Export
+(`routes_results_export.py::build_tkamo_csv`) braucht pro Zeile nur Lizenznr+Hundename (Dog),
+`Hundefuehrer` (Namens-String via `eventexport.v1` → Software → `resultexport` zurück),
+Club (`Registration.club_name`), Kategorie/Klasse, Richter-AIS-ID. **Adresse/Telefon sind
+für TKAMO irrelevant** (Vorlage kennt die Spalten nicht) → „Meine Angaben" deckt den
+TKAMO-Bedarf (Name) vollständig ab.
+
+**Verwandte offene Wünsche (eigene Memory-Files, noch nicht umgesetzt):**
+- [ ] AdminPortal: Account↔Lizenz-Verknüpfung (`club_user_add` legt immer neuen Account mit
+      PW an; `dog_edit` zeigt Owner nur read-only) — eigenes Repo, eigene Session nötig.
+- [ ] Team-CSV/XLSX-Import (Teamname+2 Lizenzen) für `/admin/events/<id>/teams`.
+
+## Session 2026-10-07 (Teil 4) — Live-Seite Top5/Letzte5 + Team-Button — ✅ DEPLOYED
+
+- [x] **Live-Seite pro Ring: Top 5 + Letzte 5 Ergebnisse** (Commit `82f215d`, prod live).
+      Pro Ring-Card unter der Startliste: Top 5 (nach Rang aus `result_classes`, gematcht über
+      Ring+Disziplin+Kategorie+Klasse, lowercase-normalisiert) + Letzte 5 gespeicherte Ergebnisse
+      (aus LiveUpdate-Strom, **ohne DNS**, neueste zuerst, dedupliziert nach Lizenz, auf 5 gedeckelt).
+      `event_live_json` (routes.py) + `event_live.html::renderRings`. In-Memory-Smoke-Test + 94 Tests grün.
+- [x] **Team-Challenge-Button** auf Event-Detail (Superadmin + `special_ruleset=edelweiss_challenge`)
+      → `/admin/events/<id>/teams`. Vorher gab es KEINEN Link dorthin.
+- [x] **`special_ruleset` im Event-Edit** (`EventForm` Dropdown + `event_edit` + `event_form.html`):
+      beliebige Turniere als Spezialformat (halloween_cup/advents_cup/edelweiss_challenge) markierbar.
+      Hinweis: Team-Challenge ist NICHT ans Cup-/CupAllowedOrganiser-Freigabesystem gekoppelt.
+- [x] Keine Migration (`special_ruleset` existiert seit Initial-Schema). 0 offene Crashes nach Deploy.
+- [ ] **Wochenend-Live-Test (noch offen):** (a) Ring-Monitor (AgilitySoftware) aktualisiert sich pro
+      Ring-PC beim Speichern eines Ergebnisses — Code vorhanden (`ring_monitor.html` joint
+      `event:<id>:ring:<n>`, `save_result` emittiert ring-spezifisch + 20 s-Polling), nur Mehrring-
+      Realtest fehlt. (b) Portal-Live-Seite Top5/Letzte5 mit echten Live-Daten verifizieren
+      (braucht beide API-Keys: Top 5 aus Result-Export, Letzte 5 aus Live-Updates).
+- [ ] Prüfen, ob Edelweiss-Testevent **ID 15** `special_ruleset=edelweiss_challenge` gesetzt hat
+      (sonst im Edit-Dropdown nachziehen, damit der Button erscheint). Direkt-URL `/admin/events/15/teams`
+      funktioniert unabhängig.
+
 ## Session 2026-10-07 (Teil 3) — Rangliste-Layout + Live-Link + Prod-Vorlagen
 
 **UNCOMMITTED — am Ende der Session noch NICHT committed/deployed:**

@@ -427,6 +427,29 @@ class Event(db.Model):
                              "eo_quali", "wm_quali", "sao_quali", "jao_quali",
                              "fmbb_quali"}
 
+    @classmethod
+    def special_ruleset_allowed_club_ids(cls, ruleset) -> set:
+        """Vereine, die laut SpecialRulesetAllowedClub für dieses Ruleset freigegeben sind."""
+        if not ruleset:
+            return set()
+        rows = SpecialRulesetAllowedClub.query.filter_by(ruleset=ruleset).all()
+        return {r.club_id for r in rows}
+
+    @classmethod
+    def special_ruleset_restricts(cls, ruleset) -> bool:
+        """True wenn für dieses Ruleset eine Veranstalter-Einschränkung konfiguriert ist."""
+        return len(cls.special_ruleset_allowed_club_ids(ruleset)) > 0
+
+    @classmethod
+    def special_ruleset_allows_club(cls, ruleset, club_id) -> bool:
+        """True wenn kein Ruleset gesetzt, keine Einschränkung konfiguriert, oder der Verein freigegeben ist."""
+        if not ruleset:
+            return True
+        allowed = cls.special_ruleset_allowed_club_ids(ruleset)
+        if not allowed:
+            return True
+        return club_id in allowed
+
 
 # ---------------------------------------------------------------------------
 # Läufe (Runs) eines Turniers
@@ -1271,6 +1294,30 @@ class CupAllowedOrganiser(db.Model):
 
     def __repr__(self):
         return f"<CupAllowedOrganiser cup={self.cup_id} club={self.club_id}>"
+
+
+class SpecialRulesetAllowedClub(db.Model):
+    """
+    Erlaubter Verein für ein Spezialturnier-Ruleset (z.B. edelweiss_challenge),
+    unabhängig von einer konkreten Cup-Saison.
+
+    Falls für ein Ruleset keine Einträge vorhanden: alle Vereine dürfen Turniere
+    mit diesem Ruleset anlegen. Falls mindestens ein Eintrag vorhanden: nur diese
+    Vereine dürfen es (Superadmin ist davon immer ausgenommen).
+    """
+    __tablename__ = "special_ruleset_allowed_clubs"
+    __table_args__ = (
+        db.UniqueConstraint("ruleset", "club_id", name="uq_special_ruleset_allowed_club"),
+    )
+
+    id      = db.Column(db.Integer, primary_key=True)
+    ruleset = db.Column(db.String(50), nullable=False)
+    club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=False)
+
+    club = db.relationship("Club")
+
+    def __repr__(self):
+        return f"<SpecialRulesetAllowedClub ruleset={self.ruleset!r} club={self.club_id}>"
 
 
 class CupEvent(db.Model):
