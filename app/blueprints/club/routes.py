@@ -1073,6 +1073,12 @@ def event_info(event_id):
         event.registration_close_at and event.registration_close_at < datetime.utcnow()
     )
     has_start_numbers = event.start_numbers_generated_at is not None
+    has_registrations = db.session.execute(
+        db.select(Registration.id)
+        .filter_by(event_id=event_id)
+        .filter(Registration.status != RegistrationStatus.CANCELLED)
+        .limit(1)
+    ).first() is not None
 
     # Live-Ergebnisse aus gespeichertem Result-Import (aktuellster Import pro Event)
     result_classes = []
@@ -1160,6 +1166,7 @@ def event_info(event_id):
                            my_registrations=my_registrations,
                            deadline_passed=deadline_passed,
                            has_start_numbers=has_start_numbers,
+                           has_registrations=has_registrations,
                            result_classes=result_classes,
                            latest_import=latest_import,
                            pdf_by_class=pdf_by_class,

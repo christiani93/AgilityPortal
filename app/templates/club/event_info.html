@@ -37,7 +37,7 @@
   {% if event.status == 'open' and not deadline_passed %}
     <span class="badge bg-success fs-6">● {{ _('Anmeldungen offen') }}</span>
   {% elif event.status == 'open' and deadline_passed %}
-    <span class="badge bg-warning text-dark fs-6">● {{ _('Nennschluss abgelaufen') }}</span>
+    <span class="badge bg-warning text-dark fs-6">● {{ _('Anmeldeschluss abgelaufen') }}</span>
   {% elif event.status == 'closed' %}
     <span class="badge bg-secondary fs-6">● {{ _('Anmeldungen geschlossen') }}</span>
   {% elif event.status == 'cancelled' %}
@@ -45,7 +45,7 @@
   {% endif %}
   {% if event.registration_close_at %}
     <span class="badge bg-light text-dark border ms-2">
-      {{ _('Nennschluss') }}: {{ event.registration_close_at.strftime("%d.%m.%Y") }}
+      {{ _('Anmeldeschluss') }}: {{ event.registration_close_at.strftime("%d.%m.%Y") }}
     </span>
   {% endif %}
 </div>
@@ -86,11 +86,12 @@
 </div>
 
 {# ── TKAMO-Agenda ─────────────────────────────────────────────────────────── #}
-{% if event.ais_turniernummer or event.tkamo_disciplines or event.tkamo_categories or event.tkamo_contact_email %}
+{# Nur der Link auf die offizielle TKAMO-Agenda — Wettbewerbe/Kategorien stehen
+   bereits unten im Ablaufplan, Kontaktmail bewusst nicht öffentlich (Spam/Bots). #}
+{% if event.ais_turniernummer %}
 <div class="card mb-4" style="max-width:680px;">
-  <div class="card-header d-flex justify-content-between align-items-center">
+  <div class="card-body d-flex justify-content-between align-items-center">
     <span>🔗 {{ _('TKAMO-Agenda') }}</span>
-    {% if event.ais_turniernummer %}
     <div class="d-flex gap-2">
       <a href="https://www.tkamo.ch/?lang=de&amp;n0=agenda&amp;n1=&amp;detail={{ event.ais_turniernummer }}"
          target="_blank" class="btn btn-sm btn-outline-secondary">🌐 {{ _('Tag 1') }}</a>
@@ -104,23 +105,19 @@
         {% endfor %}
       {% endif %}
     </div>
-    {% endif %}
   </div>
-  <div class="card-body">
-    <dl class="row mb-0 small" style="row-gap:.25rem;">
-      {% if event.tkamo_disciplines %}
-      <dt class="col-sm-5 text-muted fw-normal">{{ _('Wettbewerbe') }}</dt>
-      <dd class="col-sm-7 mb-0">{{ event.tkamo_disciplines }}</dd>
-      {% endif %}
-      {% if event.tkamo_categories %}
-      <dt class="col-sm-5 text-muted fw-normal">{{ _('Kategorien') }}</dt>
-      <dd class="col-sm-7 mb-0">{{ event.tkamo_categories }}</dd>
-      {% endif %}
-      {% if event.tkamo_contact_email %}
-      <dt class="col-sm-5 text-muted fw-normal">{{ _('Kontakt-E-Mail') }}</dt>
-      <dd class="col-sm-7 mb-0"><a href="mailto:{{ event.tkamo_contact_email }}">{{ event.tkamo_contact_email }}</a></dd>
-      {% endif %}
-    </dl>
+</div>
+{% endif %}
+
+{# ── Meldeliste / Startliste ─────────────────────────────────────────────── #}
+{% if has_registrations %}
+<div class="card mb-4" style="max-width:680px;">
+  <div class="card-body d-flex justify-content-between align-items-center">
+    <span>📋 {% if has_start_numbers %}{{ _('Startliste') }}{% else %}{{ _('Meldeliste') }}{% endif %}</span>
+    <a href="{{ url_for('public_events.public_startlist', event_id=event.id) }}"
+       target="_blank" class="btn btn-sm btn-outline-secondary">
+      {% if has_start_numbers %}{{ _('Startliste ansehen') }}{% else %}{{ _('Meldeliste ansehen') }}{% endif %}
+    </a>
   </div>
 </div>
 {% endif %}
@@ -387,9 +384,6 @@
   <div class="card-footer text-muted small">
     {{ _('Startnummern vergeben am') }}
     {{ event.start_numbers_generated_at | localtime("%d.%m.%Y %H:%M") }} Uhr
-    · <a href="{{ url_for('club.event_startlist', event_id=event.id) }}" target="_blank">
-        📋 {{ _('Vollständige Startliste') }}
-      </a>
   </div>
   {% endif %}
 
