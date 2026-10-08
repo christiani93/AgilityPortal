@@ -31,8 +31,22 @@ Bugfixes + voller Datenabgleich gegen die Portal-Prod-DB.
       vs. license_no Portal→Software); Merge würde einen Konsumenten brechen. Stattdessen
       neuer Kontrakt-Test `tests/test_club_export_contract.py` auf der echten Route, der
       breed+club_name festnagelt (die alte Test-Lücke, durch die es durchrutschte). 127
-      Tests grün. OFFEN: Deploy + Event-9-Re-Export/Import.
+      Tests grün. **DEPLOYED 2026-10-08 (Prod-Head `8117fce`, Smoke 200)** + **VERIFIZIERT**:
+      Event 9 neu exportiert/importiert → Rasse 104/104 + Vereinsnummer 84/84 angekommen
+      (vorher 0/0), Rasse rendert sichtbar in Software-Druck-Startliste. Gap geschlossen.
       Memory `project_portal_export_dual_path_breed_club_gap`.
+- [x] **AgilitySoftware Veranstaltungsliste-Crash GEFIXT** (`1262f44`, AgilitySoftware `main`,
+      **NICHT zu GitHub gepusht**): nach dem Import 500 auf `/events/` — `events_list.html`
+      sortierte via Jinja `|sort(attribute='Datum')`; Legacy-Testevent `E1` (altes Schema
+      ohne `Datum`) lag schon in events.json, fiel aber erst auf als der Import ein 2. Event
+      dazu brachte (sorted() verglich erstmals). FIX: Sortierung in die Route mit Fallback
+      `e.get('Datum') or ''`. 167 Tests grün. Memory `reference_agilitysoftware_dev_run`.
+
+### Offen / Folge-Tasks
+- [ ] **AgilitySoftware `main` pushen**: `bc37976` + `1262f44` liegen lokal, noch nicht auf
+      GitHub (Portal `8117fce` IST gepusht).
+- [ ] **(Idee) Software-Event-Import als Upsert per external_id** statt append-mit-neuer-uuid
+      → Re-Import erzeugt sonst Duplikate. Siehe `reference_agilitysoftware_dev_run`.
 
 ## Session 2026-10-08 — E-Mail-Fix + Klassen-Tausch + Deploy + Startlisten-Check
 

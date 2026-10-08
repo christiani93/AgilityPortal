@@ -2263,7 +2263,24 @@ def event_export_zip(event_id):
             })
         schedule_blocks_out.append(blk)
 
-    schedule_payload = {"blocks": schedule_blocks_out}
+    # Ring-Startzeiten mitgeben, damit die AgilitySoftware den Zeitplan mit den
+    # im Portal gesetzten Startzeiten rechnet (sonst Default 07:30). Keys auf die
+    # Ring-Nummer normalisieren (Portal speichert "Ring 1" → "1"), passend zu den
+    # Block-"ring"-Werten oben.
+    ring_start_times_raw = parse_ring_start_times(event.ring_start_times)
+    ring_start_times_out = {}
+    for ring_label, start_val in (ring_start_times_raw or {}).items():
+        num = None
+        for part in str(ring_label).split():
+            if part.isdigit():
+                num = part
+                break
+        if num is None and str(ring_label).isdigit():
+            num = str(ring_label)
+        if num is not None and start_val:
+            ring_start_times_out[num] = start_val
+
+    schedule_payload = {"blocks": schedule_blocks_out, "ring_start_times": ring_start_times_out}
 
     # ── ZIP zusammenbauen ─────────────────────────────────────────────────────
     import os as _os
