@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 {% block title %}{{ _('Übersicht') }}{% endblock %}
 
+{% macro event_row(event) %}
+<tr style="cursor:pointer;" onclick="location.href='{{ url_for('club.event_detail', event_id=event.id) }}'">
+  <td>
+    {{ event.name }}
+    {% if event.is_test %}<span class="badge bg-warning text-dark ms-1">🧪 TEST</span>{% endif %}
+  </td>
+  <td>{{ event.organiser_club.name if event.organiser_club else "—" }}</td>
+  <td>{{ event.location or "—" }}</td>
+  <td>
+    {% if event.starts_at %}
+      {{ event.starts_at.strftime("%d.%m.%Y") }}
+    {% else %}—{% endif %}
+  </td>
+  <td>
+    {% if event.status == 'open' %}<span class="badge bg-success">{{ _('Offen') }}</span>
+    {% elif event.status == 'closed' %}<span class="badge bg-secondary">{{ _('Geschlossen') }}</span>
+    {% elif event.status == 'cancelled' %}<span class="badge bg-danger">{{ _('Abgesagt') }}</span>
+    {% else %}<span class="badge bg-light text-dark">{{ _('Entwurf') }}</span>{% endif %}
+  </td>
+</tr>
+{% endmacro %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2>{{ _('Portal-Übersicht') }}</h2>
@@ -74,29 +96,14 @@
         </tr>
       </thead>
       <tbody>
-        {% for event in events %}
-        <tr style="cursor:pointer;" onclick="location.href='{{ url_for('club.event_detail', event_id=event.id) }}'">
-          <td>
-            {{ event.name }}
-            {% if event.is_test %}<span class="badge bg-warning text-dark ms-1">🧪 TEST</span>{% endif %}
-          </td>
-          <td>{{ event.organiser_club.name if event.organiser_club else "—" }}</td>
-          <td>{{ event.location or "—" }}</td>
-          <td>
-            {% if event.starts_at %}
-              {{ event.starts_at.strftime("%d.%m.%Y") }}
-            {% else %}—{% endif %}
-          </td>
-          <td>
-            {% if event.status == 'open' %}<span class="badge bg-success">{{ _('Offen') }}</span>
-            {% elif event.status == 'closed' %}<span class="badge bg-secondary">{{ _('Geschlossen') }}</span>
-            {% elif event.status == 'cancelled' %}<span class="badge bg-danger">{{ _('Abgesagt') }}</span>
-            {% else %}<span class="badge bg-light text-dark">{{ _('Entwurf') }}</span>{% endif %}
-          </td>
-        </tr>
-        {% else %}
+        {% for event in upcoming %}{{ event_row(event) }}{% endfor %}
+        {% if past %}
+        <tr><td colspan="5" class="bg-light text-muted small fw-semibold">{{ _('Vergangene') }}</td></tr>
+        {% for event in past %}{{ event_row(event) }}{% endfor %}
+        {% endif %}
+        {% if not upcoming and not past %}
         <tr><td colspan="5" class="text-center text-muted py-3">{{ _('Noch keine Turniere.') }}</td></tr>
-        {% endfor %}
+        {% endif %}
       </tbody>
     </table>
   </div>

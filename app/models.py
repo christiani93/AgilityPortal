@@ -457,6 +457,26 @@ class Event(db.Model):
         return club_id in allowed
 
 
+def split_events_upcoming_past(events_sorted_asc):
+    """Teilt eine nach ``starts_at`` aufsteigend sortierte Event-Liste in
+    kommende (nächstes Turnier zuerst) und vergangene (jüngstes zuerst).
+
+    Referenzdatum ist ``ends_at`` (Fallback ``starts_at``); Events ohne Datum
+    gelten als kommend. Wird sowohl für die öffentliche Event-Liste als auch
+    für die Club-/Superadmin-Übersicht verwendet.
+    """
+    today = datetime.utcnow().date()
+    upcoming, past = [], []
+    for ev in events_sorted_asc:
+        ref = ev.ends_at or ev.starts_at
+        if ref and ref.date() < today:
+            past.append(ev)
+        else:
+            upcoming.append(ev)
+    past.reverse()
+    return upcoming, past
+
+
 # ---------------------------------------------------------------------------
 # Läufe (Runs) eines Turniers
 # ---------------------------------------------------------------------------

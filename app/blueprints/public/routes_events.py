@@ -1,7 +1,8 @@
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
 from app.models import (Event, EventFinalist, EventRun, Registration,
-                        RegistrationStatus, ResultImport, ScheduleBlock, StartNumber)
+                        RegistrationStatus, ResultImport, ScheduleBlock, StartNumber,
+                        split_events_upcoming_past)
 
 
 public_events_bp = Blueprint("public_events", __name__)
@@ -71,22 +72,12 @@ def live_shortcut():
 @public_events_bp.get("/events")
 def public_events_index():
     """Öffentliche, login-freie Liste aller publizierten Veranstaltungen."""
-    from datetime import datetime
-
     events = (
         Event.query.filter_by(is_published=True, is_test=False)
         .order_by(Event.starts_at.is_(None), Event.starts_at)
         .all()
     )
-    today = datetime.utcnow().date()
-    upcoming, past = [], []
-    for ev in events:
-        ref = ev.ends_at or ev.starts_at
-        if ref and ref.date() < today:
-            past.append(ev)
-        else:
-            upcoming.append(ev)
-    past.reverse()  # jüngste zuerst
+    upcoming, past = split_events_upcoming_past(events)
 
     return render_template(
         "public/events_index.html", upcoming=upcoming, past=past,

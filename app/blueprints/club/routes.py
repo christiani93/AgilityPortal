@@ -13,7 +13,7 @@ from sqlalchemy import case
 from app.extensions import db
 from flask_mail import Message
 from app.extensions import mail
-from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF, StartNumber, TkaExportBatch, TkaExportRow, TkaImport, TkaFinding, ExchangeExportLog, EventFinalist, CupEvent, CupQualificationRun, CupQualifiedTeam, Document, EventTemplate
+from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF, StartNumber, TkaExportBatch, TkaExportRow, TkaImport, TkaFinding, ExchangeExportLog, EventFinalist, CupEvent, CupQualificationRun, CupQualifiedTeam, Document, EventTemplate, split_events_upcoming_past
 from app.services.template_service import create_event_from_template
 from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, ProfileForm, DogForm, DogClassForm, EventRegistrationForm
 
@@ -56,11 +56,15 @@ def _club_for_user():
 
 
 def _events_for_club(club):
-    """Gibt Events für einen Club zurück, oder alle Events bei superadmin."""
+    """Gibt Events für einen Club zurück, oder alle Events bei superadmin.
+
+    Aufsteigend nach starts_at (undatierte zuletzt) - Grundlage für den
+    Kommende/Vergangene-Split via split_events_upcoming_past().
+    """
     if current_user.is_superadmin:
         return (
             db.session.execute(
-                db.select(Event).order_by(Event.starts_at.desc())
+                db.select(Event).order_by(Event.starts_at.is_(None), Event.starts_at)
             ).scalars().all()
         )
     if not club:
@@ -69,7 +73,7 @@ def _events_for_club(club):
         db.session.execute(
             db.select(Event)
             .filter_by(organiser_club_id=club.id)
-            .order_by(Event.starts_at.desc())
+            .order_by(Event.starts_at.is_(None), Event.starts_at)
         ).scalars().all()
     )
 
@@ -85,11 +89,12 @@ def dashboard():
     if current_user.is_superadmin:
         clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
         events = _events_for_club(None)
+        upcoming, past = split_events_upcoming_past(events)
         pending_count = db.session.execute(
             db.select(db.func.count()).select_from(PendingRequest).filter_by(status="pending")
         ).scalar()
         return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events,
-                               pending_count=pending_count)
+                               upcoming=upcoming, past=past, pending_count=pending_count)
 
     # Teilnehmer ohne Vereinszuordnung: offene Turniere + eigene Anmeldungen
     if not current_user.club_id:
@@ -113,7 +118,9 @@ def dashboard():
 
     club = _club_for_user()
     events = _events_for_club(club)
-    return render_template("club/dashboard.html", club=club, events=events)
+    upcoming, past = split_events_upcoming_past(events)
+    return render_template("club/dashboard.html", club=club, events=events,
+                           upcoming=upcoming, past=past)
 
 
 # ---------------------------------------------------------------------------
@@ -455,6 +462,7 @@ def event_new():
         _fill_club_choices(form)
     else:
         del form.club_id  # Feld nicht anzeigen/validieren
+        del form.is_published  # nur Superadmin darf öffentlich schalten
         _filter_special_ruleset_choices(form, current_user.club_id)
     if form.validate_on_submit():
         if current_user.is_superadmin:
@@ -492,6 +500,7 @@ def event_new():
             registration_url=form.registration_url.data.strip() if form.registration_url.data else None,
             notes_public=form.notes_public.data.strip() if form.notes_public.data else None,
             is_test=form.is_test.data,
+            is_published=form.is_published.data if current_user.is_superadmin else False,
             organiser_club_id=club_id,
             type="regular",
             status="draft",
@@ -802,6 +811,7 @@ def event_edit(event_id):
         _fill_club_choices(form)
     else:
         del form.club_id
+        del form.is_published  # nur Superadmin darf öffentlich schalten
         _filter_special_ruleset_choices(form, current_user.club_id, keep_value=event.special_ruleset)
     # DateField erwartet date, nicht datetime
     if request.method == "GET":
@@ -841,6 +851,7 @@ def event_edit(event_id):
         event.special_ruleset = form.special_ruleset.data or None
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
+            event.is_published = form.is_published.data
         db.session.commit()
         flash(_("Turnier gespeichert."), "success")
         return redirect(url_for("club.event_detail", event_id=event.id))
