@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, current_app, render_template, request, url_for
+from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
 from app.models import (Event, EventFinalist, EventRun, Registration,
                         RegistrationStatus, ResultImport, ScheduleBlock, StartNumber)
@@ -43,6 +43,29 @@ def _has_admin_key():
     expected = current_app.config.get("ADMIN_KEY")
     provided = request.args.get("key") or request.headers.get("X-Admin-Key")
     return expected and provided == expected
+
+
+@public_events_bp.get("/live")
+def live_shortcut():
+    """Kurzlink /live → Live-Seite des heute laufenden Turniers.
+
+    Ohne laufendes Turnier (oder bei mehreren gleichzeitig) landet man auf der
+    Event-Liste statt auf einer Fehlerseite."""
+    from datetime import datetime
+
+    today = datetime.utcnow().date()
+    events = Event.query.filter_by(is_published=True, is_test=False).all()
+    live_events = []
+    for ev in events:
+        start_date = ev.starts_at.date() if ev.starts_at else None
+        end_date = (ev.ends_at or ev.starts_at)
+        end_date = end_date.date() if end_date else None
+        if start_date and end_date and start_date <= today <= end_date:
+            live_events.append(ev)
+
+    if len(live_events) == 1:
+        return redirect(url_for("club.event_live", event_id=live_events[0].id))
+    return redirect(url_for("public_events.public_events_index"))
 
 
 @public_events_bp.get("/events")

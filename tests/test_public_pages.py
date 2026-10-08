@@ -200,3 +200,35 @@ def test_startlist_shows_meldeliste_before_start_numbers(app):
         assert "Meldeliste" in body
         assert "Rex" in body
         assert "Anna Muster" in body
+
+
+def test_live_shortcut_redirects_to_running_event(app):
+    from datetime import datetime, timedelta
+
+    with app.app_context():
+        now = datetime.utcnow()
+        event = Event(name="Heute", is_published=True,
+                      starts_at=now - timedelta(hours=2), ends_at=now + timedelta(hours=2))
+        db.session.add(event)
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get("/live")
+        assert response.status_code == 302
+        assert response.headers["Location"] == f"/club/events/{event.id}/live"
+
+
+def test_live_shortcut_redirects_to_events_index_when_nothing_running(app):
+    from datetime import datetime, timedelta
+
+    with app.app_context():
+        now = datetime.utcnow()
+        event = Event(name="Vorbei", is_published=True,
+                      starts_at=now - timedelta(days=10), ends_at=now - timedelta(days=9))
+        db.session.add(event)
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get("/live")
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/events"
