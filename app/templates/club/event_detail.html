@@ -914,6 +914,7 @@
       <thead class="table-light">
         <tr>
           <th>Nr.</th>
+          <th>{{ _('LIZ') }}</th>
           <th>{{ _('Hund') }}</th>
           <th>{{ _('Kategorie / Klasse') }}</th>
           <th>{{ _('Hundeführer') }}</th>
@@ -934,6 +935,7 @@
               <button type="submit" class="btn btn-sm btn-outline-secondary">✓</button>
             </form>
           </td>
+          <td class="text-muted small">{{ reg.dog.license_no or '—' }}</td>
           <td class="fw-semibold">
             {{ reg.dog.name }}
             {% if reg.is_in_season %}
