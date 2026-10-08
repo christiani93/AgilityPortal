@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}AOA-Abgleich – {{ event.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('aoa_import.aoa_import_home', key=admin_key) }}"
+     class="btn btn-outline-secondary btn-sm">← Zurück</a>
+  <h2 class="mb-0">🔄 AOA-Abgleich</h2>
+  <span class="badge bg-primary fs-6">{{ event.name }}</span>
+</div>
+
+<div class="d-flex gap-3 mb-3 small">
+  <span><span class="badge bg-success">{{ diff.new | length }}</span> neu</span>
+  <span><span class="badge bg-danger">{{ diff.dropped | length }}</span> weggefallen</span>
+  <span><span class="badge bg-warning text-dark">{{ diff.changed | length }}</span> geändert</span>
+  <span><span class="badge bg-secondary">{{ diff.unchanged | length }}</span> unverändert</span>
+</div>
+
+<form method="post" action="{{ url_for('aoa_import.aoa_compare_execute', key=admin_key) }}">
+  <input type="hidden" name="event_id" value="{{ event.id }}">
+  <input type="hidden" name="csv_b64" value="{{ csv_b64 }}">
+
+  {# ── NEU ───────────────────────────────────────────────────────────────── #}
+  <div class="card mb-3 border-success">
+    <div class="card-header d-flex justify-content-between align-items-center bg-success-subtle">
+      <span class="fw-semibold text-success">➕ Neu ({{ diff.new | length }}) – werden als Anmeldung angelegt</span>
+      {% if diff.new %}
+      <label class="small mb-0"><input type="checkbox" class="toggle-all" data-group="create_license" checked> alle</label>
+      {% endif %}
+    </div>
+    <div class="card-body p-0">
+      {% if diff.new %}
+      <table class="table table-sm mb-0" style="font-size:.85rem">
+        <thead class="table-light"><tr>
+          <th style="width:3rem">✓</th><th>Lizenz</th><th>Hund</th><th>Kat / Kl</th><th>Hundeführer</th><th>Verein</th>
+        </tr></thead>
+        <tbody>
+          {% for r in diff.new %}
+          <tr>
+            <td><input type="checkbox" name="create_license" value="{{ r.license_no }}" checked></td>
+            <td><code>{{ r.license_no }}</code></td>
+            <td>{{ r.dog_name }}</td>
+            <td>{{ r.category }} / {{ r.class_level }}</td>
+            <td>{{ r.first_name }} {{ r.last_name }}</td>
+            <td>{{ r.club_value }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="p-3 text-muted small">Keine neuen Anmeldungen.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── WEGGEFALLEN ───────────────────────────────────────────────────────── #}
+  <div class="card mb-3 border-danger">
+    <div class="card-header d-flex justify-content-between align-items-center bg-danger-subtle">
+      <span class="fw-semibold text-danger">➖ Weggefallen ({{ diff.dropped | length }}) – Abmeldung (status CANCELLED, keine E-Mail)</span>
+      {% if diff.dropped %}
+      <label class="small mb-0"><input type="checkbox" class="toggle-all" data-group="cancel_license" checked> alle</label>
+      {% endif %}
+    </div>
+    <div class="card-body p-0">
+      {% if diff.dropped %}
+      <table class="table table-sm mb-0" style="font-size:.85rem">
+        <thead class="table-light"><tr>
+          <th style="width:3rem">✓</th><th>Lizenz</th><th>Hund</th><th>Kat / Kl</th><th>Startnr.</th><th>Hundeführer</th>
+        </tr></thead>
+        <tbody>
+          {% for d in diff.dropped %}
+          <tr>
+            <td><input type="checkbox" name="cancel_license" value="{{ d.license_no }}" checked></td>
+            <td><code>{{ d.license_no }}</code></td>
+            <td>{{ d.dog_name }}</td>
+            <td>{{ d.category_code }} / {{ d.class_level }}</td>
+            <td>{{ d.start_number if d.start_number is not none else '—' }}</td>
+            <td>{{ d.handler }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="p-3 text-muted small">Keine weggefallenen Anmeldungen.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── GEÄNDERT ──────────────────────────────────────────────────────────── #}
+  <div class="card mb-3 border-warning">
+    <div class="card-header d-flex justify-content-between align-items-center bg-warning-subtle">
+      <span class="fw-semibold text-warning-emphasis">✏ Geändert ({{ diff.changed | length }}) – Kategorie/Klasse übernehmen</span>
+      {% if diff.changed %}
+      <label class="small mb-0"><input type="checkbox" class="toggle-all" data-group="change_license"> alle</label>
+      {% endif %}
+    </div>
+    <div class="card-body p-0">
+      {% if diff.changed %}
+      <table class="table table-sm mb-0" style="font-size:.85rem">
+        <thead class="table-light"><tr>
+          <th style="width:3rem">✓</th><th>Lizenz</th><th>Hund</th><th>Startnr.</th><th>Änderung</th>
+        </tr></thead>
+        <tbody>
+          {% for c in diff.changed %}
+          <tr>
+            <td><input type="checkbox" name="change_license" value="{{ c.license_no }}"></td>
+            <td><code>{{ c.license_no }}</code></td>
+            <td>{{ c.dog_name }}</td>
+            <td>{{ c.start_number if c.start_number is not none else '—' }}</td>
+            <td>
+              {% for label, old, new in c.diffs %}
+              <span class="d-inline-block me-2">{{ label }}: <del class="text-muted">{{ old }}</del> → <strong>{{ new }}</strong></span>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="px-3 py-2 small text-muted">
+        Achtung: Kat/Klasse-Änderungen betreffen die Startlisten — Startnummern/Startlisten danach prüfen.
+      </div>
+      {% else %}
+      <div class="p-3 text-muted small">Keine geänderten Anmeldungen.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body d-flex gap-2">
+      <button type="submit" class="btn btn-success"
+              onclick="return confirm('Ausgewählten Abgleich für {{ event.name }} anwenden?')">
+        ✅ Abgleich anwenden
+      </button>
+      <a href="{{ url_for('aoa_import.aoa_import_home', key=admin_key) }}"
+         class="btn btn-outline-secondary">Abbrechen</a>
+    </div>
+  </div>
+</form>
+
+<script>
+  document.querySelectorAll('.toggle-all').forEach(function (master) {
+    master.addEventListener('change', function () {
+      document.querySelectorAll('input[name="' + master.dataset.group + '"]')
+        .forEach(function (cb) { cb.checked = master.checked; });
+    });
+  });
+</script>
+{% endblock %}

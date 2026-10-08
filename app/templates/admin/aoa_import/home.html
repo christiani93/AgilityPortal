@@ -55,4 +55,54 @@
     </div>
   </div>
 </div>
+
+<div class="row mt-4">
+  <div class="col-md-6">
+    <div class="card border-primary">
+      <div class="card-header fw-semibold text-primary">🔄 Re-Import abgleichen (Vergleicher)</div>
+      <div class="card-body">
+        <p class="small text-muted">
+          Aktualisierte SportyDog-Datei erneut einlesen und mit der bereits
+          importierten Anmeldeliste vergleichen — zeigt neue, weggefallene
+          (= Abmeldungen) und geänderte Anmeldungen zum Bestätigen.
+        </p>
+        <form method="post" action="{{ url_for('aoa_import.aoa_compare_preview', key=admin_key) }}"
+              enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Event *</label>
+            <select name="event_id" class="form-select" required>
+              <option value="">— Event auswählen —</option>
+              {% for ev in events %}
+              <option value="{{ ev.id }}">
+                {{ ev.name }}
+                {% if ev.starts_at %}({{ ev.starts_at.strftime('%d.%m.%Y') }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Aktualisierte Export-Datei *
+              <span class="text-muted small">(.xlsx oder .csv)</span></label>
+            <input type="file" name="csv_file" class="form-control" accept=".xlsx,.xlsm,.csv,.txt" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Abgleich anzeigen →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-secondary">
+      <div class="card-header text-muted fw-semibold">ℹ Wann den Vergleicher nutzen?</div>
+      <div class="card-body small">
+        <ul class="mb-0">
+          <li>Wenn das Event <strong>bereits importiert</strong> ist und die Startliste nochmals aktualisiert wurde.</li>
+          <li><strong>Weggefallene</strong> Einträge = Abmeldungen → werden auf CANCELLED gesetzt (keine E-Mail).</li>
+          <li><strong>Neue</strong> Einträge bekommen eine <strong>angehängte</strong> Startnummer — bestehende Nummern bleiben unverändert.</li>
+          <li>Du bestätigst jede Aktion per Häkchen; nichts geschieht automatisch.</li>
+          <li>Matching erfolgt über die <strong>Lizenznummer</strong>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

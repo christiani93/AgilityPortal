@@ -537,6 +537,344 @@ def aoa_import_stammdaten_execute():
     return redirect(url_for("aoa_import.aoa_import_stammdaten_home", key=_admin_key()))
 
 
+## ── AOA-Vergleicher (Re-Import-Diff) ──────────────────────────────────────────
+#
+# Während eines laufenden Turnier-Wochenendes exportiert der Veranstalter aus
+# SportyDog laufend eine aktualisierte Startliste. Dieser Abgleich liest eine
+# solche Datei erneut ein und zeigt die Differenz zur bereits importierten
+# Anmeldeliste in drei Eimern:
+#   • NEU         – in der Datei, aber noch nicht angemeldet → Anmeldung anlegen
+#                   (+ Startnummer angehängt, bestehende Nummern bleiben unberührt)
+#   • WEGGEFALLEN – angemeldet, aber nicht mehr in der Datei → Abmeldung
+#                   (status=CANCELLED, keine E-Mail — wie registration_reject)
+#   • GEÄNDERT    – in beidem, aber Kategorie/Klasse weicht ab → optional anwenden
+# Matching-Schlüssel ist die (normalisierte) Lizenznummer, konsistent mit dem
+# Import: ein Hund ist über die Lizenz eindeutig, 1 Hund = 1 Anmeldung je Event.
+
+
+def _extract_record(row: dict, cols: dict) -> dict | None:
+    """Normalisiert eine Datei-Zeile zu einem Vergleichs-Record. Gibt None
+    zurück, wenn keine Lizenznummer vorhanden ist (Leerzeile)."""
+    license_no = _normalize_license((row.get(cols["license"]) or "").strip())
+    if not license_no:
+        return None
+    cat_raw = (row.get(cols["category"]) or "").strip()
+    category = CATEGORY_MAP.get(cat_raw.lower(), cat_raw)
+    try:
+        class_level = int((row.get(cols["class"]) or "").strip())
+    except ValueError:
+        class_level = 1
+
+    def _col(key):
+        c = cols.get(key)
+        return (row.get(c) or "").strip() if c else ""
+
+    club_no = _col("club_no")
+    if club_no == "0":
+        club_no = ""
+    club_name_raw = _unescape(_col("club"))
+    return {
+        "license_no": license_no,
+        "dog_name": _unescape(_col("dog_name")),
+        "category": category,
+        "class_level": class_level,
+        "first_name": _unescape(_col("first_name")),
+        "last_name": _unescape(_col("last_name")),
+        "email": _col("email"),
+        "phone": _col("phone"),
+        "club_value": club_no or club_name_raw,
+        "breed": _unescape(_col("breed")),
+    }
+
+
+def _existing_regs_by_license(event_id: int) -> dict:
+    """Aktive (nicht abgemeldete) Anmeldungen des Events, indiziert nach der
+    Lizenznummer des Hundes."""
+    regs = (
+        Registration.query.filter(
+            Registration.event_id == event_id,
+            Registration.status != RegistrationStatus.CANCELLED,
+        )
+        .join(Dog, Registration.dog_id == Dog.id)
+        .all()
+    )
+    by_license: dict = {}
+    for reg in regs:
+        if reg.dog and reg.dog.license_no:
+            by_license[reg.dog.license_no] = reg
+    return by_license
+
+
+def _build_diff(rows: list[dict], cols: dict, event_id: int) -> dict:
+    """Baut die Differenz zwischen Datei und DB. Liefert vier Listen:
+    new / dropped / changed / unchanged (alle für die Vorschau serialisierbar)."""
+    file_records: dict = {}
+    for row in rows:
+        rec = _extract_record(row, cols)
+        if rec:
+            file_records[rec["license_no"]] = rec  # letzte Zeile gewinnt bei Dubletten
+
+    existing = _existing_regs_by_license(event_id)
+
+    new, changed, unchanged = [], [], []
+    for lic, rec in file_records.items():
+        reg = existing.get(lic)
+        if reg is None:
+            new.append(rec)
+            continue
+        diffs = []
+        if reg.category_code != rec["category"]:
+            diffs.append(("Kategorie", reg.category_code or "—", rec["category"] or "—"))
+        if reg.class_level != rec["class_level"]:
+            diffs.append(("Klasse", reg.class_level or "—", rec["class_level"]))
+        entry = {
+            "license_no": lic,
+            "dog_name": reg.dog.name if reg.dog else rec["dog_name"],
+            "reg_id": reg.id,
+            "start_number": reg.start_number,
+            "rec": rec,
+            "diffs": diffs,
+        }
+        (changed if diffs else unchanged).append(entry)
+
+    dropped = []
+    for lic, reg in existing.items():
+        if lic not in file_records:
+            dropped.append({
+                "license_no": lic,
+                "dog_name": reg.dog.name if reg.dog else "?",
+                "reg_id": reg.id,
+                "start_number": reg.start_number,
+                "category_code": reg.category_code,
+                "class_level": reg.class_level,
+                "handler": (f"{reg.handler.first_name} {reg.handler.last_name}".strip()
+                            if reg.handler else ""),
+            })
+
+    return {"new": new, "dropped": dropped, "changed": changed, "unchanged": unchanged}
+
+
+@aoa_import_bp.post("/admin/aoa-import/compare/preview")
+@_require_admin_key
+def aoa_compare_preview():
+    """Re-Import-Datei einlesen und Differenz zur Anmeldeliste zeigen."""
+    event_id = request.form.get("event_id", type=int)
+    event = db.session.get(Event, event_id) if event_id else None
+    if not event:
+        flash("Bitte ein gültiges Event auswählen.", "danger")
+        return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
+
+    file = request.files.get("csv_file")
+    if not file or not file.filename:
+        flash("Bitte eine Datei hochladen.", "danger")
+        return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
+
+    try:
+        rows, headers = _read_upload(file)
+    except Exception as e:
+        flash(f"Datei konnte nicht gelesen werden: {e}", "danger")
+        return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
+
+    cols = _detect_columns(headers)
+    missing = [n for n, c in [
+        ("Lizenz", cols["license"]), ("Hundename", cols["dog_name"]),
+        ("Kategorie", cols["category"]), ("Klasse", cols["class"]),
+    ] if not c]
+    if missing:
+        flash(f"Pflichtspalten nicht gefunden: {', '.join(missing)}. "
+              f"Gefundene Spalten: {', '.join(headers)}", "danger")
+        return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
+
+    diff = _build_diff(rows, cols, event_id)
+
+    import base64
+    payload = json.dumps({"headers": headers, "rows": rows})
+    csv_b64 = base64.b64encode(payload.encode("utf-8")).decode()
+
+    return render_template(
+        "admin/aoa_import/compare_preview.html",
+        event=event,
+        diff=diff,
+        csv_b64=csv_b64,
+        admin_key=_admin_key(),
+    )
+
+
+def _next_start_number(event, category_code: str, class_level: int) -> int | None:
+    """Startnummer für einen Nachzügler: an das bestehende Kat/Klasse-Band
+    angehängt, damit bereits vergebene/gedruckte Nummern unberührt bleiben.
+    Solange für das Event noch keine Startnummern vergeben wurden → None
+    (der Veranstalter lässt sie regulär als Ganzes erzeugen)."""
+    from sqlalchemy import func
+    if event.start_numbers_generated_at is None:
+        return None
+    max_nr = db.session.query(func.max(Registration.start_number)).filter(
+        Registration.event_id == event.id,
+        Registration.category_code == category_code,
+        Registration.class_level == class_level,
+        Registration.status != RegistrationStatus.CANCELLED,
+    ).scalar()
+    if max_nr is not None:
+        return max_nr + 1
+    # Band noch leer → Schema-Basis, falls vorhanden
+    try:
+        import json as _j
+        schema = (_j.loads(event.startnumber_schema)
+                  if event.startnumber_schema else {})
+        base = schema.get(f"{category_code}-{class_level}")
+        return int(base) if base is not None else None
+    except Exception:
+        return None
+
+
+def _create_registration_from_record(event_id: int, rec: dict):
+    """Legt Hund/Person/Verknüpfung/Anmeldung aus einem Record an (gleiche
+    Logik wie aoa_import_execute, auf eine neue Anmeldung reduziert)."""
+    dog = Dog.query.filter_by(license_no=rec["license_no"]).first()
+    if not dog:
+        dog = Dog(
+            name=rec["dog_name"],
+            license_no=rec["license_no"],
+            license_kind=_detect_license_kind(rec["license_no"]),
+            category=rec["category"][0].upper() if rec["category"] else None,
+            class_level=rec["class_level"],
+            breed=rec["breed"] or None,
+        )
+        db.session.add(dog)
+        db.session.flush()
+    else:
+        if rec["dog_name"] and dog.name != rec["dog_name"]:
+            dog.name = rec["dog_name"]
+        if rec["breed"] and dog.breed != rec["breed"]:
+            dog.breed = rec["breed"]
+
+    person = None
+    first_name, last_name = rec["first_name"], rec["last_name"]
+    email, phone = rec["email"] or None, rec["phone"] or None
+    if first_name or last_name:
+        if first_name and last_name:
+            person = Person.query.filter_by(
+                first_name=first_name, last_name=last_name).first()
+        if not person and email:
+            candidate = Person.query.filter_by(email=email).first()
+            if candidate and \
+               (not first_name or candidate.first_name == first_name) and \
+               (not last_name or candidate.last_name == last_name):
+                person = candidate
+        if person:
+            if email and not person.email:
+                person.email = email
+            if phone and not person.phone:
+                person.phone = phone
+        if not person:
+            person = Person(first_name=first_name, last_name=last_name,
+                            email=email, phone=phone)
+            db.session.add(person)
+            db.session.flush()
+        if person:
+            exists_owner = DogOwner.query.filter_by(
+                dog_id=dog.id, person_id=person.id).first()
+            if not exists_owner:
+                db.session.add(DogOwner(dog_id=dog.id, person_id=person.id,
+                                        role=DogOwnerRole.HANDLER))
+
+    # Falls es (z.B. nach einer früheren Abmeldung) schon eine CANCELLED-Zeile
+    # für diesen Hund gibt, diese reaktivieren statt eine zweite anzulegen.
+    reg = Registration.query.filter_by(event_id=event_id, dog_id=dog.id).first()
+    if reg is None:
+        reg = Registration(event_id=event_id, dog_id=dog.id)
+        db.session.add(reg)
+    reg.handler_id = person.id if person else reg.handler_id
+    reg.category_code = rec["category"]
+    reg.class_level = rec["class_level"]
+    reg.status = RegistrationStatus.CONFIRMED
+    reg.tka_event_check_status = TkaEventCheckStatus.PENDING
+    if rec["club_value"]:
+        reg.club_name = rec["club_value"]
+    db.session.flush()
+    return reg
+
+
+@aoa_import_bp.post("/admin/aoa-import/compare/execute")
+@_require_admin_key
+def aoa_compare_execute():
+    """Wendet die ausgewählten Diff-Aktionen an: neue Anmeldungen anlegen,
+    weggefallene abmelden, Kategorie/Klasse-Änderungen übernehmen."""
+    import base64
+
+    event_id = request.form.get("event_id", type=int)
+    event = db.session.get(Event, event_id) if event_id else None
+    if not event:
+        flash("Event nicht gefunden.", "danger")
+        return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
+
+    try:
+        payload = json.loads(base64.b64decode(request.form.get("csv_b64", "").encode()).decode("utf-8"))
+        rows, headers = payload["rows"], payload["headers"]
+    except Exception as e:
+        flash(f"Abgleich-Daten fehlerhaft: {e}", "danger")
+        return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
+
+    cols = _detect_columns(headers)
+    diff = _build_diff(rows, cols, event_id)
+
+    create_set = set(request.form.getlist("create_license"))
+    cancel_set = set(request.form.getlist("cancel_license"))
+    change_set = set(request.form.getlist("change_license"))
+
+    created = cancelled = changed = 0
+    errors = []
+
+    # Neue Anmeldungen
+    new_by_lic = {r["license_no"]: r for r in diff["new"]}
+    for lic in create_set:
+        rec = new_by_lic.get(lic)
+        if not rec:
+            continue
+        try:
+            reg = _create_registration_from_record(event_id, rec)
+            reg.start_number = _next_start_number(event, rec["category"], rec["class_level"])
+            created += 1
+        except Exception as exc:
+            errors.append(f"Neu {lic}: {exc}")
+            db.session.rollback()
+
+    # Abmeldungen (weggefallen)
+    dropped_ids = {d["license_no"]: d["reg_id"] for d in diff["dropped"]}
+    for lic in cancel_set:
+        reg_id = dropped_ids.get(lic)
+        if not reg_id:
+            continue
+        reg = db.session.get(Registration, reg_id)
+        if reg and reg.status != RegistrationStatus.CANCELLED:
+            reg.status = RegistrationStatus.CANCELLED
+            cancelled += 1
+
+    # Kategorie/Klasse-Änderungen
+    changed_by_lic = {c["license_no"]: c for c in diff["changed"]}
+    for lic in change_set:
+        entry = changed_by_lic.get(lic)
+        if not entry:
+            continue
+        reg = db.session.get(Registration, entry["reg_id"])
+        if reg:
+            reg.category_code = entry["rec"]["category"]
+            reg.class_level = entry["rec"]["class_level"]
+            changed += 1
+
+    db.session.commit()
+
+    if errors:
+        for err in errors[:10]:
+            flash(err, "warning")
+    msg = (f"Abgleich angewendet: {created} neu angelegt, "
+           f"{cancelled} abgemeldet, {changed} Kat/Klasse geändert.")
+    if (created or changed) and event.start_numbers_generated_at is not None:
+        msg += " Bei Kat/Klasse-Änderungen ggf. Startnummern/Startlisten prüfen."
+    flash(msg, "success" if not errors else "warning")
+    return redirect(url_for("aoa_import.aoa_import_home", key=_admin_key()))
+
+
 @aoa_import_bp.post("/admin/aoa-import/execute")
 @_require_admin_key
 def aoa_import_execute():
