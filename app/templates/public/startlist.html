@@ -25,6 +25,12 @@
         <strong>{{ group.category_code }}{% if group.class_level %} – {{ _('Klasse') }} {{ group.class_level }}{% endif %}</strong>
         <span class="text-muted ms-2">{{ _('Anzahl Teams') }}: {{ group.count }}</span>
       </span>
+      {% if not single_block %}
+      <a class="btn btn-sm btn-outline-secondary"
+         href="{{ url_for('public_events.public_startlist', event_id=event.id, cat=group.category_code, cls=group.class_level) }}">
+        🔗 {{ _('Nur diese Klasse') }}
+      </a>
+      {% endif %}
     </div>
     <div class="table-responsive">
       <table class="table table-striped mb-0">

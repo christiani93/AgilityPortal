@@ -96,6 +96,24 @@ def test_grouping_orders_blocks_and_filters(app):
         assert len(only) == 1 and only[0]["count"] == 2
 
 
+def test_full_startlist_offers_per_class_link(app):
+    """Gesamtansicht bietet pro Block einen Direktlink auf genau diese
+    Klasse/Kategorie (für QR-Code/Verlinkung); die Einzelansicht nicht mehr."""
+    with app.app_context():
+        event, _ = _seed_event()
+        _add_reg(event, "1001", "Alpha", "Large", 3, start_number=1301)
+        db.session.commit()
+        client = app.test_client()
+
+        full = client.get(f"/events/{event.id}/startlist").get_data(as_text=True)
+        assert f"/events/{event.id}/startlist?cat=Large&amp;cls=3" in full
+
+        single = client.get(
+            f"/events/{event.id}/startlist?cat=Large&cls=3"
+        ).get_data(as_text=True)
+        assert "cat=Large&amp;cls=3" not in single
+
+
 def test_zip_download_one_pdf_per_block(app):
     import io
     import zipfile
