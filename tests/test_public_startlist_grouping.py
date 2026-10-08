@@ -105,7 +105,7 @@ def test_zip_download_one_pdf_per_block(app):
         _add_reg(event, "1002", "Stellar", "Small", 1, start_number=4101)
         db.session.commit()
         client = app.test_client()
-        r = client.get(f"/events/{event.id}/startlists.zip")
+        r = client.get(f"/club/events/{event.id}/startlists.zip")
         assert r.status_code == 200
         assert r.headers["Content-Type"] == "application/zip"
         zf = zipfile.ZipFile(io.BytesIO(r.get_data()))

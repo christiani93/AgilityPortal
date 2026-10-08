@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, current_app, render_template, request, url_for
 
 from app.models import (Event, EventFinalist, EventRun, Registration,
-                        RegistrationStatus, ScheduleBlock, StartNumber)
+                        RegistrationStatus, ResultImport, ScheduleBlock, StartNumber)
 
 
 public_events_bp = Blueprint("public_events", __name__)
@@ -83,6 +83,9 @@ def public_overview(event_id):
     start_numbers_assigned = (
         StartNumber.query.filter_by(event_id=event_id).first() is not None
     )
+    has_results = (
+        ResultImport.query.filter_by(event_id=event_id).first() is not None
+    )
 
     from datetime import datetime
     today = datetime.utcnow().date()
@@ -108,6 +111,7 @@ def public_overview(event_id):
         ruleset_label=ruleset_label,
         has_finalists=has_finalists,
         start_numbers_assigned=start_numbers_assigned,
+        has_results=has_results,
         is_event_day=is_event_day,
         competitions=competitions,
     )
@@ -382,30 +386,4 @@ def public_startlist_print(event_id):
         has_numbers=has_numbers,
         event_logo_url=event_logo_url,
         club_logo_url=club_logo_url,
-    )
-
-
-@public_events_bp.get("/events/<int:event_id>/startlists.zip")
-def public_startlist_zip(event_id):
-    """Alle Block-Startlisten als ZIP (ein PDF pro Kategorie/Klasse) – ein
-    einziger Download statt vieler Browser-Druckdialoge."""
-    from flask import Response
-
-    event = Event.query.get_or_404(event_id)
-    if not event.is_published and not _has_admin_key():
-        abort(404)
-
-    rows, has_numbers = _collect_startlist_rows(event_id)
-    groups = _group_startlist_rows(rows)
-    if not groups:
-        abort(404)
-
-    from app.services.startlist_pdf import build_startlist_zip
-    zip_bytes, filename = build_startlist_zip(
-        event, groups, has_numbers, _event_logo_paths(event)
-    )
-    return Response(
-        zip_bytes,
-        mimetype="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

@@ -98,12 +98,6 @@
             {% if start_numbers_assigned %}{{ _('Teilnehmer mit Startnummern') }}{% else %}{{ _('Angemeldete Teilnehmer') }}{% endif %}
           </p>
         </a>
-        <div class="card-footer bg-transparent border-0 pt-0">
-          <a class="btn btn-sm btn-outline-primary"
-             href="{{ url_for('public_events.public_startlist_zip', event_id=event.id) }}">
-            ⬇️ {{ _('Alle als PDF (ZIP)') }}
-          </a>
-        </div>
       </div>
     </div>
 
@@ -114,6 +108,18 @@
         <div class="card-body">
           <h3 class="h6 card-title">{{ _('Zeitplan') }}</h3>
           <p class="card-text text-muted small mb-0">{{ _('Ringe, Läufe und Startzeiten') }}</p>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+
+    {% if has_results %}
+    <div class="col-md-4">
+      <a href="{{ url_for('club.event_results_print', event_id=event.id) }}"
+         class="card h-100 text-decoration-none shadow-sm">
+        <div class="card-body">
+          <h3 class="h6 card-title">🏆 {{ _('Rangliste') }}</h3>
+          <p class="card-text text-muted small mb-0">{{ _('Offizielle Ergebnisse') }}</p>
         </div>
       </a>
     </div>
