@@ -2174,6 +2174,11 @@ def event_export_zip(event_id):
                 "handler_external_id": str(reg.handler_id) if reg.handler_id else "",
                 "category_code":       reg.category_code or "",
                 "class_level":         str(reg.class_level),
+                # Rasse — die AgilitySoftware liest sie ausschliesslich aus
+                # entities.dogs[].breed (_merge_eventexport_dogs → "Rasse").
+                # Teil des Portal→Software-Kontrakts, siehe
+                # test_club_export_contract.py.
+                "breed":               reg.dog.breed or "",
             })
 
     entities = {"handlers": handlers_list, "dogs": dogs_list}
@@ -2199,6 +2204,13 @@ def event_export_zip(event_id):
                 "category_code":            reg.category_code or "",
                 "class_level":              str(reg.class_level),
                 "is_in_season":             bool(reg.is_in_season and season_start_last),
+                # Vereinsnummer — die AgilitySoftware liest sie je Registration
+                # (_apply_eventexport_registrations → Handler-"Vereinsnummer").
+                # Roh-club_name = SKG-Vereinsnummer (identisch zu
+                # exchange_service.build_event_export_zip), nicht der aufgelöste
+                # Anzeigename. Teil des Portal→Software-Kontrakts, siehe
+                # test_club_export_contract.py.
+                "club_name":                reg.club_name or "",
             })
 
     # ── start_numbers.json ────────────────────────────────────────────────────

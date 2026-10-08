@@ -3,7 +3,73 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-10-07
+Stand: 2026-10-08
+
+## Session 2026-10-08 (Teil 2) — Testimport Portal→Software + Import-Verifikation
+
+Pre-Wochenend-Testimport des echten Jump-Into-Fall-Pakets in die AgilitySoftware,
+Bugfixes + voller Datenabgleich gegen die Portal-Prod-DB.
+
+- [x] **AgilitySoftware ZIP-Import-Crash GEFIXT** (`bc37976`, AgilitySoftware `main`,
+      NICHT zu GitHub gepusht): `import_event_package` schloss den `with ZipFile`-Block vor
+      der Logo-Extraktion → „Attempt to use ZIP archive that was already closed" (nur bei
+      Export-Paketen MIT `logos/`-Ordner). Zusätzlich latenter Mutable-Default-Bug
+      `utils._load_data(filename, default_data=[])` gefixt. Regressionstest
+      `web_app/tests/test_import_event_package.py`, 167 Tests grün. **AgilitySoftware.exe neu
+      gebaut** (14:49, headless-smoke OK). Memory `project_exe_rebuild_20261008`.
+- [x] **Import-Verifikation Event 9 ↔ Portal-Prod-DB** (via ssh hostpoint + mysql): 104
+      Starter, 24 Läufe, alle 12 Kat/Klasse-Kombis 1:1, Startnummern 104/104, Richter
+      (Elpina Ismael AIS 22340) an allen 24 Blöcken, Logos extrahiert — **stimmt exakt**.
+      Neue Referenz `reference_portal_prod_db_direct_query` (DB-Direktabfrage-Weg +
+      verified_*-COALESCE-Quirk).
+- [x] **Portal-Export-Gap breed + club_name GEFIXT**: Beim Import kamen **Rasse 0/104 +
+      Vereinsnummer 0/84** NICHT an. Root Cause: Portal hat ZWEI eventexport-Pfade; die
+      real verlinkte `club/routes.py::event_export_zip` exportierte KEIN `breed` und KEIN
+      `club_name`. FIX: `breed` in `entities.dogs[]` + `club_name` (roh = Vereinsnummer,
+      identisch zu exchange_service) je Registration ergänzt. **Entscheid: Pfade NICHT
+      konsolidiert** — es sind zwei legitime Schemata (external_id-Round-Trip Portal↔Portal
+      vs. license_no Portal→Software); Merge würde einen Konsumenten brechen. Stattdessen
+      neuer Kontrakt-Test `tests/test_club_export_contract.py` auf der echten Route, der
+      breed+club_name festnagelt (die alte Test-Lücke, durch die es durchrutschte). 127
+      Tests grün. OFFEN: Deploy + Event-9-Re-Export/Import.
+      Memory `project_portal_export_dual_path_breed_club_gap`.
+
+## Session 2026-10-08 — E-Mail-Fix + Klassen-Tausch + Deploy + Startlisten-Check
+
+- [x] **AOA-Import E-Mail/Telefon-Backfill** (`a3e74d8`): bestehende (per Name gematchte)
+      Handler bekamen die E-Mail aus der Startliste nicht nachgetragen → Lizenzcheck-CSV-
+      E-Mail-Spalte leer. Jetzt werden leere Kontaktfelder nachgetragen (kein Überschreiben).
+      Memory `project_aoa_import_email_backfill`.
+  - [x] **Prod-Deploy** erledigt 2026-10-08 (Prod `5d9216e`→`716fc79`, keine Migration,
+        0 Crashes, HTTP 200).
+  - [x] Kein Startlisten-Reimport nötig: Event 9/10/11 hatten zum Deploy noch 0 Anmeldungen,
+        der echte Import lief NACH dem Deploy gegen die gefixte Version.
+- [x] **Klasse online tauschen — Veranstalter-seitig** (`716fc79`, UMGESETZT+DEPLOYED
+      2026-10-08, keine Migration, 126 Tests grün): Inline-Dropdown Kat/Klasse pro Anmeldung
+      in der Veranstalter-Anmeldeliste. Route `POST /club/registrations/<reg_id>/class`
+      (`registration_set_class`, Guard `_assert_event_access`); wirkt nur auf diese Anmeldung,
+      optional Form-Feld `update_dog` zieht Hunde-Stammdaten nach. Eigentümer-Self-Service
+      (`/club/profile/dogs/<id>/class`) bleibt daneben. Memory `project_online_class_swap_request`.
+  - [ ] Lizenzcheck-Direktumstellung (Interpretation b, statt Mail-Link) bewusst NICHT gebaut
+        — bei Bedarf separat.
+
+### Jump Into Fall Event 9 — echter AOA-Import GELAUFEN (2026-10-08)
+- [x] **Event 9** (Jump Into Fall Vendredi 09.10.2026) hat jetzt **104 echte Anmeldungen**
+      (`is_test=False`), CONFIRMED. Event 10/11 noch 0 Regs (Import am Fr 10.10. geplant).
+      Event 16 (alte Testkopie) existiert in der Prod-DB nicht mehr.
+- [x] **Startlisten Freitag erzeugt + plausibilitätsgeprüft**: 12 PDFs unter
+      `Y:\Startlisten_Jump_Into_Fall_Vendredi_09_10_2026` (S/M/I/L × Kl.1-3), Summe 104 Teams
+      = DB. Kopf/Logo (ALP'IN), Spalten, Startnr.-Schema (1xxx=L/2xxx=I/3xxx=M/4xxx=S,
+      2.Stelle=Klasse), Rasse/Verein-Kürzung, Umlaute — alles ok.
+- [x] **ENTSCHIEDEN — Person-Duplikat durch Namensdreher** (Benito/Benoit): Quelle
+      geprüft (`Y:\_Export_SportyDog_2025_10 (1).xlsx`, Zeilen 28+29) → **beide Records
+      stehen schon so in der SportyDog-Quelle**, der Dreher stammt aus der Anmeldung, nicht
+      vom Portal-Import. User-Entscheid 2026-10-08: **NICHT mergen** (versch. Kat/Klasse:
+      Never Small-Kl.3 / Amigo Medium-Kl.1 → keine Startlisten-Kollision, nicht blockierend).
+      Andere 5 shared-email-Fälle Event 9 = echte Familien. Memory
+      `project_aoa_import_handler_email_merge_bug`.
+- [ ] **OPTIONAL Import-Hardening**: automatische Dreher-Erkennung (E-Mail+Tel gleich,
+      Vor-/Nachname über Kreuz gleich) → Merge-Vorschlag beim AOA-Import. Nicht gebaut.
 
 ## Session 2026-10-07 (Teil 10) — i18n-Durchsicht Portal + Software — ✅ Portal DEPLOYED, Software committed (unreleased)
 
@@ -455,14 +521,15 @@ Deploy (`44bb7df`). SQLite-Tests hatten den Bug nicht gefangen (MySQL-only-Synta
 - [x] Publiziert, Richter pro Lauf zugeordnet + anwesend, Starterzahlen genullt
 - [x] Mit Reservation #42 verknüpft (ohne Sync)
 - [x] TKAMO-Import gemacht
-- [ ] Teilnehmer eintragen via **kompletter AOA-Import** (echte Teilnehmer, KEINE Dummies) —
-      User-Entscheid 2026-10-07. Flow `/admin/aoa-import` (Event wählen → CSV/xlsx → preview →
-      execute, legt CONFIRMED-Regs an). Details Memory `project_aoa_import_event9_dryrun`.
-      Entscheid lokal vs. Prod für den Trockenlauf offen; Exportdatei-Pfad vom User noch ausstehend.
-- [ ] **Startlisten** (User-Plan 2026-10-07): morgen Do 08.10. die Freitag-Startliste,
-      am Fr 10.10. dann die fürs Wochenende (Events 10/11) — gemeinsam mit Claude.
-      Teil-8+9-Bündel (Vereinsname/Rasse/Zeitplan-Fix + Block-ZIP-PDF) ist bereits
-      deployed. **Blockiert auf den AOA-Import oben** (0 Regs → keine Startliste).
+- [x] **Event 9 AOA-Import GELAUFEN** (2026-10-08, echte Teilnehmer): 104 CONFIRMED-Regs,
+      `is_test=False`. Event 10/11 noch offen (Import Fr 10.10. geplant). Siehe Session-
+      2026-10-08-Block oben.
+- [x] **Freitag-Startliste erzeugt + geprüft** (12 PDFs, `Y:\Startlisten_Jump_Into_Fall_Vendredi_09_10_2026`,
+      104 Teams). ⚠️ 1 Person-Dreher-Duplikat gefunden (Benito/Benoit) — Merge-Entscheid offen,
+      siehe Session-2026-10-08-Block oben.
+- [ ] **Startlisten Wochenende**: am Fr 10.10. Events 10/11 importieren + Startlisten erzeugen
+      (gemeinsam mit Claude). Teil-8+9-Bündel (Vereinsname/Rasse/Zeitplan-Fix + Block-ZIP-PDF)
+      ist deployed.
 
 ## Halloween Cup KO-System (30.10.–01.11.2026)
 
