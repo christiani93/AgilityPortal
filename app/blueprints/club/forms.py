@@ -58,7 +58,6 @@ class EventForm(FlaskForm):
     bitches_in_season_start_last = BooleanField(_("Läufige Hündinnen starten am Schluss der Kategorie"))
     notes_public = TextAreaField(_("Bemerkungen (öffentlich)"), validators=[Optional()])
     is_test = BooleanField(_("Testveranstaltung (nicht öffentlich sichtbar)"))
-    is_published = BooleanField(_("Öffentlich sichtbar (Eventseite, Startliste, Live, Rangliste)"))
     special_ruleset = SelectField(
         _("Spezialturnier / Zusatzreglement"),
         choices=[

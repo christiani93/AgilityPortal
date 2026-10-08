@@ -462,7 +462,6 @@ def event_new():
         _fill_club_choices(form)
     else:
         del form.club_id  # Feld nicht anzeigen/validieren
-        del form.is_published  # nur Superadmin darf öffentlich schalten
         _filter_special_ruleset_choices(form, current_user.club_id)
     if form.validate_on_submit():
         if current_user.is_superadmin:
@@ -500,7 +499,7 @@ def event_new():
             registration_url=form.registration_url.data.strip() if form.registration_url.data else None,
             notes_public=form.notes_public.data.strip() if form.notes_public.data else None,
             is_test=form.is_test.data,
-            is_published=form.is_published.data if current_user.is_superadmin else False,
+            is_published=not form.is_test.data,
             organiser_club_id=club_id,
             type="regular",
             status="draft",
@@ -811,7 +810,6 @@ def event_edit(event_id):
         _fill_club_choices(form)
     else:
         del form.club_id
-        del form.is_published  # nur Superadmin darf öffentlich schalten
         _filter_special_ruleset_choices(form, current_user.club_id, keep_value=event.special_ruleset)
     # DateField erwartet date, nicht datetime
     if request.method == "GET":
@@ -848,10 +846,10 @@ def event_edit(event_id):
         event.registration_url = form.registration_url.data.strip() if form.registration_url.data else None
         event.notes_public = form.notes_public.data.strip() if form.notes_public.data else None
         event.is_test = form.is_test.data
+        event.is_published = not form.is_test.data
         event.special_ruleset = form.special_ruleset.data or None
         if current_user.is_superadmin:
             event.organiser_club_id = form.club_id.data if form.club_id.data != 0 else None
-            event.is_published = form.is_published.data
         db.session.commit()
         flash(_("Turnier gespeichert."), "success")
         return redirect(url_for("club.event_detail", event_id=event.id))
