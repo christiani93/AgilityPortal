@@ -650,6 +650,17 @@ def aoa_import_execute():
                        (not first_name or candidate.first_name == first_name) and \
                        (not last_name or candidate.last_name == last_name):
                         person = candidate
+                # Kontaktdaten auf einem bereits existierenden (meist per Name
+                # gematchten) Handler nachtragen, wenn dort noch leer — sonst
+                # fehlt die E-Mail im TKAMO-Lizenzcheck-Export, weil die Person
+                # in einem früheren Import/Seed ohne E-Mail angelegt wurde
+                # (analog zum Dog-Namens-/Rasse-Refresh oben). Bestehende Werte
+                # werden NICHT überschrieben (keine blinde Familien-E-Mail-Übernahme).
+                if person:
+                    if email and not person.email:
+                        person.email = email
+                    if phone and not person.phone:
+                        person.phone = phone
                 if not person:
                     person = Person(
                         first_name=first_name,

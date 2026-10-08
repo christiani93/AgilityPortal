@@ -62,7 +62,7 @@ def test_real_aoa_export_headers_all_mapped():
     0 Importe). 'Hf Verein' hat kein Suffix, wird case-insensitiv gematcht."""
     cols = _resolve_cols(REAL_AOA_HEADERS)
     required = ["license", "dog_name", "category", "class",
-                "first_name", "last_name", "club", "club_no", "breed"]
+                "first_name", "last_name", "email", "club", "club_no", "breed"]
     assert all(cols[k] for k in required), \
         f"Unmapped: {[k for k in required if not cols[k]]}"
     assert cols["license"] == "H Lizenz AOA"

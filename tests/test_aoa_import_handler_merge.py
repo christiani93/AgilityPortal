@@ -88,3 +88,72 @@ def test_shared_family_email_does_not_merge_different_handlers(app):
         assert pascal.first_name == "Pascal"
         assert oceane.email == shared_email
         assert pascal.email == shared_email
+
+
+def test_import_backfills_email_on_existing_handler_without_email(app):
+    """Eine bereits (ohne E-Mail) angelegte Person muss beim Namens-Match die
+    E-Mail aus der Startliste nachtragen — sonst bleibt sie im TKAMO-
+    Lizenzcheck-Export leer. Prod-Befund: Handler aus früherem Import/Seed
+    hatten keine E-Mail, Folge-Import mit E-Mail trug sie nicht nach."""
+    with app.app_context():
+        club = M.Club(vereinsnummer="V1", name="Club")
+        admin = M.User(email="admin@test.ch", role="superadmin")
+        # Person existiert bereits OHNE E-Mail (z.B. aus früherem Import)
+        person = M.Person(first_name="Max", last_name="Muster", email=None, phone=None)
+        db.session.add_all([club, admin, person])
+        db.session.flush()
+        event = M.Event(name="Backfill-Test", organiser_club_id=club.id)
+        db.session.add(event)
+        db.session.commit()
+        event_id, admin_id, person_id = event.id, admin.id, person.id
+
+        rows = [["15710", "Rex", "Large", "2",
+                 "Max", "Muster", "max@test.ch", "294"]]
+        csv_b64 = _build_payload(rows)
+
+        client = app.test_client()
+        _login(client, admin_id)
+        resp = client.post("/admin/aoa-import/execute", data={
+            "event_id": event_id, "csv_b64": csv_b64,
+        })
+        assert resp.status_code in (302, 200)
+
+        # Kein neuer Handler — die bestehende Person wurde per Name gematcht …
+        regs = db.session.execute(
+            db.select(M.Registration).filter_by(event_id=event_id)
+        ).scalars().all()
+        assert len(regs) == 1
+        assert regs[0].handler_id == person_id
+        # … und bekam die E-Mail nachgetragen.
+        refreshed = db.session.get(M.Person, person_id)
+        assert refreshed.email == "max@test.ch"
+
+
+def test_import_does_not_overwrite_existing_handler_email(app):
+    """Eine bereits vorhandene (abweichende) E-Mail darf NICHT überschrieben
+    werden — nur leere Felder werden nachgetragen."""
+    with app.app_context():
+        club = M.Club(vereinsnummer="V1", name="Club")
+        admin = M.User(email="admin@test.ch", role="superadmin")
+        person = M.Person(first_name="Max", last_name="Muster",
+                          email="alt@test.ch", phone=None)
+        db.session.add_all([club, admin, person])
+        db.session.flush()
+        event = M.Event(name="NoOverwrite-Test", organiser_club_id=club.id)
+        db.session.add(event)
+        db.session.commit()
+        event_id, admin_id, person_id = event.id, admin.id, person.id
+
+        rows = [["15710", "Rex", "Large", "2",
+                 "Max", "Muster", "neu@test.ch", "294"]]
+        csv_b64 = _build_payload(rows)
+
+        client = app.test_client()
+        _login(client, admin_id)
+        resp = client.post("/admin/aoa-import/execute", data={
+            "event_id": event_id, "csv_b64": csv_b64,
+        })
+        assert resp.status_code in (302, 200)
+
+        refreshed = db.session.get(M.Person, person_id)
+        assert refreshed.email == "alt@test.ch"  # unverändert
