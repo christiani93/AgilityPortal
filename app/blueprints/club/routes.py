@@ -1721,6 +1721,48 @@ def registration_toggle_in_season_admin(reg_id):
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
 
+@club_bp.post("/registrations/<int:reg_id>/class")
+@login_required
+def registration_set_class(reg_id):
+    """Veranstalter ändert Kategorie/Klasse einer einzelnen Anmeldung.
+
+    Wirkt standardmässig nur auf diese Anmeldung. Ist das Häkchen ``update_dog``
+    gesetzt, werden zusätzlich die Stammdaten des Hundes nachgezogen (betrifft
+    dann künftige Anmeldungen und andere Turniere) — anders als der Eigentümer-
+    Self-Service (:func:`dog_update_class`), der immer die Stammdaten ändert.
+    """
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+
+    category = (request.form.get("category") or "").strip().upper()
+    class_raw = (request.form.get("class_level") or "").strip()
+    try:
+        class_level = int(class_raw)
+    except (TypeError, ValueError):
+        class_level = 0
+    category_full = _CATEGORY_CODE_MAP.get(category)
+    if not category_full or class_level not in (1, 2, 3):
+        flash(_("Bitte eine gültige Kategorie (S/M/I/L) und Klasse (1–3) wählen."), "danger")
+        return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+    reg.category_code = category_full
+    reg.class_level = class_level
+    if request.form.get("update_dog") and reg.dog:
+        reg.dog.category = category
+        reg.dog.class_level = class_level
+
+    db.session.commit()
+
+    msg = str(_("Kategorie/Klasse für %(dog)s auf %(cat)s / Klasse %(cls)s geändert.",
+                dog=(reg.dog.name if reg.dog else "?"), cat=category, cls=class_level))
+    if reg.event.start_numbers_generated_at is not None:
+        msg += " " + str(_("Startnummern und Startlisten sollten neu erzeugt werden."))
+    flash(msg, "success")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
 def _normalize_license_no(raw: str) -> str:
     """Lizenznummer vereinheitlichen (CH = nur Ziffern, Ausland = AAA-Rest)."""
     raw = (raw or "").strip()

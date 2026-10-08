@@ -141,3 +141,89 @@ def test_add_rejects_invalid_category(app):
             db.select(db.func.count()).select_from(M.Registration)
         ).scalar()
         assert count == 0
+
+
+def _seed_registration(event_id, category="M", class_level=2):
+    dog = M.Dog(name="Bello", license_no="4242", license_kind=M.LicenseKind.CH,
+                category=category, class_level=class_level)
+    db.session.add(dog)
+    db.session.flush()
+    reg = M.Registration(event_id=event_id, dog_id=dog.id,
+                         category_code="Medium", class_level=class_level,
+                         status=M.RegistrationStatus.CONFIRMED)
+    db.session.add(reg)
+    db.session.commit()
+    return reg.id, dog.id
+
+
+def test_organiser_set_class_updates_only_registration(app):
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id, dog_id = _seed_registration(event_id)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/registrations/{reg_id}/class", data={
+            "category": "L", "class_level": "3",
+        })
+        assert resp.status_code == 302
+
+        reg = db.session.get(M.Registration, reg_id)
+        assert reg.category_code == "Large"
+        assert reg.class_level == 3
+        # Stammdaten des Hundes bleiben unberührt, solange update_dog fehlt
+        dog = db.session.get(M.Dog, dog_id)
+        assert dog.category == "M"
+        assert dog.class_level == 2
+
+
+def test_organiser_set_class_can_update_dog_master(app):
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id, dog_id = _seed_registration(event_id)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        client.post(f"/club/registrations/{reg_id}/class", data={
+            "category": "S", "class_level": "1", "update_dog": "on",
+        })
+        reg = db.session.get(M.Registration, reg_id)
+        dog = db.session.get(M.Dog, dog_id)
+        assert reg.category_code == "Small" and reg.class_level == 1
+        assert dog.category == "S" and dog.class_level == 1
+
+
+def test_organiser_set_class_rejects_invalid(app):
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id, _ = _seed_registration(event_id)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        client.post(f"/club/registrations/{reg_id}/class", data={
+            "category": "Z", "class_level": "9",
+        })
+        reg = db.session.get(M.Registration, reg_id)
+        assert reg.category_code == "Medium" and reg.class_level == 2
+
+
+def test_organiser_set_class_denied_for_foreign_club(app):
+    with app.app_context():
+        event_id, _ = _seed()
+        reg_id, _dog = _seed_registration(event_id)
+        # Veranstalter eines anderen Vereins darf nicht ändern
+        other_club = M.Club(vereinsnummer="V2", name="Other")
+        db.session.add(other_club)
+        db.session.flush()
+        other = M.User(email="other@test.ch", role="club_admin", club_id=other_club.id)
+        db.session.add(other)
+        db.session.commit()
+        client = app.test_client()
+        _login(client, other.id)
+
+        resp = client.post(f"/club/registrations/{reg_id}/class", data={
+            "category": "L", "class_level": "3",
+        })
+        assert resp.status_code == 403
+        reg = db.session.get(M.Registration, reg_id)
+        assert reg.category_code == "Medium"
