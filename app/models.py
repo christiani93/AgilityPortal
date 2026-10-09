@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import CheckConstraint, event
+from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import validates
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -1163,7 +1164,12 @@ class ResultPDF(db.Model):
     discipline = db.Column(db.String(30),  nullable=True)
     category_code = db.Column(db.String(20), nullable=True)
     class_level   = db.Column(db.Integer,    nullable=True)
-    pdf_data   = db.Column(db.LargeBinary,  nullable=False)
+    # PDFs mit eingebetteten Logos sprengen das MySQL-BLOB-Limit (64 KB) und
+    # wurden dort stillschweigend abgeschnitten -> auf MEDIUMBLOB (16 MB) erweitern.
+    pdf_data   = db.Column(
+        db.LargeBinary().with_variant(mysql.MEDIUMBLOB(), "mysql"),
+        nullable=False,
+    )
     is_final   = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
