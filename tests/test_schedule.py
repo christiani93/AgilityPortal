@@ -59,8 +59,9 @@ def _two_group_blocks():
     }
 
 
-def test_timeline_skip_removes_changeover_and_briefing():
-    tl = compute_timeline(_two_group_blocks(), {"Ring 1": "08:00"}, "2026-05-10")
+def test_timeline_skip_removes_changeover_and_briefing(app):
+    with app.test_request_context():
+        tl = compute_timeline(_two_group_blocks(), {"Ring 1": "08:00"}, "2026-05-10")
     first, second = tl["Ring 1"]
     # Erste Gruppe rechnet Umbau + Briefing ein
     assert first["changeover_min"] > 0
@@ -88,8 +89,9 @@ def test_tunnellauf_export_label_and_timing():
     assert _secs_per_starter("tunnel", None) == 60
 
 
-def test_detailed_segments_skip_omits_umbau_briefing():
-    segs = compute_detailed_segments(_two_group_blocks(), {"Ring 1": "08:00"}, "2026-05-10")
+def test_detailed_segments_skip_omits_umbau_briefing(app):
+    with app.test_request_context():
+        segs = compute_detailed_segments(_two_group_blocks(), {"Ring 1": "08:00"}, "2026-05-10")
     seg_types = {(s["segment"], s["block"].discipline) for s in segs["Ring 1"]}
     assert ("changeover", "agility") in seg_types
     assert ("briefing", "agility") in seg_types

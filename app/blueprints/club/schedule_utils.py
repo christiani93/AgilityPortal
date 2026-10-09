@@ -5,6 +5,8 @@ Adaptiert von AgilitySoftware/planner/schedule_planner.py
 from datetime import datetime, timedelta
 import json
 
+from flask_babel import gettext as _
+
 # ---------------------------------------------------------------------------
 # Timing-Konstanten
 # ---------------------------------------------------------------------------
@@ -149,9 +151,9 @@ def _briefing_label(run_group: list) -> str:
     Beispiel: 'Briefing Agility Kl.1'
     """
     b    = run_group[0]
-    disc = DISCIPLINE_LABELS.get((b.discipline or "").lower(), b.discipline or "")
+    disc = _(DISCIPLINE_LABELS.get((b.discipline or "").lower(), b.discipline or ""))
     kl   = b.class_level or ""
-    return f"Briefing {disc} Kl.{kl}"
+    return f"{_('Briefing')} {disc} {_('Kl.')}{kl}"
 
 
 def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
@@ -294,7 +296,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                 t  = _round_to_minutes(current, round_minutes) if round_minutes else current
                 ts = t.strftime("%H:%M")
                 label = (getattr(content, "_display_title", None)
-                         or content.title or "Rangverkündigung")
+                         or content.title or _("Rangverkündigung"))
                 items.append({
                     "segment":      "rank_announcement",
                     "label":        label,
@@ -322,7 +324,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                     s, e, current = _advance(current, changeover_s, round_minutes)
                     items.append({
                         "segment":      "changeover",
-                        "label":        "Umbau",
+                        "label":        _("Umbau"),
                         "block":        run_group[0],
                         "start_time":   s,
                         "end_time":     e,
@@ -347,7 +349,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                     s, e, current = _advance(current, prep_s, round_minutes)
                     items.append({
                         "segment":      "prep_pause",
-                        "label":        "Vorbereitungspause",
+                        "label":        _("Vorbereitungspause"),
                         "block":        run_group[0],
                         "start_time":   s,
                         "end_time":     e,
@@ -400,9 +402,9 @@ def ring_names(ring_count: int) -> list:
 
 
 def auto_title(discipline: str, category_code: str, class_level: int) -> str:
-    disc = DISCIPLINE_LABELS.get((discipline or "").lower(), discipline or "")
+    disc = _(DISCIPLINE_LABELS.get((discipline or "").lower(), discipline or ""))
     cat  = category_code or ""
-    return f"{disc} {cat} Kl. {class_level}"
+    return f"{disc} {cat} {_('Kl.')} {class_level}"
 
 
 def sort_key_category(category_code: str) -> int:
