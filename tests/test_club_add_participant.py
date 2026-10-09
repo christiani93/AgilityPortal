@@ -207,6 +207,78 @@ def test_organiser_set_class_rejects_invalid(app):
         assert reg.category_code == "Medium" and reg.class_level == 2
 
 
+def _seed_registration_with_handler(event_id):
+    person = M.Person(first_name="Hans", last_name="Meier")
+    dog = M.Dog(name="Rocky", license_no="5151", license_kind=M.LicenseKind.CH,
+                category="L", class_level=3)
+    db.session.add_all([person, dog])
+    db.session.flush()
+    reg = M.Registration(event_id=event_id, dog_id=dog.id, handler_id=person.id,
+                         category_code="Large", class_level=3,
+                         status=M.RegistrationStatus.CONFIRMED)
+    db.session.add(reg)
+    db.session.commit()
+    return reg.id, dog.id, person.id
+
+
+def test_rename_updates_dog_and_handler(app):
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id, dog_id, person_id = _seed_registration_with_handler(event_id)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/registrations/{reg_id}/rename", data={
+            "dog_name": "Rocky II",
+            "handler_first_name": "Johann",
+            "handler_last_name": "Meyer",
+        })
+        assert resp.status_code == 302
+        assert db.session.get(M.Dog, dog_id).name == "Rocky II"
+        person = db.session.get(M.Person, person_id)
+        assert person.first_name == "Johann"
+        assert person.last_name == "Meyer"
+        # Startnummer/Anmeldung unberührt
+        reg = db.session.get(M.Registration, reg_id)
+        assert reg.status == M.RegistrationStatus.CONFIRMED
+
+
+def test_rename_without_handler_only_dog(app):
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id, dog_id = _seed_registration(event_id)  # ohne handler
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/registrations/{reg_id}/rename", data={
+            "dog_name": "Bello II",
+            "handler_first_name": "Egal",
+            "handler_last_name": "Egal",
+        })
+        assert resp.status_code == 302
+        assert db.session.get(M.Dog, dog_id).name == "Bello II"
+
+
+def test_rename_denied_for_foreign_club(app):
+    with app.app_context():
+        event_id, _ = _seed()
+        reg_id, dog_id, _p = _seed_registration_with_handler(event_id)
+        other_club = M.Club(vereinsnummer="V2", name="Other")
+        db.session.add(other_club)
+        db.session.flush()
+        other = M.User(email="other2@test.ch", role="club_admin", club_id=other_club.id)
+        db.session.add(other)
+        db.session.commit()
+        client = app.test_client()
+        _login(client, other.id)
+
+        resp = client.post(f"/club/registrations/{reg_id}/rename", data={
+            "dog_name": "Hacked",
+        })
+        assert resp.status_code == 403
+        assert db.session.get(M.Dog, dog_id).name == "Rocky"
+
+
 def test_organiser_set_class_denied_for_foreign_club(app):
     with app.app_context():
         event_id, _ = _seed()

@@ -992,6 +992,9 @@
             {% endif %}
           </td>
           <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="collapse" data-bs-target="#reg-rename-{{ reg.id }}"
+                    title="{{ _('Name korrigieren') }}">✎</button>
             {% if event.allows_bitches_in_season and reg.status.value != 'CANCELLED' %}
             <form method="post" action="{{ url_for('club.registration_toggle_in_season_admin', reg_id=reg.id) }}" class="d-inline">
               {{ run_form.hidden_tag() }}
@@ -1012,6 +1015,28 @@
               <button class="btn btn-sm btn-outline-danger">✕</button>
             </form>
             {% endif %}
+          </td>
+        </tr>
+        <tr class="collapse" id="reg-rename-{{ reg.id }}">
+          <td colspan="8" class="bg-light">
+            <form method="post" action="{{ url_for('club.registration_rename', reg_id=reg.id) }}"
+                  class="d-flex gap-2 flex-wrap align-items-center">
+              {{ run_form.hidden_tag() }}
+              <label class="small text-muted mb-0">{{ _('Hund') }}</label>
+              <input type="text" name="dog_name" value="{{ reg.dog.name }}"
+                     class="form-control form-control-sm" style="min-width:12rem;">
+              <label class="small text-muted mb-0">{{ _('Hundeführer') }}</label>
+              <input type="text" name="handler_first_name" placeholder="{{ _('Vorname') }}"
+                     value="{{ reg.handler.first_name if reg.handler else '' }}"
+                     class="form-control form-control-sm" style="min-width:9rem;"
+                     {{ 'disabled' if not reg.handler }}>
+              <input type="text" name="handler_last_name" placeholder="{{ _('Nachname') }}"
+                     value="{{ reg.handler.last_name if reg.handler else '' }}"
+                     class="form-control form-control-sm" style="min-width:9rem;"
+                     {{ 'disabled' if not reg.handler }}>
+              <button type="submit" class="btn btn-sm btn-primary">{{ _('Speichern') }}</button>
+              <span class="form-text mb-0">{{ _('Korrektur gilt in den Stammdaten für alle Turniere.') }}</span>
+            </form>
           </td>
         </tr>
         {% endfor %}

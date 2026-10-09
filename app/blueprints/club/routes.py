@@ -1772,6 +1772,46 @@ def registration_set_class(reg_id):
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
 
+@club_bp.post("/registrations/<int:reg_id>/rename")
+@login_required
+def registration_rename(reg_id):
+    """Veranstalter korrigiert Hunde-/Hundeführernamen einer Anmeldung.
+
+    Anders als in der Offline-Software, wo der Name als eingefrorener String am
+    Event-Entry hängt, sind Hund und Hundeführer hier Stammdaten (Dog/Person) mit
+    Live-Verknüpfung. Die Korrektur betrifft daher den Hund bzw. die Person
+    überall (alle Turniere) – das ist für Tippfehler-Korrekturen gewollt.
+    Startnummer und Anmeldung bleiben unberührt.
+    """
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+
+    new_dog = (request.form.get("dog_name") or "").strip()
+    new_first = (request.form.get("handler_first_name") or "").strip()
+    new_last = (request.form.get("handler_last_name") or "").strip()
+
+    changed = False
+    if new_dog and reg.dog and reg.dog.name != new_dog:
+        reg.dog.name = new_dog
+        changed = True
+    if reg.handler:
+        if new_first and reg.handler.first_name != new_first:
+            reg.handler.first_name = new_first
+            changed = True
+        if new_last and reg.handler.last_name != new_last:
+            reg.handler.last_name = new_last
+            changed = True
+
+    if changed:
+        db.session.commit()
+        flash(_("Name korrigiert (gilt in den Stammdaten für alle Turniere)."), "success")
+    else:
+        flash(_("Keine Änderung."), "info")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
 def _normalize_license_no(raw: str) -> str:
     """Lizenznummer vereinheitlichen (CH = nur Ziffern, Ausland = AAA-Rest)."""
     raw = (raw or "").strip()
