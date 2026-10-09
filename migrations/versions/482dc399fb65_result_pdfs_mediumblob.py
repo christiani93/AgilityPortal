@@ -1,6 +1,6 @@
 """result_pdfs.pdf_data auf MEDIUMBLOB erweitern (BLOB-Limit 64 KB trunkierte PDFs)
 
-Revision ID: p6k3l8m7n0o9
+Revision ID: 482dc399fb65
 Revises: f6a7b8c9d0e1
 Create Date: 2026-10-09 12:00:00.000000
 
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
-revision = 'p6k3l8m7n0o9'
+revision = '482dc399fb65'
 down_revision = 'f6a7b8c9d0e1'
 branch_labels = None
 depends_on = None
