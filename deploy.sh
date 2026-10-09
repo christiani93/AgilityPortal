@@ -27,7 +27,12 @@ echo "[3/4] flask db upgrade ..."
 
 # ── 5. Gunicorn-Prozess neu starten ─────────────────────────────────────────
 echo "[4/4] supervisorctl restart $SUPERVISOR_SERVICE ..."
-supervisorctl restart "$SUPERVISOR_SERVICE"
+HOSTPOINT_CONF="$HOME/.services/supervisord/hostpoint.conf"
+if [ -f "$HOSTPOINT_CONF" ]; then
+    supervisorctl -c "$HOSTPOINT_CONF" restart "$SUPERVISOR_SERVICE"
+else
+    supervisorctl restart "$SUPERVISOR_SERVICE"
+fi
 
 echo ""
 echo "✅  Deploy abgeschlossen."
