@@ -175,7 +175,7 @@ function renderRings(rings) {
               <span class="text-muted ms-1 small">${r.handler_name || ''}</span>
             </div>
             ${r.platz ? `<span class="badge bg-light text-dark">${I18N.place} ${r.platz}</span>` : ''}
-            <span class="font-monospace small text-muted">${fmtTime(r.zeit_total) || (r.disqualifikation || '—')}</span>
+            <span class="font-monospace small text-muted">${r.disqualifikation || fmtTime(r.zeit_total) || '—'}</span>
           </div>`).join('')}
       </div>` : '';
 
