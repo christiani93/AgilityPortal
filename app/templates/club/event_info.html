@@ -514,7 +514,14 @@
 
 {# ── Ranglisten-PDFs (auch ohne Ergebnis-Sync sichtbar) ───────────────────── #}
 {% if result_pdfs %}
-<h4 class="mb-2 mt-2">📄 {{ _('Ranglisten') }}</h4>
+<h4 class="mb-2 mt-2 d-flex align-items-center justify-content-between" style="max-width:680px;">
+  <span>📄 {{ _('Ranglisten') }}</span>
+  {% if current_user.is_authenticated and (current_user.is_superadmin or current_user.club_id == event.organiser_club_id) %}
+  <a href="{{ url_for('club.event_results_pdfs_zip', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">
+    ⬇️ {{ _('Alle als ZIP') }}
+  </a>
+  {% endif %}
+</h4>
 <div class="list-group mb-4" style="max-width:680px;">
   {% for pdf in result_pdfs %}
   <a href="{{ url_for('club.event_results_pdf', event_id=event.id, pdf_id=pdf.id) }}"

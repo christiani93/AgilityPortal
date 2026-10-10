@@ -279,6 +279,90 @@ def test_rename_denied_for_foreign_club(app):
         assert db.session.get(M.Dog, dog_id).name == "Rocky"
 
 
+def test_change_handler_to_existing_person_does_not_touch_other_registrations(app):
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg1_id, _dog1_id, corinne_id = _seed_registration_with_handler(event_id)
+        # Corinnes zweiter Hund (gleicher Handler)
+        dog2 = M.Dog(name="Fiona", license_no="5152", license_kind=M.LicenseKind.CH,
+                     category="L", class_level=3)
+        db.session.add(dog2)
+        db.session.flush()
+        reg2 = M.Registration(event_id=event_id, dog_id=dog2.id, handler_id=corinne_id,
+                              category_code="Large", class_level=3,
+                              status=M.RegistrationStatus.CONFIRMED)
+        db.session.add(reg2)
+        # Chloé mit eigenem Hund im selben Event
+        chloe = M.Person(first_name="Chloe", last_name="Boeuf")
+        dog3 = M.Dog(name="Luna", license_no="5153", license_kind=M.LicenseKind.CH,
+                     category="L", class_level=3)
+        db.session.add_all([chloe, dog3])
+        db.session.flush()
+        reg3 = M.Registration(event_id=event_id, dog_id=dog3.id, handler_id=chloe.id,
+                              category_code="Large", class_level=3,
+                              status=M.RegistrationStatus.CONFIRMED)
+        db.session.add(reg3)
+        db.session.commit()
+        reg2_id = reg2.id
+
+        client = app.test_client()
+        _login(client, admin_id)
+
+        # Einen der 2 Hunde von Corinne (reg2) an Chloe umhängen
+        resp = client.post(f"/club/registrations/{reg2_id}/change_handler", data={
+            "existing_handler_id": str(chloe.id),
+        })
+        assert resp.status_code == 302
+
+        reg1 = db.session.get(M.Registration, reg1_id)
+        reg2_after = db.session.get(M.Registration, reg2_id)
+        assert reg1.handler_id == corinne_id        # Corinnes anderer Hund unberührt
+        assert reg2_after.handler_id == chloe.id     # nur dieser Hund gewechselt
+        # Stammdaten unberührt
+        assert db.session.get(M.Person, corinne_id).first_name == "Hans"
+
+
+def test_change_handler_creates_new_person_when_not_found(app):
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id, dog_id, person_id = _seed_registration_with_handler(event_id)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/registrations/{reg_id}/change_handler", data={
+            "new_handler_first_name": "Neu",
+            "new_handler_last_name": "Person",
+        })
+        assert resp.status_code == 302
+
+        reg = db.session.get(M.Registration, reg_id)
+        new_person = db.session.get(M.Person, reg.handler_id)
+        assert new_person.id != person_id
+        assert new_person.first_name == "Neu"
+        assert new_person.last_name == "Person"
+
+
+def test_change_handler_denied_for_foreign_club(app):
+    with app.app_context():
+        event_id, _ = _seed()
+        reg_id, _dog_id, person_id = _seed_registration_with_handler(event_id)
+        other_club = M.Club(vereinsnummer="V3", name="Other2")
+        db.session.add(other_club)
+        db.session.flush()
+        other = M.User(email="other3@test.ch", role="club_admin", club_id=other_club.id)
+        db.session.add(other)
+        db.session.commit()
+        client = app.test_client()
+        _login(client, other.id)
+
+        resp = client.post(f"/club/registrations/{reg_id}/change_handler", data={
+            "new_handler_first_name": "Hacked",
+            "new_handler_last_name": "Person",
+        })
+        assert resp.status_code == 403
+        assert db.session.get(M.Registration, reg_id).handler_id == person_id
+
+
 def test_organiser_set_class_denied_for_foreign_club(app):
     with app.app_context():
         event_id, _ = _seed()

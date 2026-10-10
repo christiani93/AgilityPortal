@@ -995,6 +995,9 @@
             <button type="button" class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="collapse" data-bs-target="#reg-rename-{{ reg.id }}"
                     title="{{ _('Name korrigieren') }}">✎</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="collapse" data-bs-target="#reg-handler-{{ reg.id }}"
+                    title="{{ _('Hundeführer wechseln') }}">⇄</button>
             {% if event.allows_bitches_in_season and reg.status.value != 'CANCELLED' %}
             <form method="post" action="{{ url_for('club.registration_toggle_in_season_admin', reg_id=reg.id) }}" class="d-inline">
               {{ run_form.hidden_tag() }}
@@ -1036,6 +1039,30 @@
                      {{ 'disabled' if not reg.handler }}>
               <button type="submit" class="btn btn-sm btn-primary">{{ _('Speichern') }}</button>
               <span class="form-text mb-0">{{ _('Korrektur gilt in den Stammdaten für alle Turniere.') }}</span>
+            </form>
+          </td>
+        </tr>
+        <tr class="collapse" id="reg-handler-{{ reg.id }}">
+          <td colspan="8" class="bg-light">
+            <form method="post" action="{{ url_for('club.registration_change_handler', reg_id=reg.id) }}"
+                  class="d-flex gap-2 flex-wrap align-items-center">
+              {{ run_form.hidden_tag() }}
+              <label class="small text-muted mb-0">{{ _('Neuer Hundeführer') }}</label>
+              <select name="existing_handler_id" class="form-select form-select-sm" style="min-width:14rem;">
+                <option value="">{{ _('– andere Person –') }}</option>
+                {% for p in event_handlers %}
+                <option value="{{ p.id }}" {{ 'selected' if reg.handler and p.id == reg.handler.id }}>
+                  {{ p.first_name }} {{ p.last_name }}
+                </option>
+                {% endfor %}
+              </select>
+              <span class="small text-muted mb-0">{{ _('oder neu:') }}</span>
+              <input type="text" name="new_handler_first_name" placeholder="{{ _('Vorname') }}"
+                     class="form-control form-control-sm" style="min-width:9rem;">
+              <input type="text" name="new_handler_last_name" placeholder="{{ _('Nachname') }}"
+                     class="form-control form-control-sm" style="min-width:9rem;">
+              <button type="submit" class="btn btn-sm btn-primary">{{ _('Speichern') }}</button>
+              <span class="form-text mb-0">{{ _('Betrifft nur diese Anmeldung, nicht die Stammdaten.') }}</span>
             </form>
           </td>
         </tr>

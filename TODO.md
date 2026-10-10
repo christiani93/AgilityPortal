@@ -3,7 +3,153 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-10-08
+Stand: 2026-10-10
+
+## Session 2026-10-10 — Hundeführer pro Anmeldung wechseln
+
+- [x] **Neue Funktion: Hundeführer einer einzelnen Anmeldung wechseln** (committed,
+      3 neue Tests + volle Suite grün): Bug/Gap gefunden — der bestehende ✎-Button
+      ("Name korrigieren", `registration_rename`) ändert die Person-Stammdaten
+      global, betrifft also ALLE Anmeldungen derselben Person (z.B. alle Hunde
+      von Corinne Boeufvé statt nur den einen, der zu Chloé wechseln soll). Neue
+      Route `POST /club/registrations/<reg_id>/change_handler` (`routes.py`)
+      hängt nur `reg.handler_id` dieser EINEN Anmeldung um (Dropdown: bereits im
+      Event vorkommende Personen; Fallback: Freitext legt neue Person an).
+      Button "⇄" in `club/event_detail.html`. Stammdaten/andere Hunde unberührt.
+
+## Session 2026-10-09 (Teil 3) — ZIP-Export aller Ranglisten-PDFs
+
+- [x] **Neue Funktion: Alle Ranglisten-PDFs als ZIP exportieren** (committed,
+      6 neue Tests + volle Suite grün): `GET /club/events/<id>/results/pdfs.zip`
+      in `app/blueprints/club/routes.py`, geschützt via `_assert_event_access`
+      (Veranstalter-Club oder Superadmin). Button in `club/event_info.html` über
+      der Ranglisten-Liste, gleiche Sichtbarkeits-Bedingung wie Routen-Prüfung.
+      Test-Datei `tests/test_result_pdfs_zip.py` neu. Memory
+      `project_portal_result_pdfs_zip_export` (enthält wichtige Architektur-Notiz:
+      `_assert_event_access` ist club- nicht rollenbasiert).
+
+## Session 2026-10-09 (Teil 2) — i18n öffentl. Zeitplan + Edelweiss-Vorlage + Funktionen-Dropdown-Plan
+
+### Portal (`main`, DEPLOYED portal.z-b.tech, keine Migration) — Memory `reference_portal_i18n`
+- [x] **Öffentlicher Zeitplan war unübersetzt** (`4687679`, Prod HEAD, deployed, 137 Tests grün):
+      Segment-/Lauf-Labels (Umbau/Vorbereitungspause/Briefing Kl.X, Lauf-Titel wie „Agility Small
+      Kl. 1") wurden in `app/blueprints/club/schedule_utils.py` als **deutsche f-Strings** gebaut
+      (`compute_detailed_segments`, `compute_timeline`, `_briefing_label`, `auto_title`) → kamen
+      fertig-deutsch im Template an, obwohl `public/schedule.html` korrekt `_()` nutzte. FIX:
+      `flask_babel.gettext as _` importiert + Labels gewrappt; Katalog-Einträge existierten schon
+      (kein extract/update/compile nötig). **Lektion:** Python-Helper die Anzeige-Strings per
+      f-String bauen umgehen Template-i18n. **Quirk:** `gettext` braucht Request-/App-Context → die
+      2 reinen Timeline-Tests mussten auf `app.test_request_context()` umgestellt werden. Betrifft
+      automatisch auch die eingeloggte Veranstalter-Ansicht (gleiche Funktionen). End-to-End mit
+      FR-Session verifiziert.
+
+### Portal-Prod-DB direkt (KEIN Code-Deploy, reine Datenänderung) — Memory `project_edelweiss_reglement`
+- [x] **Edelweiss-Vorlage bereinigt**: Ab 2027 entfällt der normale Einzel-Agility-Final komplett
+      (ersetzt durch Team-Challenge, User-Entscheid). Die 4 `EventTemplateRun`-Zeilen mit
+      `is_final=True` (Agility, Kl.3, je S/M/I/L, IDs **78–81**) aus EventTemplate **ID 3** gelöscht
+      (per Einmal-Script im App-Context über ssh hostpoint). 24 Standard-Matrix-Läufe bleiben
+      (Agility+Jumping × S/M/I/L × Kl.1-3).
+
+### Offen / Folge-Tasks
+- [ ] **SW „Funktionen"-Dropdown statt Veranstaltungsart** (NACH Jump-Into-Fall-WE) — Memory
+      `project_software_functions_toggle`. User-Entscheid: nicht Dual-Axis wie Portal
+      (`type`+`special_ruleset`), sondern **Mehrfachauswahl kombinierbarer Funktionen/Module**
+      (z.B. Team-Challenge als Quali UND KO-Cup fürs Finale gleichzeitig am selben Event). Heute
+      zeigt `manage_runs.html` den KO-Cup-Button IMMER (ungegated), Team-Challenge/SM/SKBS/BCCS nur
+      per `event.Veranstaltungsart == 'X'` (starre 1-von-N). Vor Baubeginn mit User klären: welche
+      Funktionen exklusiv vs. kombinierbar, UI (Checkboxen/Chips), ob Portal mitzieht. Nicht
+      event-kritisch (Edelweiss erst 08.–10.01.2027).
+
+## Session 2026-10-08 (Teil 5) — Event-Sichtbarkeit + Kommende/Vergangene + Ring-Monitor-Fixes
+
+### Portal (`main`, DEPLOYED portal.z-b.tech, keine Migration) — Memory `project_events_visibility_20261008`
+- [x] **Kommende/Vergangene-Split auch in /club/** (`c7c4256`): Club- + Superadmin-
+      Übersicht sortiert jetzt wie die öffentliche Liste (nächstes Turnier oben,
+      vergangene mit Trennzeile darunter). Geteilte Logik
+      `app/models.py::split_events_upcoming_past`. Test `tests/test_dashboard_upcoming_past_smoke.py`.
+- [x] **is_published an is_test gekoppelt** (`265f946`): `is_published = not is_test`
+      in `event_new`/`event_edit`. Keine separate Publish-Checkbox (in `c7c4256` kurz
+      eingeführt, dann auf User-Wunsch entfernt). Nur "Testveranstaltung" steuert alles.
+      **QUIRK:** Bestehende DB-Events werden NICHT rückwirkend publiziert — erst beim
+      nächsten Form-Speichern. Event 14 "Swiss Agility Summits - Sonntag" (is_test=0,
+      aber is_published=0) muss User einmal im Bearbeiten-Formular speichern, damit es
+      im "Vergangene"-Bereich erscheint (= sein Testfall fürs letzte Wochenende).
+
+### AgilitySoftware (`main`, committed `ea87048`, ⚠️ NICHT auf GitHub) — Memory `reference_ring_state_dual_mechanism`
+- [x] **"Aktueller Starter" auf Ring-Monitor + Sprecher-Display GEFIXT**: 2 Bugs —
+      (1) `ring_state._find_entry()` verwarf Rohfelder (Vorname/Hundename/Startnummer),
+      die Monitor/Sprecher über `format_ring_name()` direkt lesen → Anzeige leer;
+      (2) `apply_result_saved()` war importiert aber nie aufgerufen → current_entry_id
+      im ring_entry_state rückte nie weiter. Jetzt in `save_result` + `api_set_participant_status`.
+- [x] **Button "Zeit diesem Teilnehmer zuweisen" (kein Timer-Reset)** meldet jetzt
+      auch an Hauptserver (neuer Endpoint `POST /live/api/reassign_current_starter` +
+      `ring_state.apply_manual_reassign`) → Ring-Monitor/Sprecher ziehen mit. Vorher
+      nur lokaler TIMY-Ring-Server-Socket.
+- [x] **Ring-Monitor bei inaktivem Ring**: Button "📅 Zeitplan anzeigen" →
+      `/print/schedule/<event_id>` (bestehende Druckansicht).
+- [x] 173 Tests grün (+4 neue in `tests_pure/test_ring_state.py`).
+
+### Offen / Folge-Tasks
+- [ ] **AgilitySoftware Server NEU STARTEN** vor Live-Test (debug=False → kein
+      Auto-Reload, EXE ggf. neu bauen aus `ea87048` falls am Turnier die EXE läuft).
+- [ ] **Mehrring-Realtest Ring-Monitor/Sprecher** am echten Event (Jump Into Fall).
+- [ ] **AgilitySoftware `main` → GitHub pushen**: origin steht auf `49b5972`, lokal
+      weit voraus (bc37976/1262f44/f9618e2/41dfbad/d125eb7/f2e9b4e/2fc5ea7/**ea87048**).
+
+## Session 2026-10-08 (Teil 4) — Öffentliche Eventseiten: Rangliste/Live/ZIP/Direktlink — ✅ DEPLOYED
+
+Drei Deploys live auf portal.z-b.tech, keine Migration (Head bleibt `f6a7b8c9d0e1`).
+Memory `project_prod_deploy_20261008_public_pages`.
+
+- [x] **Rangliste-Karte + ZIP nur /club/** (`c9f83b6`): Overview bekommt 🏆-Rangliste-Karte
+      (gated `has_results`=`ResultImport` existiert); Live-Karte war schon da (`is_event_day`).
+      Öffentliche ZIP-Route `public_startlist_zip` **gelöscht** + Buttons aus beiden public-
+      Templates raus → `/events/<id>/startlists.zip` ist jetzt 404. ZIP nur noch via
+      `club.event_startlist_zip` (`/club/events/<id>/startlists.zip`), Button auf `event_detail`.
+- [x] **Kurzlink `/live`** (`f3cfa7c`): `public_events.live_shortcut` leitet auf das heute
+      laufende Event (`club.event_live`) weiter, sonst auf `/events`. Für QR-Code gedacht.
+- [x] **Direktlink je Klasse** (`fca8992`): „🔗 Nur diese Klasse" pro Block in der Gesamt-
+      Startliste → `?cat=&cls=` (Einzelansicht). War die ursprüngliche „pro Klasse verlinken"-
+      Frage; Backend konnte es schon, nur UI-Verdrahtung fehlte.
+
+### Offen / Folge-Tasks
+- [ ] **Morgen (2026-10-09) `/live` am echten Event prüfen** (User will selbst testen):
+      `/live` wählt rein per Datum, `club.event_live` verlangt zusätzlich
+      `status in (open,closed,cancelled)`. Jump Into Fall muss an dem Tag auf einem dieser
+      Status stehen, sonst zeigt `/live` korrekt hin, aber die Live-Seite gibt 404.
+- [ ] **„Vergangene Events" auf /events**: bereits implementiert (`events_index.html` hat
+      Abschnitt „Vergangene", Route teilt nach Enddatum<heute). Erscheint automatisch, sobald
+      das erste publizierte Event vorbei ist — kein Code-Task.
+
+## Session 2026-10-08 (Teil 3) — Druck-Fixes Runde 2 + LIZ-Spalte + EXE-Build + AOA-Vergleicher-Wunsch
+
+- [x] **Portal: LIZ-Nr in Anmeldungstabelle** (`991578f`, DEPLOYED Prod HEAD `991578f`, keine
+      Migration): `club/event_detail.html` zeigt `reg.dog.license_no` als neue Spalte →
+      Veranstalter kann per Browser-Suche nach Lizenznummer suchen.
+- [x] **Software-Druck-Fixes Runde 2** (committed `d125eb7`/`f2e9b4e`/`2fc5ea7`, AgilitySoftware
+      `main`, **NICHT auf GitHub**): Laufvorgaben-Tabelle aus Einweiserliste raus; Zeitplan auf
+      ~25 Läufe/Seite + Schreiberlisten ~20 Teilnehmer/Seite verkleinert; „DIS/ABR"-Spalte
+      übersetzt (FR DIS/ABD, EN DIS/WD); Logos in print/all jetzt in ALLEN Bündeln (Einweiser +
+      Ringbüro banden `_print_header` vorher gar nicht ein). 170 Tests grün. Memory
+      `project_print_fixes_20261008`, `reference_print_subsystem_software`.
+- [x] **AgilitySoftware.exe neu gebaut** aus HEAD `2fc5ea7` (64-bit, Smoke HTTP 200). AgilityRing.exe
+      NICHT neu (keine Ring-Änderungen). Build-Mechanik + pyinstaller.exe-Quirk: Memory
+      `project_software_exe_build`.
+- [x] **Frage beantwortet (Abmeldung über Portal):** „Anmeldung ablehnen" (`registration_reject`)
+      setzt Status CANCELLED **ohne Mail-Versand**, funktioniert auch bei externem Anmeldeportal
+      (`registration_external` sperrt nur Self-Registration, nicht Veranstalter-Aktionen).
+
+### Offen / Folge-Tasks
+- [ ] **AgilitySoftware `main` pushen**: origin/main steht auf `49b5972`; lokal voraus mit
+      `bc37976`/`1262f44`/`f9618e2`/`41dfbad`/`d125eb7`/`f2e9b4e`/`2fc5ea7` (nur lokal).
+- [x] **AOA-Vergleicher (Portal)** (`b18545b`, DEPLOYED Prod HEAD `b18545b`, keine Migration,
+      129 Tests grün, Realtest OK Event 9): Re-Import-Diff-Tool unter `/admin/aoa-import` →
+      Karte „🔄 Re-Import abgleichen". Routen `compare/preview` + `compare/execute` in
+      `routes_aoa_import.py`, Template `aoa_import/compare_preview.html`, Test `test_aoa_compare.py`.
+      3 Buckets: **neu** (anlegen + angehängte Startnr: max belegte im Kat/Klasse-Band +1,
+      bestehende unberührt) / **weggefallen** (=Abmeldung, status CANCELLED, kein Mail) /
+      **geändert** (Kat/Klasse optional). Matching = **Lizenznummer**. Alles per Checkbox
+      bestätigt, nichts automatisch. Memory `project_aoa_vergleicher_request`.
 
 ## Session 2026-10-08 (Teil 2) — Testimport Portal→Software + Import-Verifikation
 

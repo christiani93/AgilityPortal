@@ -644,6 +644,11 @@ def event_detail(event_id):
         .filter(Registration.status != RegistrationStatus.CANCELLED)
         .order_by(Registration.category_code, Registration.class_level)
     ).scalars().all() if not current_user.is_handler_role else []
+    # Im Event bereits vorkommende Handler (für "Hundeführer wechseln"-Dropdown)
+    event_handlers = sorted(
+        {reg.handler for reg in registrations if reg.handler},
+        key=lambda p: (p.last_name, p.first_name)
+    )
     # body_md-Vorschau für Website-Sync-Sektion
     try:
         from app.services.website_sync import generate_body_md
@@ -669,7 +674,8 @@ def event_detail(event_id):
         ).scalars().all()
     return render_template("club/event_detail.html", event=event, run_form=run_form,
                            sorted_runs=sorted_runs, available_judges=available_judges,
-                           registrations=registrations, body_md_preview=body_md_preview,
+                           registrations=registrations, event_handlers=event_handlers,
+                           body_md_preview=body_md_preview,
                            reservation_group=reservation_group,
                            reservation_candidates=reservation_candidates)
 
@@ -1807,6 +1813,46 @@ def registration_rename(reg_id):
     if changed:
         db.session.commit()
         flash(_("Name korrigiert (gilt in den Stammdaten für alle Turniere)."), "success")
+    else:
+        flash(_("Keine Änderung."), "info")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
+@club_bp.post("/registrations/<int:reg_id>/change_handler")
+@login_required
+def registration_change_handler(reg_id):
+    """Hundeführer EINER Anmeldung wechseln (nur FK-Reassign dieser Anmeldung).
+
+    Anders als registration_rename: ändert NICHT die Person-Stammdaten, sondern
+    hängt nur reg.handler_id auf eine andere Person um – betrifft also
+    ausschliesslich diese eine Anmeldung, nicht alle Hunde der bisherigen
+    Person.
+    """
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+
+    existing_id = (request.form.get("existing_handler_id") or "").strip()
+    new_first = (request.form.get("new_handler_first_name") or "").strip()
+    new_last = (request.form.get("new_handler_last_name") or "").strip()
+
+    person = None
+    if existing_id.isdigit():
+        person = db.session.get(Person, int(existing_id))
+    elif new_first and new_last:
+        person = db.session.execute(
+            db.select(Person).filter_by(first_name=new_first, last_name=new_last)
+        ).scalars().first()
+        if person is None:
+            person = Person(first_name=new_first, last_name=new_last)
+            db.session.add(person)
+            db.session.flush()
+
+    if person and person.id != reg.handler_id:
+        reg.handler_id = person.id
+        db.session.commit()
+        flash(_("Hundeführer gewechselt (betrifft nur diese Anmeldung)."), "success")
     else:
         flash(_("Keine Änderung."), "info")
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
@@ -3174,6 +3220,15 @@ def event_results_print(event_id):
 # Ranglisten-PDF ausliefern (von AgilitySoftware hochgeladen)
 # ---------------------------------------------------------------------------
 
+def _result_pdf_filename(pdf):
+    parts = filter(None, [
+        pdf.run_name or pdf.ring,
+        pdf.category_code,
+        f"Kl{pdf.class_level}" if pdf.class_level else None,
+    ])
+    return ("Rangliste_" + "_".join(parts) + ".pdf").replace(" ", "_").replace("/", "-")
+
+
 @club_bp.get("/events/<int:event_id>/results/pdf/<int:pdf_id>")
 def event_results_pdf(event_id, pdf_id):
     """Liefert ein gespeichertes Ranglisten-PDF aus."""
@@ -3187,17 +3242,51 @@ def event_results_pdf(event_id, pdf_id):
         if not (current_user.is_authenticated and current_user.is_superadmin):
             abort(404)
 
-    parts = filter(None, [
-        pdf.run_name or pdf.ring,
-        pdf.category_code,
-        f"Kl{pdf.class_level}" if pdf.class_level else None,
-    ])
-    filename = ("Rangliste_" + "_".join(parts) + ".pdf").replace(" ", "_").replace("/", "-")
-
     return Response(
         pdf.pdf_data,
         mimetype="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        headers={"Content-Disposition": f'inline; filename="{_result_pdf_filename(pdf)}"'},
+    )
+
+
+@club_bp.get("/events/<int:event_id>/results/pdfs.zip")
+@login_required
+def event_results_pdfs_zip(event_id):
+    """Export aller Ranglisten-PDFs eines Turniers als ZIP. Nur für den
+    veranstaltenden Club (gleicher organiser_club_id) oder Superadmin."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    pdfs = db.session.execute(
+        db.select(ResultPDF)
+        .filter_by(event_id=event_id)
+        .order_by(ResultPDF.ring, ResultPDF.discipline,
+                  ResultPDF.category_code, ResultPDF.class_level)
+    ).scalars().all()
+    if not pdfs:
+        abort(404)
+
+    buf = io.BytesIO()
+    used_names = set()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for pdf in pdfs:
+            name = _result_pdf_filename(pdf)
+            if name in used_names:
+                stem, _dot, ext = name.rpartition(".")
+                name = f"{stem}_{pdf.id}.{ext}"
+            used_names.add(name)
+            zf.writestr(name, pdf.pdf_data)
+    buf.seek(0)
+
+    safe_event_name = (event.name or "Event").replace(" ", "_").replace("/", "-")
+    filename = f"Ranglisten_{safe_event_name}.zip"
+
+    return Response(
+        buf.getvalue(),
+        mimetype="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
