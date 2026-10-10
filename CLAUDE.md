@@ -7,9 +7,13 @@ Ergebnisveroeffentlichung. Lizenzcheck (TKAMO), Zahlungslogik, Startlisten.
 **URL**: https://portal.z-b.tech
 **Server-Pfad**: `~/apps/agilityportal`
 **Service-Name**: `agilityportal`
-**Deploy**: `git pull && supervisorctl restart agilityportal` (NICHT mit `-c`-Argument,
-da AdminPortal-managed Service mit anderer supervisord-Default-Config als
-Auftragsverwaltung).
+**Deploy**: `git fetch origin && git reset --hard origin/main`, dann Restart. Dieses
+Repo hat KEIN eigenes `.claude/ssh_config`+Key — Deploy läuft über den Key von
+AdminPortal (`AdminPortal/.claude/admin_deploy`, SSH-User `xahizivi`, MAC-Override
+nötig: `-o "MACs hmac-sha2-256,hmac-sha2-512"`). Restart braucht entgegen einer
+früheren Notiz IMMER `-c ~/.services/supervisord/hostpoint.conf` (ohne `-c` nur in
+einer echten interaktiven Login-Shell ok, NICHT über `ssh host "cmd"`):
+`supervisorctl -c ~/.services/supervisord/hostpoint.conf restart agilityportal`.
 
 ## Schwester-Projekt mit geteiltem Memory
 
