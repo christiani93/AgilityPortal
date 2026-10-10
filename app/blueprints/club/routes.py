@@ -3217,6 +3217,84 @@ def event_results_print(event_id):
 
 
 # ---------------------------------------------------------------------------
+# Teilbare Links — Übersicht aller öffentlichen Links zum Turnier
+# ---------------------------------------------------------------------------
+
+@club_bp.get("/events/<int:event_id>/links")
+@login_required
+def event_links(event_id):
+    """Sammelt alle öffentlich teilbaren Links zu diesem Turnier als absolute
+    URLs (zum Kopieren/Weitergeben durch den Veranstalter). Es werden nur die
+    Links aufgeführt, die aktuell auch wirklich eine Seite anzeigen."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+
+    has_results = db.session.execute(
+        db.select(ResultImport.id).filter_by(event_id=event_id).limit(1)
+    ).first() is not None
+    has_finalists = db.session.execute(
+        db.select(EventFinalist.id).filter_by(event_id=event_id).limit(1)
+    ).first() is not None
+    start_numbers_assigned = db.session.execute(
+        db.select(StartNumber.id).filter_by(event_id=event_id).limit(1)
+    ).first() is not None
+
+    links = []
+    # Haupt-Landingpage (Ziel des Website-Syncs) + Unterseiten
+    links.append({
+        "label": _("Event-Übersicht"),
+        "desc": _("Öffentliche Landingpage mit allen Infos und Unterseiten"),
+        "url": url_for("public_events.public_overview", event_id=event.id, _external=True),
+        "available": event.is_published,
+    })
+    links.append({
+        "label": _("Startliste") if start_numbers_assigned else _("Meldeliste"),
+        "desc": _("Teilnehmer mit Startnummern") if start_numbers_assigned else _("Angemeldete Teilnehmer"),
+        "url": url_for("public_events.public_startlist", event_id=event.id, _external=True),
+        "available": event.is_published,
+    })
+    if event.schedule_public:
+        links.append({
+            "label": _("Zeitplan"),
+            "desc": _("Ringe, Läufe und Startzeiten"),
+            "url": url_for("public_events.public_schedule", event_id=event.id, _external=True),
+            "available": event.is_published,
+        })
+    if event.status in ("open", "closed", "cancelled"):
+        links.append({
+            "label": _("Live-Seite"),
+            "desc": _("Aktuelle Startliste und Ranglisten (Event-Tag)"),
+            "url": url_for("club.event_live", event_id=event.id, _external=True),
+            "available": True,
+        })
+    if has_results:
+        links.append({
+            "label": _("Rangliste"),
+            "desc": _("Offizielle Ergebnisse"),
+            "url": url_for("club.event_results_print", event_id=event.id, _external=True),
+            "available": True,
+        })
+    if has_finalists:
+        links.append({
+            "label": _("Finalisten"),
+            "desc": _("Qualifizierte Teams"),
+            "url": url_for("public_events.public_finalists", event_id=event.id, _external=True),
+            "available": event.is_published,
+        })
+    if event.registration_external and event.registration_url:
+        links.append({
+            "label": _("Anmeldung (extern)"),
+            "desc": _("Externes Anmeldeportal des Veranstalters"),
+            "url": event.registration_url,
+            "available": True,
+        })
+
+    return render_template("club/event_links.html", event=event, links=links)
+
+
+# ---------------------------------------------------------------------------
 # Ranglisten-PDF ausliefern (von AgilitySoftware hochgeladen)
 # ---------------------------------------------------------------------------
 

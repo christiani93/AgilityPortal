@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Links teilen') }} – {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">🔗 {{ _('Teilbare Links') }}</h2>
+    <small class="text-muted">{{ event.name }}</small>
+  </div>
+  <a href="{{ url_for('club.event_detail', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">
+    ← {{ _('Zurück zum Turnier') }}
+  </a>
+</div>
+
+<p class="text-muted">
+  {{ _('Diese Links sind öffentlich (ohne Login) erreichbar und können weitergegeben werden – z.B. auf der Vereinswebseite oder in Chats.') }}
+</p>
+
+<div class="list-group shadow-sm">
+  {% for link in links %}
+  <div class="list-group-item">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <div>
+        <div class="fw-semibold">
+          {{ link.label }}
+          {% if not link.available %}
+          <span class="badge bg-warning text-dark ms-1">{{ _('noch nicht öffentlich') }}</span>
+          {% endif %}
+        </div>
+        <div class="small text-muted">{{ link.desc }}</div>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ link.url }}" target="_blank" rel="noopener"
+           class="btn btn-sm btn-outline-primary">{{ _('Öffnen') }}</a>
+        <button type="button" class="btn btn-sm btn-outline-secondary js-copy-link"
+                data-url="{{ link.url }}">📋 {{ _('Kopieren') }}</button>
+      </div>
+    </div>
+    <input type="text" class="form-control form-control-sm mt-2 bg-light" readonly
+           value="{{ link.url }}" onclick="this.select()">
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+document.querySelectorAll('.js-copy-link').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var url = btn.getAttribute('data-url');
+    var done = function () {
+      var orig = btn.innerHTML;
+      btn.innerHTML = '✓ {{ _("Kopiert!") }}';
+      btn.classList.add('btn-success');
+      btn.classList.remove('btn-outline-secondary');
+      setTimeout(function () {
+        btn.innerHTML = orig;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+      }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { fallbackCopy(url, done); });
+    } else {
+      fallbackCopy(url, done);
+    }
+  });
+});
+function fallbackCopy(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+</script>
+{% endblock %}

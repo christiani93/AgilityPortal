@@ -35,6 +35,8 @@
     <a href="{{ url_for('club.event_view', event_id=event.id) }}" class="btn btn-sm btn-outline-info">👁 {{ _('Teilnehmeransicht') }}</a>
     <a href="{{ url_for('club.event_live', event_id=event.id) }}"
        class="btn btn-sm btn-danger" target="_blank">🔴 {{ _('Live-Seite') }}</a>
+    <a href="{{ url_for('club.event_links', event_id=event.id) }}"
+       class="btn btn-sm btn-outline-primary">🔗 {{ _('Links teilen') }}</a>
     <a href="{{ url_for('club.event_var_control', event_id=event.id) }}"
        class="btn btn-sm btn-outline-warning" target="_blank">📺 VAR</a>
     {% if current_user.is_superadmin %}
