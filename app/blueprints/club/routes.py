@@ -1,6 +1,7 @@
 from functools import wraps
 import io
 import json as _json
+import random
 import zipfile
 
 from datetime import datetime
@@ -2119,13 +2120,19 @@ def event_assign_startnumbers(event_id):
                 handler_count[reg.handler_id] += 1
 
         # Sortierung: läufige Hündinnen ans Ende (nur wenn im Turnier so
-        # eingestellt), Mehrfach-Handler zuerst, dann handler_id für Stabilität
+        # eingestellt), Mehrfach-Handler zuerst (brauchen mehr Spielraum für
+        # die Abstands-Platzierung unten), danach Zufall statt handler_id/r.id.
+        # Reglement verlangt eine zufällige Startnummernvergabe; mit handler_id
+        # als Tiebreak landeten Personen, die in derselben Sitzung registriert
+        # wurden (z.B. Paare/Familien, fast aufeinanderfolgende DB-IDs), über
+        # alle Turniere hinweg immer an denselben Plätzen nahe beieinander.
+        # Die eigenen Hunde eines Mehrfach-Handlers dürfen ihre Reihenfolge
+        # (wer zuerst kommt) ruhig von Event zu Event wechseln.
         start_last = event.bitches_in_season_start_last
         sorted_regs = sorted(regs, key=lambda r: (
             1 if (start_last and r.is_in_season) else 0,
             -(handler_count.get(r.handler_id, 1)),
-            r.handler_id or 0,
-            r.id,
+            random.random(),
         ))
 
         placed: list = [None] * n

@@ -77,22 +77,34 @@ def test_assign_startnumbers_uses_saved_schema_and_skips_unconfirmed(app):
         reg_pending = db.session.get(M.Registration, reg_pending_id)
 
         # Basis aus dem gespeicherten Schema (nicht dem Default!), läufig ans Ende.
-        assert reg_a.start_number == 5000
-        assert reg_c.start_number == 5001
+        # Reihenfolge unter den nicht-läufigen Startern ist jetzt absichtlich
+        # zufällig (Reglement), daher nur die Menge prüfen, nicht die Reihenfolge.
+        assert {reg_a.start_number, reg_c.start_number} == {5000, 5001}
         assert reg_season.start_number == 5002
 
         # Unbestätigte Meldung bleibt unangetastet.
         assert reg_pending.start_number is None
 
 
-def test_assign_startnumbers_ignores_in_season_when_flag_off(app):
+def test_assign_startnumbers_ignores_in_season_when_flag_off(app, monkeypatch):
     # Ohne bitches_in_season_start_last zählt is_in_season NICHT für die
     # Reihenfolge — die läufige Hündin wird nicht ans Ende gezwungen.
+    # Die Reihenfolge ist jetzt zufällig (Reglement); Zufallswerte hier fixiert,
+    # damit sich gezielt beweisen lässt, dass die läufige Hündin auch VORNE
+    # landen kann (also nicht mehr an die Position gebunden ist).
+    from app.blueprints.club import routes as club_routes
+
     with app.app_context():
         event_id, admin_id, reg_a_id, reg_season_id, reg_c_id, reg_pending_id = \
             _seed_event_with_schema(start_last=False)
         client = app.test_client()
         _login(client, admin_id)
+
+        # Aufrufreihenfolge der Registrierungen entspricht der Anlage-Reihenfolge
+        # (A, B=läufig, C) — läufige Hündin bekommt bewusst den kleinsten
+        # Zufallswert, landet also trotz is_in_season=True NICHT am Schluss.
+        values = iter([0.9, 0.1, 0.5])
+        monkeypatch.setattr(club_routes.random, "random", lambda: next(values))
 
         resp = client.post(f"/club/events/{event_id}/assign-startnumbers")
         assert resp.status_code == 302
@@ -101,10 +113,9 @@ def test_assign_startnumbers_ignores_in_season_when_flag_off(app):
         reg_season = db.session.get(M.Registration, reg_season_id)
         reg_c = db.session.get(M.Registration, reg_c_id)
 
-        # Stabile Reihenfolge nach handler_id (A, B=läufig, C) — nicht ans Ende.
-        assert reg_a.start_number == 5000
-        assert reg_season.start_number == 5001
-        assert reg_c.start_number == 5002
+        assert reg_season.start_number == 5000   # läufig vorne, NICHT ans Ende gezwungen
+        assert reg_c.start_number == 5001
+        assert reg_a.start_number == 5002
 
 
 def test_organiser_toggle_in_season_keeps_startnumber(app):
@@ -118,20 +129,20 @@ def test_organiser_toggle_in_season_keeps_startnumber(app):
         client.post(f"/club/events/{event_id}/assign-startnumbers")
 
         reg_a = db.session.get(M.Registration, reg_a_id)
-        assert reg_a.start_number == 5000
         assert reg_a.is_in_season is False
+        assigned_number = reg_a.start_number   # Reihenfolge unter Nicht-Läufigen ist zufällig
 
         resp = client.post(f"/club/registrations/{reg_a_id}/toggle-in-season-admin")
         assert resp.status_code == 302
         reg_a = db.session.get(M.Registration, reg_a_id)
         assert reg_a.is_in_season is True
-        assert reg_a.start_number == 5000   # Nummer unverändert
+        assert reg_a.start_number == assigned_number   # Nummer unverändert
 
         # Nochmal togglen hebt die Markierung wieder auf.
         client.post(f"/club/registrations/{reg_a_id}/toggle-in-season-admin")
         reg_a = db.session.get(M.Registration, reg_a_id)
         assert reg_a.is_in_season is False
-        assert reg_a.start_number == 5000
+        assert reg_a.start_number == assigned_number
 
 
 def _seed_event_multidog(n, handler_dog_count, base=5000):
@@ -244,8 +255,8 @@ def test_export_zip_reflects_assigned_startnumbers(app):
         # Format, das die AgilitySoftware beim Import akzeptiert (Schlüssel "start_numbers").
         assert payload["locked"] is True
         by_license = {e["license_no"]: e["start_no"] for e in payload["start_numbers"]}
-        assert by_license["20001"] == 5000
-        assert by_license["20003"] == 5001
-        assert by_license["20002"] == 5002
+        # Reihenfolge unter den Nicht-Läufigen (20001/20003) ist absichtlich zufällig.
+        assert {by_license["20001"], by_license["20003"]} == {5000, 5001}
+        assert by_license["20002"] == 5002   # läufig weiterhin ans Ende
         # Unbestätigte Meldung taucht gar nicht erst auf.
         assert "20004" not in by_license
