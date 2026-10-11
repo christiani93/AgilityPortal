@@ -453,10 +453,8 @@ def create_test_event_web():
 
 @club_bp.get("/events/new")
 @club_bp.post("/events/new")
-@login_required
+@club_admin_required
 def event_new():
-    if not current_user.club_id and not current_user.is_superadmin:
-        abort(403)
     form = EventForm()
     if current_user.is_superadmin:
         _fill_club_choices(form)
@@ -871,21 +869,20 @@ def _assert_template_access(tpl):
     """Nur der Veranstalter-Verein der Vorlage (oder Superadmin) darf sie nutzen."""
     if current_user.is_superadmin:
         return
-    if not current_user.club_id or tpl.organiser_club_id != current_user.club_id:
+    if not current_user.can_manage_club or not current_user.club_id \
+            or tpl.organiser_club_id != current_user.club_id:
         abort(403)
 
 
 @club_bp.get("/templates")
-@login_required
+@club_admin_required
 def template_list():
     if current_user.is_superadmin:
         templates = EventTemplate.query.order_by(EventTemplate.name).all()
-    elif current_user.club_id:
+    else:
         templates = (EventTemplate.query
                      .filter_by(organiser_club_id=current_user.club_id)
                      .order_by(EventTemplate.name).all())
-    else:
-        abort(403)
     return render_template("club/template_list.html", templates=templates)
 
 

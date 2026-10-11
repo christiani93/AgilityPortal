@@ -74,7 +74,9 @@
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>{{ _('Turniere') }}</span>
+    {% if current_user.can_manage_club %}
     <a href="{{ url_for('club.event_new') }}" class="btn btn-sm btn-primary">+ {{ _('Turnier erstellen') }}</a>
+    {% endif %}
   </div>
   <div class="table-responsive">
     <table class="table table-hover mb-0">
