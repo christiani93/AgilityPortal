@@ -32,13 +32,17 @@
   </div>
   <div class="d-flex gap-2">
     <a href="{{ url_for('club.event_schedule', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">📅 {{ _('Zeitplan') }}</a>
+    {% if current_user.is_superadmin %}
     <a href="{{ url_for('club.event_view', event_id=event.id) }}" class="btn btn-sm btn-outline-info">👁 {{ _('Teilnehmeransicht') }}</a>
+    {% endif %}
     <a href="{{ url_for('club.event_live', event_id=event.id) }}"
        class="btn btn-sm btn-danger" target="_blank">🔴 {{ _('Live-Seite') }}</a>
     <a href="{{ url_for('club.event_links', event_id=event.id) }}"
        class="btn btn-sm btn-outline-primary">🔗 {{ _('Links teilen') }}</a>
+    {% if current_user.is_superadmin %}
     <a href="{{ url_for('club.event_var_control', event_id=event.id) }}"
        class="btn btn-sm btn-outline-warning" target="_blank">📺 VAR</a>
+    {% endif %}
     {% if current_user.is_superadmin %}
     <a href="{{ url_for('club.event_export_zip', event_id=event.id) }}"
        class="btn btn-sm {% if not event.lizenzcheck_done_at %}btn-outline-secondary disabled{% else %}btn-outline-dark{% endif %}"
@@ -51,7 +55,7 @@
        class="btn btn-sm btn-outline-success">👥 {{ _('Team-Challenge') }}</a>
     {% endif %}
     <a href="{{ url_for('club.event_edit', event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Bearbeiten') }}</a>
-    {% if not event.is_test %}
+    {% if current_user.is_superadmin and not event.is_test %}
     <form method="post" action="{{ url_for('club.event_duplicate_as_test', event_id=event.id) }}"
           onsubmit='return confirm({{ _("Testkopie dieses Turniers erstellen? Läufe, Richter, Zeitplan und Anmeldungen werden übernommen; Startnummern werden in der Kopie neu vergeben.") | tojson }})'>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
