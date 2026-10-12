@@ -47,8 +47,9 @@ def _has_admin_key():
 
 
 def _event_has_ko_live(event_id):
-    """True, wenn die Software schon mindestens einen KO-Bracket-Stand mit
-    ausgelostem Duell gepusht hat (steuert den Live-Button auf der Übersicht)."""
+    """True, wenn die Software schon einen KO-Stand gepusht hat — Startliste
+    (abgeleitete Finalisten) ODER Bracket (ausgeloste Duelle). Steuert den
+    Live-Button auf der Übersicht; die Startliste erscheint schon vor dem Auslosen."""
     import json as _json
 
     updates = (
@@ -64,7 +65,8 @@ def _event_has_ko_live(event_id):
         except Exception:
             continue
         if (payload.get("update_type") or "") == "ko_bracket":
-            return any((f.get("matchups") or []) for f in (payload.get("finals") or []))
+            return any((f.get("matchups") or []) or (f.get("participants") or [])
+                       for f in (payload.get("finals") or []))
     return False
 
 

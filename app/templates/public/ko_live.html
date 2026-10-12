@@ -27,6 +27,9 @@ const T = {
   tbd: {{ _('offen') | tojson }},
   done: {{ _('entschieden') | tojson }},
   running: {{ _('läuft') | tojson }},
+  startlist: {{ _('Startliste') | tojson }},
+  draw: {{ _('Los') | tojson }},
+  pending_draw: {{ _('noch nicht ausgelost') | tojson }},
 };
 const ROUND_LABELS = {1: {{ _('Runde 1') | tojson }}, 2: {{ _('Viertelfinale') | tojson }},
                       3: {{ _('Halbfinale') | tojson }}, 4: {{ _('Finale') | tojson }}};
@@ -75,6 +78,33 @@ function matchupCard(m) {
   </div>`;
 }
 
+function startlistBody(f) {
+  const parts = (f.participants || []);
+  if (!parts.length) return `<div class="card-body text-muted">${esc(T.tbd)}</div>`;
+  const rows = parts.map(p => {
+    const los = (p.draw_number !== null && p.draw_number !== undefined)
+      ? `<span class="badge bg-primary">${esc(p.draw_number)}</span>`
+      : `<span class="badge bg-warning text-dark">–</span>`;
+    const quali = p.quali_label
+      ? `<small class="text-muted">${esc(p.quali_label)}${p.from_class ? " · Kl. " + esc(p.from_class) : ""}</small>`
+      : "";
+    const handler = p.handler_name ? `<br><small class="text-muted">${esc(p.handler_name)}</small>` : "";
+    return `<tr>
+      <td class="text-center">${los}</td>
+      <td>${esc(p.dog_name)}${handler}</td>
+      <td class="text-end">${quali}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="card-body p-0">
+    <table class="table table-sm mb-0" style="font-size:.9rem;">
+      <thead><tr>
+        <th class="text-center" style="width:4rem">${esc(T.draw)}</th>
+        <th>${esc(T.startlist)}</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
 function finalCard(f) {
   const rounds = {};
   (f.matchups || []).forEach(m => {
@@ -93,9 +123,10 @@ function finalCard(f) {
   const statusBadge = f.status === "done"
     ? `<span class="badge bg-warning text-dark">🏆 ${esc(T.done)}</span>`
     : (f.status === "running" ? `<span class="badge bg-primary">${esc(T.running)}</span>` : "");
+  // Vor dem Auslosen: Startliste der Finalisten. Sobald Duelle da sind: Bracket.
   const body = roundNos.length
     ? `<div class="card-body overflow-auto"><div class="d-flex gap-3" style="min-width:max-content;">${cols}</div></div>`
-    : `<div class="card-body text-muted">${esc(T.tbd)}</div>`;
+    : startlistBody(f);
   return `<div class="card mb-4">
     <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
       <span>🏆 ${esc(f.group_label || f.category_code || "")}</span>${statusBadge}
@@ -109,7 +140,8 @@ async function refreshKO() {
     const data = await resp.json();
     const root = document.getElementById("ko-root");
     const empty = document.getElementById("ko-empty");
-    const finals = (data.finals || []).filter(f => (f.matchups || []).length);
+    const finals = (data.finals || []).filter(
+      f => (f.matchups || []).length || (f.participants || []).length);
     if (!finals.length) {
       root.innerHTML = "";
       empty.classList.remove("d-none");

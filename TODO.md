@@ -3,7 +3,34 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-10-10
+Stand: 2026-10-12
+
+## Session 2026-10-12 — Lokale DEV-Umgebung + KO-Push echt end-to-end getestet
+
+### Portal DEV-Umgebung aufgebaut (Option A: native MariaDB) — Memory `portal-local-dev-db`
+- [x] **Native MariaDB 13 als lokale DEV-DB** (ersetzt den „nur In-Memory-Smoke"-Workaround).
+      Windows-Dienst `MariaDB` (Automatic, Port 3306), installiert via heruntergeladener MSI
+      (`%LOCALAPPDATA%\MariaDBSetup\mariadb-13.0.2-winx64.msi`, winget hing → MSI per curl +
+      `msiexec /qn … -Verb RunAs -Wait`, UAC nötig da Session nicht elevated). DB
+      `agilityportal_dev` (utf8mb4/utf8mb4_unicode_ci = Prod-Parität), App-User `agility/agility`,
+      root/`devroot`. `.env` angelegt (git-ignored, Website-Sync leer → kein Prod-Schreibzugriff).
+      `flask db upgrade` lief die volle Kette sauber durch (41 Tabellen, Head `482dc399fb65`) —
+      der alte `CircularDependencyError` war NUR SQLite-batch-mode, MariaDB macht direktes
+      ALTER TABLE. App-Smoke `/`+`/events`=200.
+- [x] **KO-Bracket-Push echt END-TO-END verifiziert** (vorher nur Unit): SW
+      `portal_sync.push_ko_bracket` → echter HTTP-POST (`X-Api-Key: dev-live-key`) → Portal
+      `/api/liveupdate` → MariaDB `live_updates` → `/api/events/1/ko-live.json` +
+      `/events/1/ko-live` (200) + Button. Snapshot kam 1:1 korrekt an.
+
+### Offen / Folge-Tasks
+- [ ] **Demo-Test-Event ID 1 in DEV-DB** (external_id `hcs-roundtrip`, is_published) — bleibt
+      vorerst als Spiel-Datensatz liegen. User-Frage behalten/löschen noch offen.
+- [ ] **(Wunsch, nicht entschieden) read-only Kiosk-Bracket-Anzeige für den Publikums-Monitor**
+      am Ring (AgilitySoftware): Der klassische Ring-Monitor (`ring_monitor.html`) zeigt KEIN
+      KO-Bracket, nur normalen Laufbetrieb. Bracket lebt nur in den Bedien-/Druckseiten
+      (`ko_cup_final`/`ko_cup_ring`/`ko_cup_print`) + der neuen Portal-Live-Seite. Eine Kiosk-
+      Vollbildanzeige wäre primär Template/CSS-Aufwand (Datenquelle `_ko_state`/`/api/state`
+      existiert). Memory `project_halloween_cup_ko_system`.
 
 ## Session 2026-10-10 — Hundeführer pro Anmeldung wechseln
 

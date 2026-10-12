@@ -35,6 +35,45 @@ _BRACKET = [{
 }]
 
 
+_STARTLIST = [{
+    "id": "f1", "group_label": "Large", "category_code": "L", "status": None,
+    "participants": [
+        {"id": "pa", "dog_name": "Rex", "handler_name": "Anna",
+         "draw_number": 1, "start_number": 3, "from_class": 3, "quali_label": "Tunnellauf"},
+        {"id": "pb", "dog_name": "Fido", "handler_name": "Ben",
+         "draw_number": None, "start_number": 7, "from_class": 2, "quali_label": "Agility"},
+    ],
+    "matchups": [],
+}]
+
+
+def test_ko_live_json_returns_startlist_before_bracket(app):
+    client = app.test_client()
+    ev = Event(name="HCS", is_published=True, external_id="hcs-sl")
+    db.session.add(ev)
+    db.session.flush()
+    db.session.add(_ko_update(ev, 1000, _STARTLIST))
+    db.session.commit()
+
+    data = client.get(f"/api/events/{ev.id}/ko-live.json").get_json()
+    assert len(data["finals"]) == 1
+    parts = data["finals"][0]["participants"]
+    assert [p["dog_name"] for p in parts] == ["Rex", "Fido"]
+    assert parts[0]["draw_number"] == 1
+
+
+def test_overview_shows_ko_button_with_startlist_only(app):
+    client = app.test_client()
+    ev = Event(name="HCS", is_published=True, external_id="hcs-slb")
+    db.session.add(ev)
+    db.session.commit()
+    assert "ko-live" not in client.get(f"/events/{ev.id}").get_data(as_text=True)
+    # Startliste (Finalisten, noch kein Bracket) gepusht → Button trotzdem sichtbar
+    db.session.add(_ko_update(ev, 1000, _STARTLIST))
+    db.session.commit()
+    assert "ko-live" in client.get(f"/events/{ev.id}").get_data(as_text=True)
+
+
 def test_ko_live_json_returns_latest_bracket(app):
     client = app.test_client()
     ev = Event(name="HCS", is_published=True, external_id="hcs-1")
