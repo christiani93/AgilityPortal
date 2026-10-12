@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ _('KO-Final live') }} – {{ event.name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2>🥊 {{ _('KO-Final live') }}</h2>
+    <small class="text-muted">{{ event.name }}</small>
+  </div>
+  <a href="{{ url_for('public_events.public_overview', event_id=event.id) }}"
+     class="btn btn-outline-secondary">← {{ _('Veranstaltung') }}</a>
+</div>
+
+<div id="ko-updated" class="text-muted small mb-2"></div>
+<div id="ko-empty" class="alert alert-info d-none">
+  {{ _('Der Final wird vor Ort ausgetragen und erscheint hier live, sobald er startet.') }}
+</div>
+<div id="ko-root"></div>
+
+<script>
+const KO_URL = "{{ url_for('public_events.public_ko_live_json', event_id=event.id) }}";
+const T = {
+  round: {{ _('Runde') | tojson }},
+  duel: {{ _('Duell') | tojson }},
+  winner: {{ _('Sieger') | tojson }},
+  forfeit: {{ _('Rückzug') | tojson }},
+  tbd: {{ _('offen') | tojson }},
+  done: {{ _('entschieden') | tojson }},
+  running: {{ _('läuft') | tojson }},
+};
+const ROUND_LABELS = {1: {{ _('Runde 1') | tojson }}, 2: {{ _('Viertelfinale') | tojson }},
+                      3: {{ _('Halbfinale') | tojson }}, 4: {{ _('Finale') | tojson }}};
+
+function esc(s) {
+  const d = document.createElement("div");
+  d.textContent = (s === null || s === undefined) ? "" : String(s);
+  return d.innerHTML;
+}
+function fmtTotal(v) {
+  return (v === null || v === undefined) ? "–" : Number(v).toFixed(3) + "s";
+}
+
+function sideRow(side, matchup) {
+  const p = matchup[side];
+  const isWinner = p && matchup.winner_id && matchup.winner_id === p.id;
+  const total = side === "a" ? matchup.a_total : matchup.b_total;
+  const forfeited = p && matchup.forfeit_id && matchup.forfeit_id === p.id;
+  if (!p) {
+    return `<tr><td class="text-muted">${esc(T.tbd)}</td><td></td><td class="text-end">–</td></tr>`;
+  }
+  const num = (p.start_number !== null && p.start_number !== undefined)
+    ? `<span class="badge bg-secondary ms-1">#${esc(p.start_number)}</span>` : "";
+  const handler = p.handler_name ? `<br><small class="text-muted">${esc(p.handler_name)}</small>` : "";
+  const medal = isWinner ? "🏅 " : "";
+  const totalCell = forfeited
+    ? `<span class="fst-italic text-muted">${esc(T.forfeit)}</span>`
+    : `<strong>${fmtTotal(total)}</strong>`;
+  return `<tr class="${isWinner ? "table-success fw-bold" : ""}">
+    <td>${medal}${esc(p.dog_name)}${num}${handler}</td>
+    <td class="text-end">${totalCell}</td>
+  </tr>`;
+}
+
+function matchupCard(m) {
+  const decided = !!m.winner_id;
+  return `<div class="card mb-2 ${decided ? "border-success" : ""}" style="min-width:240px;">
+    <div class="card-header py-1 px-2 ${decided ? "bg-success text-white" : "bg-light"}">
+      <small>${esc(T.duel)} ${esc(m.matchup_no)}${m.is_tie && !decided ? " ⚖" : ""}</small>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0" style="font-size:.85rem;">
+        <tbody>${sideRow("a", m)}${sideRow("b", m)}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function finalCard(f) {
+  const rounds = {};
+  (f.matchups || []).forEach(m => {
+    (rounds[m.round_no] = rounds[m.round_no] || []).push(m);
+  });
+  const roundNos = Object.keys(rounds).map(Number).sort((x, y) => x - y);
+  let cols = "";
+  roundNos.forEach(rn => {
+    const label = ROUND_LABELS[rn] || (T.round + " " + rn);
+    const cards = rounds[rn]
+      .sort((a, b) => a.matchup_no - b.matchup_no)
+      .map(matchupCard).join("");
+    cols += `<div style="min-width:240px;">
+      <h6 class="text-center text-muted mb-2">${esc(label)}</h6>${cards}</div>`;
+  });
+  const statusBadge = f.status === "done"
+    ? `<span class="badge bg-warning text-dark">🏆 ${esc(T.done)}</span>`
+    : (f.status === "running" ? `<span class="badge bg-primary">${esc(T.running)}</span>` : "");
+  const body = roundNos.length
+    ? `<div class="card-body overflow-auto"><div class="d-flex gap-3" style="min-width:max-content;">${cols}</div></div>`
+    : `<div class="card-body text-muted">${esc(T.tbd)}</div>`;
+  return `<div class="card mb-4">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+      <span>🏆 ${esc(f.group_label || f.category_code || "")}</span>${statusBadge}
+    </div>${body}</div>`;
+}
+
+async function refreshKO() {
+  try {
+    const resp = await fetch(KO_URL, {cache: "no-store"});
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const root = document.getElementById("ko-root");
+    const empty = document.getElementById("ko-empty");
+    const finals = (data.finals || []).filter(f => (f.matchups || []).length);
+    if (!finals.length) {
+      root.innerHTML = "";
+      empty.classList.remove("d-none");
+    } else {
+      empty.classList.add("d-none");
+      root.innerHTML = finals.map(finalCard).join("");
+    }
+    const upd = document.getElementById("ko-updated");
+    upd.textContent = data.updated_at
+      ? "⟳ " + new Date(data.updated_at).toLocaleTimeString()
+      : "";
+  } catch (e) { /* offline/transient – nächster Poll versucht es erneut */ }
+}
+
+refreshKO();
+setInterval(refreshKO, 5000);
+</script>
+
+{% endblock %}

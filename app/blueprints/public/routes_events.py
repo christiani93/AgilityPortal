@@ -1,6 +1,6 @@
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
-from app.models import (Event, EventFinalist, EventRun, Registration,
+from app.models import (Event, EventFinalist, EventRun, LiveUpdate, Registration,
                         RegistrationStatus, ResultImport, ScheduleBlock, StartNumber,
                         split_events_upcoming_past)
 
@@ -44,6 +44,28 @@ def _has_admin_key():
     expected = current_app.config.get("ADMIN_KEY")
     provided = request.args.get("key") or request.headers.get("X-Admin-Key")
     return expected and provided == expected
+
+
+def _event_has_ko_live(event_id):
+    """True, wenn die Software schon mindestens einen KO-Bracket-Stand mit
+    ausgelostem Duell gepusht hat (steuert den Live-Button auf der Übersicht)."""
+    import json as _json
+
+    updates = (
+        LiveUpdate.query
+        .filter_by(event_id=event_id)
+        .order_by(LiveUpdate.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    for upd in updates:
+        try:
+            payload = _json.loads(upd.payload_json or "{}")
+        except Exception:
+            continue
+        if (payload.get("update_type") or "") == "ko_bracket":
+            return any((f.get("matchups") or []) for f in (payload.get("finals") or []))
+    return False
 
 
 @public_events_bp.get("/live")
@@ -100,6 +122,7 @@ def public_overview(event_id):
     has_results = (
         ResultImport.query.filter_by(event_id=event_id).first() is not None
     )
+    has_ko_live = _event_has_ko_live(event_id)
 
     from datetime import datetime
     today = datetime.utcnow().date()
@@ -126,9 +149,57 @@ def public_overview(event_id):
         has_finalists=has_finalists,
         start_numbers_assigned=start_numbers_assigned,
         has_results=has_results,
+        has_ko_live=has_ko_live,
         is_event_day=is_event_day,
         competitions=competitions,
     )
+
+
+@public_events_bp.get("/events/<int:event_id>/ko-live")
+def public_ko_live(event_id):
+    """Öffentliche, login-freie Live-Anzeige des KO-Brackets (Halloween-Cup-Final).
+
+    Reine read-only Spiegelung: die AgilitySoftware rechnet die KO offline (TIMY)
+    und pusht den Bracket-Stand via /api/liveupdate; hier wird er nur dargestellt."""
+    event = Event.query.get_or_404(event_id)
+    if not event.is_published and not _has_admin_key():
+        abort(404)
+    return render_template("public/ko_live.html", event=event)
+
+
+@public_events_bp.get("/api/events/<int:event_id>/ko-live.json")
+def public_ko_live_json(event_id):
+    """Poll-Endpoint für die KO-Live-Seite: liefert den zuletzt gepushten
+    Bracket-Snapshot (alle Finals) der Software."""
+    import json as _json
+    from flask import jsonify
+
+    event = Event.query.get_or_404(event_id)
+    if not event.is_published and not _has_admin_key():
+        abort(404)
+
+    updates = (
+        LiveUpdate.query
+        .filter_by(event_id=event_id)
+        .order_by(LiveUpdate.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    finals = []
+    event_name = event.name
+    updated_at = None
+    for upd in updates:
+        try:
+            payload = _json.loads(upd.payload_json or "{}")
+        except Exception:
+            continue
+        if (payload.get("update_type") or "") == "ko_bracket":
+            finals = payload.get("finals") or []
+            event_name = payload.get("event_name") or event_name
+            updated_at = upd.created_at.isoformat() + "Z"
+            break
+
+    return jsonify({"event_name": event_name, "finals": finals, "updated_at": updated_at})
 
 
 @public_events_bp.get("/events/<int:event_id>/schedule")
