@@ -298,7 +298,7 @@ def create_test_event(name: str, club_id: int, count: int):
 _SEASON_EVENTS = [
     {"ext": "SEASON_2627_halloween", "name": "Halloween Cup",
      "start": date(2026, 10, 30), "end": date(2026, 11, 1),
-     "type": "regular", "ruleset": "halloween_cup", "organiser": "LiTyWee"},
+     "type": "regular", "ruleset": "halloween_cup", "organiser": "Seeland"},
 
     {"ext": "SEASON_2627_wimesma_m1", "name": "WiMeSma 26/27 – Meeting 1",
      "start": date(2026, 11, 15), "end": date(2026, 11, 15),
