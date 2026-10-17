@@ -2079,20 +2079,28 @@ def event_assign_startnumbers(event_id):
         .order_by(ScheduleBlock.sort_index)
     ).scalars().all()
 
+    # Regelsatz: "per_category" vergibt Startnummern KLASSENÜBERGREIFEND pro
+    # Kategorie (z.B. HCS-Freitag-Tunnellauf, der pro Kategorie gewertet wird).
+    # Default/alle anderen Werte = bisheriges Verhalten pro (Kategorie, Klasse).
+    per_category = (event.start_numbers_rule_set or "").strip().lower() == "per_category"
+
+    def _group_key(category_code, class_level):
+        return (category_code,) if per_category else (category_code, class_level)
+
     seen_keys: set = set()
     ordered_keys: list = []
     for b in ring1_blocks:
-        if b.category_code and b.class_level:
-            key = (b.category_code, b.class_level)
+        if b.category_code and (per_category or b.class_level):
+            key = _group_key(b.category_code, b.class_level)
             if key not in seen_keys:
                 seen_keys.add(key)
                 ordered_keys.append(key)
 
-    # ── Anmeldungen nach (category_code, class_level) gruppieren ─────────────
+    # ── Anmeldungen gruppieren (pro Kategorie bzw. pro Kategorie+Klasse) ─────
     from collections import defaultdict
     regs_by_key: dict = defaultdict(list)
     for reg in confirmed:
-        regs_by_key[(reg.category_code, reg.class_level)].append(reg)
+        regs_by_key[_group_key(reg.category_code, reg.class_level)].append(reg)
 
     # Blöcke die nicht in Ring 1 stehen → hinten, alphabetisch sortiert
     for key in sorted(set(regs_by_key.keys()) - seen_keys):
@@ -2111,7 +2119,7 @@ def event_assign_startnumbers(event_id):
             continue
 
         n        = len(regs)
-        cat, cls = key
+        cat      = key[0]
 
         # Handler mit mehreren Hunden zuerst verarbeiten (mehr Spielraum nötig)
         handler_count: dict = defaultdict(int)
@@ -2185,9 +2193,14 @@ def event_assign_startnumbers(event_id):
                     placed[best_p] = reg
                     handler_last_global[hid] = global_offset + best_p
 
-        # Startnummern aus Schema zuweisen
-        schema_key = f"{cat}-{cls}"
-        base_nr    = schema.get(schema_key)
+        # Startnummern aus Schema zuweisen. Im per_category-Modus klassen-
+        # übergreifend mit X0XX-Basis (Tausender = Kategorie aus dem Schema,
+        # z.B. Large 1xxx → 1001, Small 4xxx → 4001); sonst pro (Kat, Klasse).
+        if per_category:
+            cat_base = schema.get(f"{cat}-1")
+            base_nr  = (cat_base // 1000) * 1000 + 1 if cat_base is not None else None
+        else:
+            base_nr  = schema.get(f"{cat}-{key[1]}")
 
         for p, reg in enumerate(placed):
             if reg is None:
@@ -2728,6 +2741,11 @@ def schedule_save_settings(event_id):
         default = _RUN_TIME_CONFIG_DEFAULT[disc]
         run_cfg[disc] = val if val and val > 0 else default
     event.run_time_config = _json.dumps(run_cfg)
+
+    # ── Startnummern-Regelsatz: pro Kategorie klassenübergreifend? ──────────
+    event.start_numbers_rule_set = (
+        "per_category" if request.form.get("sn_per_category") else None
+    )
 
     db.session.commit()
     flash(_("Einstellungen gespeichert."), "success")

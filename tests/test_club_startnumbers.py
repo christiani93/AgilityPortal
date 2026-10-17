@@ -238,6 +238,86 @@ def test_roomy_block_distributes_multidog_handler_evenly(app):
         assert nums[1] - nums[0] < n - 1       # gerade NICHT auf die Extreme
 
 
+def _seed_per_category_event(rule_set="per_category"):
+    """Event mit Hunden EINER Kategorie in mehreren Klassen (plus eine zweite
+    Kategorie), um die klassenübergreifende Startnummernvergabe zu prüfen.
+    Kein eigenes Schema → Default (Large 1xxx, Small 4xxx)."""
+    club = M.Club(vereinsnummer="V1", name="Club")
+    admin = M.User(email="admin@test.ch", role="superadmin")
+    db.session.add_all([club, admin])
+    db.session.flush()
+
+    event = M.Event(
+        name="PerCat-Test",
+        organiser_club_id=club.id,
+        start_numbers_rule_set=rule_set,
+        allows_bitches_in_season=True,
+        bitches_in_season_start_last=True,
+    )
+    db.session.add(event)
+    db.session.flush()
+
+    ids = {}
+
+    def _reg(tag, cat, cls):
+        dog = M.Dog(name=f"Dog_{tag}", license_no=f"5{tag:04d}",
+                    license_kind=M.LicenseKind.CH)
+        person = M.Person(first_name=f"HF{tag}", last_name="Name")
+        db.session.add_all([dog, person])
+        db.session.flush()
+        reg = M.Registration(
+            event_id=event.id, dog_id=dog.id, handler_id=person.id,
+            status=M.RegistrationStatus.CONFIRMED,
+            class_level=cls, category_code=cat,
+        )
+        db.session.add(reg)
+        db.session.flush()
+        ids[tag] = reg.id
+
+    # Large in allen drei Klassen + ein Small-Hund (eigene Kategorie)
+    _reg(1, "Large", 1)
+    _reg(2, "Large", 2)
+    _reg(3, "Large", 3)
+    _reg(4, "Small", 2)
+    db.session.commit()
+    return event.id, admin.id, ids
+
+
+def test_per_category_assigns_crossclass_contiguous(app):
+    # per_category: alle Large-Hunde (Kl.1/2/3) laufen fortlaufend ab der
+    # X0XX-Basis (Large 1001..), unabhängig von der Klasse. Small eigene Basis 4001.
+    with app.app_context():
+        event_id, admin_id, ids = _seed_per_category_event("per_category")
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/events/{event_id}/assign-startnumbers")
+        assert resp.status_code == 302
+
+        large = {db.session.get(M.Registration, ids[t]).start_number for t in (1, 2, 3)}
+        small = db.session.get(M.Registration, ids[4]).start_number
+
+        assert large == {1001, 1002, 1003}   # klassenübergreifend fortlaufend
+        assert small == 4001                   # eigene Kategorie-Basis
+
+
+def test_per_class_default_splits_by_class(app):
+    # Kontrollfall: ohne per_category (Default) bleiben die Klassen getrennt,
+    # jede Klasse startet bei ihrer eigenen Schema-Basis (1101/1201/1301).
+    with app.app_context():
+        event_id, admin_id, ids = _seed_per_category_event(rule_set=None)
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.post(f"/club/events/{event_id}/assign-startnumbers")
+        assert resp.status_code == 302
+
+        assert db.session.get(M.Registration, ids[1]).start_number == 1101
+        assert db.session.get(M.Registration, ids[2]).start_number == 1201
+        assert db.session.get(M.Registration, ids[3]).start_number == 1301
+        assert db.session.get(M.Registration, ids[4]).start_number == 4201
+
+
 def test_export_zip_reflects_assigned_startnumbers(app):
     with app.app_context():
         event_id, admin_id, reg_a_id, reg_season_id, reg_c_id, reg_pending_id = _seed_event_with_schema()

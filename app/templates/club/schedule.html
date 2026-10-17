@@ -114,6 +114,17 @@
           <div class="form-text text-muted mt-1">
             {{ _('Beispiel: 1101 → erster Starter Large Kl.1 bekommt Nr. 1101, zweiter 1102 usw.') }}
           </div>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" value="1"
+                   id="sn_per_category" name="sn_per_category"
+                   {% if event.start_numbers_rule_set == 'per_category' %}checked{% endif %}>
+            <label class="form-check-label" for="sn_per_category">
+              {{ _('Startnummern pro Kategorie (klassenübergreifend)') }}
+            </label>
+            <div class="form-text text-muted">
+              {{ _('Für Läufe, die pro Kategorie klassenübergreifend gewertet werden (z. B. Tunnellauf): alle Klassen einer Kategorie laufen fortlaufend ab X001 (Large 1001, Intermediate 2001, Medium 3001, Small 4001).') }}
+            </div>
+          </div>
         </div>
 
         <div class="col-12">
