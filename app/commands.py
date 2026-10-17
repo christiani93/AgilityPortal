@@ -296,8 +296,19 @@ def create_test_event(name: str, club_id: int, count: int):
 
 # organiser = Name-Fragment zum Suchen des Veranstalter-Vereins (Club.name ILIKE).
 _SEASON_EVENTS = [
-    {"ext": "SEASON_2627_halloween", "name": "Halloween Cup",
-     "start": date(2026, 10, 30), "end": date(2026, 11, 1),
+    # Halloween Cup = 3 eigenständige Tagesevents (EventRun-Unique-Constraint
+    # erlaubt kein 2. Agi/Jump je Kombination; Sa+So sind unabhängige Durchgänge).
+    # Fr = nur Tunnellauf (keine offizielle AIS), Sa/So = Agility+Jumping mit AIS.
+    {"ext": "SEASON_2627_halloween_fr", "name": "Halloween Cup 30.10.2026",
+     "start": date(2026, 10, 30), "end": date(2026, 10, 30),
+     "type": "regular", "ruleset": "halloween_cup", "organiser": "Seeland"},
+
+    {"ext": "SEASON_2627_halloween_sa", "name": "Halloween Cup 31.10.2026",
+     "start": date(2026, 10, 31), "end": date(2026, 10, 31),
+     "type": "regular", "ruleset": "halloween_cup", "organiser": "Seeland"},
+
+    {"ext": "SEASON_2627_halloween_so", "name": "Halloween Cup 01.11.2026",
+     "start": date(2026, 11, 1), "end": date(2026, 11, 1),
      "type": "regular", "ruleset": "halloween_cup", "organiser": "Seeland"},
 
     {"ext": "SEASON_2627_wimesma_m1", "name": "WiMeSma 26/27 – Meeting 1",
