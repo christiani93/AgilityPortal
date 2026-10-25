@@ -306,6 +306,18 @@ def _assert_event_access(event):
         abort(403)
 
 
+def _ais_turniernummer_conflict(ais_value, exclude_event_id=None):
+    """Gibt das andere Event zurück, das dieselbe AIS-Turniernummer trägt
+    (sonst None) — ais_turniernummer ist DB-seitig unique, ein Konflikt würde
+    beim Commit sonst als unbehandelter IntegrityError (500) auffliegen."""
+    if ais_value is None:
+        return None
+    q = db.select(Event).filter(Event.ais_turniernummer == ais_value)
+    if exclude_event_id is not None:
+        q = q.filter(Event.id != exclude_event_id)
+    return db.session.execute(q).scalars().first()
+
+
 def _result_is_eliminated(r) -> bool:
     """DIS/ABR/DNS oder explizit eliminiert → Lauf ist nicht gewertet."""
     status = (getattr(r, "status", None) or "")
@@ -463,6 +475,14 @@ def event_new():
         del form.club_id  # Feld nicht anzeigen/validieren
         _filter_special_ruleset_choices(form, current_user.club_id)
     if form.validate_on_submit():
+        conflict = _ais_turniernummer_conflict(form.ais_turniernummer.data or None)
+        if conflict:
+            form.ais_turniernummer.errors.append(
+                _("AIS-Nummer %(ais)s ist bereits für «%(name)s» vergeben.",
+                  ais=form.ais_turniernummer.data, name=conflict.name)
+            )
+            return render_template("club/event_form.html", form=form, event=None,
+                                   is_superadmin=current_user.is_superadmin)
         if current_user.is_superadmin:
             club_id = form.club_id.data if form.club_id.data != 0 else None
         else:
@@ -825,6 +845,14 @@ def event_edit(event_id):
         if current_user.is_superadmin:
             form.club_id.data = event.organiser_club_id or 0
     if form.validate_on_submit():
+        conflict = _ais_turniernummer_conflict(form.ais_turniernummer.data or None, exclude_event_id=event.id)
+        if conflict:
+            form.ais_turniernummer.errors.append(
+                _("AIS-Nummer %(ais)s ist bereits für «%(name)s» vergeben.",
+                  ais=form.ais_turniernummer.data, name=conflict.name)
+            )
+            return render_template("club/event_form.html", form=form, event=event,
+                                   is_superadmin=current_user.is_superadmin)
         event.ais_turniernummer = form.ais_turniernummer.data or None
         event.ais_turniernummer_extra = form.ais_turniernummer_extra.data.strip() if form.ais_turniernummer_extra.data else None
         event.name = form.name.data.strip()

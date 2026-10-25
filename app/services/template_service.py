@@ -54,6 +54,16 @@ def create_event_from_template(tpl, form):
     ais_haupt = _parse_int(ais_values[0]) if ais_values else None
     ais_extra = ",".join(ais_values[1:]) if len(ais_values) > 1 else None
 
+    if ais_haupt is not None:
+        conflict = db.session.execute(
+            db.select(Event).filter(Event.ais_turniernummer == ais_haupt)
+        ).scalars().first()
+        if conflict:
+            return None, [(
+                f"AIS-Nummer {ais_haupt} ist bereits für «{conflict.name}» vergeben.",
+                "danger",
+            )]
+
     event = Event(
         name=name,
         location=tpl.location,
