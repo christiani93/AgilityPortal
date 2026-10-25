@@ -3271,11 +3271,27 @@ def event_links(event_id):
         "url": url_for("public_events.public_overview", event_id=event.id, _external=True),
         "available": event.is_published,
     })
+    from app.blueprints.public.routes_events import (
+        _collect_startlist_rows, _group_startlist_rows,
+    )
+    startlist_rows, _has_numbers = _collect_startlist_rows(event_id)
+    startlist_groups = _group_startlist_rows(startlist_rows)
+
     links.append({
         "label": _("Startliste") if start_numbers_assigned else _("Meldeliste"),
         "desc": _("Teilnehmer mit Startnummern") if start_numbers_assigned else _("Angemeldete Teilnehmer"),
         "url": url_for("public_events.public_startlist", event_id=event.id, _external=True),
         "available": event.is_published,
+        "children": [
+            {
+                "label": f"{g['category_code']}" + (f" – {_('Klasse')} {g['class_level']}" if g["class_level"] else ""),
+                "url": url_for(
+                    "public_events.public_startlist", event_id=event.id,
+                    cat=g["category_code"], cls=g["class_level"], _external=True,
+                ),
+            }
+            for g in startlist_groups
+        ],
     })
     if event.schedule_public:
         links.append({
