@@ -355,21 +355,24 @@ def _collect_startlist_rows(event_id):
     return rows, False
 
 
-def _group_startlist_rows(rows, only_cat=None, only_cls=None):
+def _group_startlist_rows(rows, only_cat=None, only_cls=None, merge_classes=False):
     """Gruppiert Startlisten-Zeilen zu je einem Block pro (Kategorie, Klasse) –
     wie die Startliste der AgilitySoftware (ein Block = ein Lauf-Startliste).
 
     only_cat/only_cls filtern optional auf genau einen Block (für Einzel-PDF).
+    merge_classes=True fasst alle Klassen einer Kategorie zu EINEM Block
+    zusammen (gemischter Lauf, z.B. Tunnellauf: ein Lauf pro Kategorie) –
+    class_level des Blocks ist dann None; only_cls wird in diesem Modus ignoriert.
     Rückgabe: Liste von {category_code, class_level, rows, count}, sortiert nach
     Kategorie (S-M-I-L) und Klasse."""
     from collections import OrderedDict
     groups = OrderedDict()
     for row in rows:
         cat = row["category_code"]
-        cls = row["class_level"]
+        cls = None if merge_classes else row["class_level"]
         if only_cat is not None and cat != only_cat:
             continue
-        if only_cls is not None and (cls or 0) != only_cls:
+        if not merge_classes and only_cls is not None and (cls or 0) != only_cls:
             continue
         groups.setdefault((cat, cls), []).append(row)
 
@@ -422,6 +425,29 @@ def _event_logo_paths(event):
     return _path(event.event_logo_filename), _path(event.club_logo_filename)
 
 
+def _event_merges_classes(event):
+    """True, wenn die Läufe des Events die Klassen NICHT trennen – d.h. für jede
+    Kategorie gibt es höchstens eine Klassenstufe (gemischter Lauf wie der
+    Tunnellauf: ein Lauf pro Kategorie). Dann wird die Startliste pro Kategorie
+    statt pro (Kategorie, Klasse) gruppiert. Ohne Läufe: False (Standard = pro
+    Klasse)."""
+    by_cat = {}
+    for run in event.runs:
+        by_cat.setdefault(run.category, set()).add(run.class_level)
+    if not by_cat:
+        return False
+    return all(len(levels) <= 1 for levels in by_cat.values())
+
+
+def _resolve_merge_classes(event):
+    """?mixed=1/0 erzwingt bzw. unterdrückt die Kategorie-Gruppierung; ohne
+    Parameter wird sie aus der Lauf-Struktur abgeleitet (_event_merges_classes)."""
+    arg = request.args.get("mixed")
+    if arg is not None:
+        return arg.strip().lower() not in ("", "0", "false", "no", "nein")
+    return _event_merges_classes(event)
+
+
 @public_events_bp.get("/events/<int:event_id>/startlist")
 def public_startlist(event_id):
     event = Event.query.get_or_404(event_id)
@@ -433,9 +459,11 @@ def public_startlist(event_id):
     # ?cat=&cls= blendet auf genau eine Klasse/Kategorie ein → direkt verlinkbar.
     only_cat = request.args.get("cat") or None
     only_cls = request.args.get("cls", type=int)
+    merge_classes = _resolve_merge_classes(event)
 
     rows, has_numbers = _collect_startlist_rows(event_id)
-    groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls)
+    groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls,
+                                   merge_classes=merge_classes)
 
     return render_template(
         "public/startlist.html",
@@ -443,7 +471,8 @@ def public_startlist(event_id):
         groups=groups,
         rows=rows,
         has_numbers=has_numbers,
-        single_block=bool(only_cat or only_cls),
+        merge_classes=merge_classes,
+        single_block=bool(only_cat or (only_cls and not merge_classes)),
     )
 
 
@@ -461,9 +490,11 @@ def public_startlist_print(event_id):
 
     only_cat = request.args.get("cat") or None
     only_cls = request.args.get("cls", type=int)
+    merge_classes = _resolve_merge_classes(event)
 
     rows, has_numbers = _collect_startlist_rows(event_id)
-    groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls)
+    groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls,
+                                   merge_classes=merge_classes)
     event_logo_url, club_logo_url = _event_logo_urls(event)
 
     return render_template(

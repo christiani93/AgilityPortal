@@ -2480,11 +2480,15 @@ def event_startlist(event_id):
                   Registration.start_number)
     ).scalars().all()
 
-    # Nach (Kategorie, Klasse) gruppieren — in definierter Reihenfolge
+    # Nach (Kategorie, Klasse) gruppieren — in definierter Reihenfolge.
+    # Gemischter Lauf (ein Lauf pro Kategorie, z.B. Tunnellauf): pro Kategorie.
+    from app.blueprints.public.routes_events import _event_merges_classes
+    merge_classes = _event_merges_classes(event)
     from collections import defaultdict
     groups: dict = defaultdict(list)
     for reg in regs:
-        groups[(reg.category_code, reg.class_level)].append(reg)
+        cls = None if merge_classes else reg.class_level
+        groups[(reg.category_code, cls)].append(reg)
 
     # Laufreihenfolge innerhalb der Gruppe: läufige Hündinnen starten am Schluss
     # (nur wenn im Turnier so eingestellt) — die Startnummer bleibt unverändert.
@@ -2497,7 +2501,7 @@ def event_startlist(event_id):
 
     sorted_groups = sorted(
         groups.items(),
-        key=lambda kv: (CAT_ORDER.get(kv[0][0], 9), kv[0][1])
+        key=lambda kv: (CAT_ORDER.get(kv[0][0], 9), kv[0][1] or 0)
     )
 
     has_numbers = event.start_numbers_generated_at is not None
@@ -2518,6 +2522,7 @@ def event_startlist_zip(event_id):
     from flask import Response
     from app.blueprints.public.routes_events import (
         _collect_startlist_rows, _group_startlist_rows, _event_logo_paths,
+        _event_merges_classes,
     )
     from app.services.startlist_pdf import build_startlist_zip
 
@@ -2526,7 +2531,7 @@ def event_startlist_zip(event_id):
         abort(404)
 
     rows, has_numbers = _collect_startlist_rows(event_id)
-    groups = _group_startlist_rows(rows)
+    groups = _group_startlist_rows(rows, merge_classes=_event_merges_classes(event))
     if not groups:
         abort(404)
 
@@ -3300,10 +3305,11 @@ def event_links(event_id):
         "available": event.is_published,
     })
     from app.blueprints.public.routes_events import (
-        _collect_startlist_rows, _group_startlist_rows,
+        _collect_startlist_rows, _group_startlist_rows, _event_merges_classes,
     )
     startlist_rows, _has_numbers = _collect_startlist_rows(event_id)
-    startlist_groups = _group_startlist_rows(startlist_rows)
+    startlist_groups = _group_startlist_rows(
+        startlist_rows, merge_classes=_event_merges_classes(event))
 
     links.append({
         "label": _("Startliste") if start_numbers_assigned else _("Meldeliste"),

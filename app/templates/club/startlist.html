@@ -47,9 +47,9 @@
 {% if sorted_groups %}
 <div class="mb-4 d-flex flex-wrap gap-2">
   {% for (cat, cls), regs in sorted_groups %}
-  <a href="#group-{{ cat }}-{{ cls }}"
+  <a href="#group-{{ cat }}-{{ cls or 0 }}"
      class="btn btn-sm btn-outline-primary">
-    {{ cat }} {{ _('Kl.') }}{{ cls }}
+    {{ cat }}{% if cls %} {{ _('Kl.') }}{{ cls }}{% endif %}
     <span class="badge bg-primary ms-1">{{ regs | length }}</span>
   </a>
   {% endfor %}
@@ -62,9 +62,9 @@
 
 {# ── Tabellen pro Kategorie × Klasse ──────────────────────────────────── #}
 {% for (cat, cls), regs in sorted_groups %}
-<div class="card mb-4" id="group-{{ cat }}-{{ cls }}">
+<div class="card mb-4" id="group-{{ cat }}-{{ cls or 0 }}">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">{{ cat }} — {{ _('Klasse') }} {{ cls }}</span>
+    <span class="fw-semibold">{{ cat }}{% if cls %} — {{ _('Klasse') }} {{ cls }}{% endif %}</span>
     <span class="badge bg-secondary">{{ regs | length }} {{ _('Starter') }}</span>
   </div>
   <div class="table-responsive">

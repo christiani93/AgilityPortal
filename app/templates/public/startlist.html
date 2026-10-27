@@ -28,7 +28,7 @@
       {% if not single_block %}
       <a class="btn btn-sm btn-outline-secondary"
          href="{{ url_for('public_events.public_startlist', event_id=event.id, cat=group.category_code, cls=group.class_level) }}">
-        🔗 {{ _('Nur diese Klasse') }}
+        🔗 {% if merge_classes %}{{ _('Nur diese Kategorie') }}{% else %}{{ _('Nur diese Klasse') }}{% endif %}
       </a>
       {% endif %}
     </div>

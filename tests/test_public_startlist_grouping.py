@@ -114,6 +114,50 @@ def test_full_startlist_offers_per_class_link(app):
         assert "cat=Large&amp;cls=3" not in single
 
 
+def _add_run(event, run_type, cat, cls):
+    run = M.EventRun(event_id=event.id, run_type=run_type, category=cat,
+                     class_level=cls)
+    db.session.add(run)
+    db.session.flush()
+    return run
+
+
+def test_mixed_run_detection_merges_classes(app):
+    """Gemischter Lauf (ein Lauf pro Kategorie, z.B. Tunnellauf) → Startliste
+    pro Kategorie, Klassen verschmolzen; klassengetrennte Läufe → wie bisher."""
+    from app.blueprints.public.routes_events import (
+        _event_merges_classes, _group_startlist_rows,
+    )
+    with app.app_context():
+        event, _ = _seed_event()
+        # Tunnellauf: je ein Lauf pro Kategorie (nominal Klasse 1)
+        for cat in ("S", "M", "I", "L"):
+            _add_run(event, "tunnel", cat, 1)
+        # Teilnehmer mit unterschiedlichen Klassen innerhalb der Kategorie
+        _add_reg(event, "1001", "L1", "Large", 1, start_number=1101)
+        _add_reg(event, "1002", "L3", "Large", 3, start_number=1301)
+        _add_reg(event, "1003", "S2", "Small", 2, start_number=4201)
+        db.session.commit()
+
+        assert _event_merges_classes(event) is True
+        rows, _hn = _collect_startlist_rows(event.id)
+        groups = _group_startlist_rows(rows, merge_classes=True)
+        # Ein Block je Kategorie, class_level=None, Large enthält Kl.1 + Kl.3
+        assert [(g["category_code"], g["class_level"]) for g in groups] == [
+            ("Small", None), ("Large", None)]
+        assert groups[1]["count"] == 2
+
+
+def test_classed_runs_do_not_merge(app):
+    from app.blueprints.public.routes_events import _event_merges_classes
+    with app.app_context():
+        event, _ = _seed_event()
+        for cls in (1, 2, 3):
+            _add_run(event, "agility", "L", cls)
+        db.session.commit()
+        assert _event_merges_classes(event) is False
+
+
 def test_zip_download_one_pdf_per_block(app):
     import io
     import zipfile
