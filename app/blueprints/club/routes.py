@@ -965,6 +965,30 @@ def event_set_status(event_id):
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
+@club_bp.post("/events/<int:event_id>/publish")
+@login_required
+def event_toggle_publish(event_id):
+    """Ein-Klick-Umschalter öffentlich/Entwurf. Ergänzt den Publizieren-Weg, der
+    sonst nur versteckt im Bearbeiten-Formular (is_published = not is_test) liegt –
+    so landet ein aus einer Vorlage erstelltes Event nicht still auf 404."""
+    event = db.session.get(Event, event_id)
+    if not event:
+        abort(404)
+    _assert_event_access(event)
+    if event.is_published:
+        event.is_published = False
+        db.session.commit()
+        flash(_("Turnier ist jetzt ein Entwurf – öffentliche Seiten und Links sind nicht erreichbar."), "info")
+    else:
+        event.is_published = True
+        # Ein öffentliches Turnier ist keine Testveranstaltung mehr.
+        if event.is_test:
+            event.is_test = False
+        db.session.commit()
+        flash(_("Turnier ist jetzt öffentlich sichtbar – Eventseite, Startliste und Links sind erreichbar."), "success")
+    return redirect(url_for("club.event_detail", event_id=event_id))
+
+
 @club_bp.post("/events/<int:event_id>/runs/add")
 @login_required
 def event_run_add(event_id):

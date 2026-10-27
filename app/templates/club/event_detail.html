@@ -87,6 +87,13 @@
       <span class="badge bg-light text-dark border fs-6">● {{ _('Entwurf') }}</span>
     {% endif %}
 
+    {# Sichtbarkeits-Badge: öffentlich vs. nicht publiziert (unabhängig vom Status) #}
+    {% if event.is_published %}
+      <span class="badge bg-primary fs-6">🌐 {{ _('Öffentlich sichtbar') }}</span>
+    {% else %}
+      <span class="badge bg-warning text-dark fs-6">⚠️ {{ _('Nicht publiziert') }}</span>
+    {% endif %}
+
     {% if event.ais_turniernummer %}
       <span class="badge bg-dark">AIS-Nr. {{ event.ais_turniernummer }}</span>
     {% endif %}
@@ -107,6 +114,20 @@
 
     {# Aktions-Buttons je nach aktuellem Status #}
     <div class="ms-auto d-flex gap-2">
+      {# Ein-Klick Publizieren/Verstecken – steuert die öffentliche Sichtbarkeit #}
+      {% if event.is_published %}
+        <form method="post" action="{{ url_for('club.event_toggle_publish', event_id=event.id) }}"
+              onsubmit="return confirm('{{ _('Turnier verstecken (als Entwurf)? Öffentliche Seiten und Links sind dann nicht mehr erreichbar.') }}')">
+          {{ run_form.hidden_tag() }}
+          <button class="btn btn-sm btn-outline-secondary">{{ _('Verstecken (→ Entwurf)') }}</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('club.event_toggle_publish', event_id=event.id) }}">
+          {{ run_form.hidden_tag() }}
+          <button class="btn btn-sm btn-primary">🌐 {{ _('Publizieren') }}</button>
+        </form>
+      {% endif %}
+
       {% if event.status == 'draft' %}
         <form method="post" action="{{ url_for('club.event_set_status', event_id=event.id) }}">
           {{ run_form.hidden_tag() }}
