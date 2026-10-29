@@ -1,0 +1,13 @@
+{
+  "event_id": 20,
+  "field_changed": "grossring_rings",
+  "before": null,
+  "after": ["Ring 3"],
+  "unchanged_for_reference": {
+    "ring_start_times": {"Ring 1": "08:10", "Ring 2": "08:00", "Ring 3": "09:55"},
+    "final_participants": null,
+    "run_time_config": null
+  },
+  "note": "Sonntag (So 01.11.) hat laut Reglement keinen KO-Final -> final_participants bleibt None. grossring_rings markiert Ring 3 nur als physisch grossen Ring (analog Sa/Event 19), rein visuelles Badge im Zeitplan.",
+  "changed_at": "2026-10-29"
+}

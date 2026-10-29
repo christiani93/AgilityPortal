@@ -3,7 +3,87 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-10-12
+Stand: 2026-10-29
+
+## Session 2026-10-29 — Zeitplan Finale/Grossring + Infra
+
+### Portal (committed + DEPLOYED, Migration c7d8e9f0a1b2 angewendet)
+- [x] **Zeitplan Finale-Block + Grossring** (`5170f3c`): `ScheduleBlock.block_type="final"`
+      (Dauer = Finalteilnehmer pro Kat × `run_time_config["final"]`, Default 240s = 80 Teams×4min);
+      Finalteilnehmer pro Kat in den Zeitplan-Einstellungen; `grossring_rings`-Markierung
+      (Checkbox Ringkonfig, Badge Club+öffentl.). Migration: events.grossring_rings +
+      final_participants (nullable Text). Tests `test_schedule_final_and_grossring.py`.
+- [x] **Event 19 (HCS Sa) live konfiguriert**: grossring Ring 3, final_participants
+      L32/I16/M16/S16 (**Summe 80**), Finale-Block id 307 Ring 3. Render OK (320min).
+- [x] **Event 20 (HCS So) grossring Ring 3 nachgezogen** (2026-10-29, direkt per DB-Write,
+      Backup `AgilityPortal/.claude/backups/hcs_event20_grossring_20261029.json`):
+      `grossring_rings=["Ring 3"]` gesetzt, `ring_start_times` (Ring1 08:10/Ring2 08:00/
+      Ring3 09:55) bewusst UNVERÄNDERT gelassen (Grund: `schedule_save_rings`-Route würde
+      beim Formular-Submit alle nicht mitgesendeten Ringe auf Default 08:00 zurücksetzen —
+      daher Direkt-Write nur des einen Felds). Sonntag hat laut Reglement KEINEN KO-Final
+      → `final_participants` bewusst NICHT gesetzt (anders als Sa).
+- [x] **Software-Port erledigt** (2026-10-29, `1ca3b21`, AgilitySoftware main, NICHT deployed
+      da Desktop-App/kein Server-Push nötig): `block_type="final"` + Grossring-Checkbox in
+      `planner/schedule_planner.py` + `plan_schedule.html` + `routes_events.py` portiert,
+      43+16 neue/bestehende Tests grün, Gesamtsuite 301 grün. [[project_schedule_module_portal_parity]]
+- [ ] **⚠️ NEU GEFUNDEN — EventTemplate kennt grossring_rings/final_participants NICHT**:
+      `EventTemplate` (models.py:545) spiegelt nur `startnumber_schema`/`run_time_config`/
+      `ring_start_times` vom Event (Vorlagen-Felder); die beiden am 2026-10-29 neuen
+      Event-Felder `grossring_rings`/`final_participants` haben KEIN Vorlagen-Pendant und
+      werden von `create_event_from_template` (template_service.py:86-88) folglich NICHT
+      kopiert. Für künftige HCS-Jahrgänge (oder andere Grossring/Final-Events) müsste das
+      Feature pro Jahr erneut händisch gesetzt werden, bis Vorlage um 2 Spalten + Copy-Logik
+      ergänzt wird (Migration nötig). Bewusst NICHT am 2026-10-29 (einen Tag vor dem Event)
+      gemacht — Migration-Risiko vs. Nutzen erst nächstes Jahr fällig.
+- [ ] **⚠️ Per-Kategorie-Final-Split prüfen** (meine Schätzung L32/I16/M16/S16=80 lt. PDF;
+      nur Summe steuert die Zeit) — User bestätigen/korrigieren in den Einstellungen.
+- [ ] **schedule_public für Event 19** aktivieren, falls der Zeitplan öffentlich sichtbar
+      sein soll (aktuell 0 → öffentliche /schedule gibt 403; Club-Editor zeigt alles).
+- [ ] (minor) „Teilbare Links"-Kind-Startlisten-Links (`routes.py:~3313`) haben kein
+      `available`-Gate → bei Entwürfen klickbar aber 404 (Badge mildert es; optionaler Fix).
+
+### Infrastruktur
+- [ ] **⚠️ supervisord-Autostart**: auf `xahizivi` KEIN @reboot-Cron → nach Server-Reboot
+      alle Flask-Apps offline. **HostPoint-Wartung Mi 11.11.2026** (FreeBSD 14.4→14.5, 06–18 Uhr)
+      bringt vmtl. Reboot. Entscheid: idempotenten @reboot-Cron für supervisord anlegen
+      (+ optional Watchdog), sonst am 11.11. nach 18:00 Apps prüfen + manuell starten.
+      [[reference_hostpoint_supervisord_autostart]]
+
+## Session 2026-10-26/27 — BCCS-SM Echtdaten-Test + Portal-Fixes
+
+### Portal (committed + DEPLOYED portal.z-b.tech, keine Migration)
+- [x] **AIS-Turniernummer-Duplikat crasht nicht mehr als 500** (`2334d21`): `ais_turniernummer`
+      ist DB-unique; Konflikt flog als unbehandelter IntegrityError (Crash beim Bearbeiten von
+      Event 18 mit der bereits auf Event 19 vergebenen AIS 11471). Vorab-Check in
+      `event_new`/`event_edit` + `create_event_from_template` → Formularfehler statt Crash.
+      Helper `_ais_turniernummer_conflict`. Tests `tests/test_ais_turniernummer_conflict.py`.
+      Crashes #128/#129/#130 im Crash-Collector als resolved markiert.
+- [x] **Startlisten-Direktlinks pro Kategorie/Klasse** auf der „Teilbare Links"-Seite
+      (`8122b21`): `club.event_links` (`/club/events/<id>/links`, login, ab Veranstalter)
+      zeigt beim Startliste/Meldeliste-Eintrag ein ausklappbares Feld mit je einem
+      öffentlichen Direktlink (`public_startlist?cat=&cls=`) pro (Kategorie, Klasse)-Block.
+      Nur sichtbar, wenn für das Event schon Anmeldungen/Gruppen existieren.
+
+### BCCS-SM Vorbereitung (Veranstaltung 21./22.11.2026 Münsingen, AIS Sa 12323 / So 12324)
+- [x] **Seed-Split BCCS → 2 Tagesevents** in `app/commands.py` (`SEASON_2627_bccs_sm_sa` /
+      `_so`, Sa=SM/Kl.3, So=Nachwuchs/Kl.1-2, Münsingen) — **lokal, noch NICHT committet/deployed**.
+      AIS wie bei HCS separat auf Prod setzen (geht jetzt ohne Crash).
+- [x] **Echtdaten-Test Large/SM verifiziert** (Details Memory `bccs-reglement`): aus echten
+      2025-PDFs gebaut, Finalisten **23/23** + Final-Rang Sauber-in-beiden **8/8** exakt.
+      Extraktor isoliert: `C:\Users\chris\AppData\Local\bccs_test_extract\build_bccs_event.py`
+      (koordinatenbasiert pdfplumber; `pdftotext`/`pymupdf` liefern Umlaut-Mojibake).
+      Titelverteidiger Large/SM 2025 = Lizenz 14967.
+- [ ] **⚠️ USER-ENTSCHEID offen — Ein-Lauf-DIS im Final**: offizielles 2025-Kombiniert rangiert
+      Teams mit DIS in EINEM Finallauf (Plätze 9-16), die Software (`bccs_sm_qualification.py`
+      `_rank_division_final` ~Z.498/516) lässt sie weg. Reglement 3.2 sagt nicht, wie DIS
+      gewertet wird. Reihenfolge der Ein-Lauf-DIS ist NICHT simpel nach Einzellauf-Zeit.
+      → klären, ggf. Software-Fix.
+- [ ] **Test ausdehnen** auf Intermediate/SM + Nachwuchs (beide Kat., So, Kl.1+2).
+- [ ] **Als klickbares Testevent** in die AgilitySoftware laden (events.json / import_package),
+      Dashboard/CSV/Portal-Paket durchspielen.
+- [ ] **Portal-Cup-Übersicht** (tagesübergreifend, Sa+So zusammen) bauen — analog HCS-KO-Live
+      (`public_ko_live` liest LiveUpdate-Snapshots).
+- [ ] **Echte Prod-BCCS-Events** anlegen (Seed deployen oder manuell) + AIS 12323/12324 setzen.
 
 ## Session 2026-10-12 — Lokale DEV-Umgebung + KO-Push echt end-to-end getestet
 
