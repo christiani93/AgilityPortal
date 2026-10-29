@@ -35,10 +35,22 @@ Stand: 2026-10-29
       Feature pro Jahr erneut händisch gesetzt werden, bis Vorlage um 2 Spalten + Copy-Logik
       ergänzt wird (Migration nötig). Bewusst NICHT am 2026-10-29 (einen Tag vor dem Event)
       gemacht — Migration-Risiko vs. Nutzen erst nächstes Jahr fällig.
+- [x] **schedule_public für Events 18/19/20 aktiviert** (2026-10-29): war bei allen dreien
+      `False` → öffentliche `/schedule` gab 403 (Startliste war schon öffentlich). Jetzt alle drei
+      öffentlich ohne Admin-Key abrufbar.
+- [x] **Grossring-Badge jetzt auch im eventexport** (`5d05b25`, DEPLOYED): Portal exportiert
+      `grossring_rings` (Ring-Nummern) im `schedule.json`; SW-Import (`e30f7a2`) übernimmt es
+      nach `event["grossring_rings"]` → Badge erscheint nach echtem Import automatisch, nicht
+      nur bei manuell gesetzter Checkbox. Vorher rein Portal-intern, nie exportiert.
+- [x] **HCS-Pipeline-Dry-Run komplett durchgespielt** (2026-10-29, einen Tag vor dem Event):
+      dediziertes Portal-Test-Event (#31, `is_test=True`, über echte Routen erzeugt) mit
+      Finale-Block+Grossring exportiert → in isolierte SW-Testinstanz importiert (Finalblock
+      korrekt, Timeline exakt wie Portal) → KO-Engine komplett durchgespielt (Finalisten
+      ableiten → Auslosen → Bracket → alle Runden aller 4 Kategorien → Endrangliste korrekt) →
+      alle KO-/Druck-/Zeitplan-Routen 200 → Test-Event wieder gelöscht, Prod-Health danach
+      verifiziert. **Fazit: code-seitig für HCS-Samstag nichts mehr offen.**
 - [ ] **⚠️ Per-Kategorie-Final-Split prüfen** (meine Schätzung L32/I16/M16/S16=80 lt. PDF;
       nur Summe steuert die Zeit) — User bestätigen/korrigieren in den Einstellungen.
-- [ ] **schedule_public für Event 19** aktivieren, falls der Zeitplan öffentlich sichtbar
-      sein soll (aktuell 0 → öffentliche /schedule gibt 403; Club-Editor zeigt alles).
 - [ ] (minor) „Teilbare Links"-Kind-Startlisten-Links (`routes.py:~3313`) haben kein
       `available`-Gate → bei Entwürfen klickbar aber 404 (Badge mildert es; optionaler Fix).
 
