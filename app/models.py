@@ -380,8 +380,15 @@ class Event(db.Model):
     # Konfigurierbare Einstellungen (JSON)
     # startnumber_schema: {"Large-1": 1101, "Large-2": 1201, ...}
     startnumber_schema = db.Column(db.Text, nullable=True)
-    # run_time_config: {"agility": 65, "jumping": 60, "open": 65}
+    # run_time_config: {"agility": 65, "jumping": 60, "open": 65, "final": 240}
     run_time_config = db.Column(db.Text, nullable=True)
+    # grossring_rings: JSON-Liste der Ringnamen, die als "grosser Ring" markiert
+    # sind (nur Anzeige im Zeitplan). z.B. ["Ring 3"]
+    grossring_rings = db.Column(db.Text, nullable=True)
+    # final_participants: Finalteilnehmer pro Kategorie für die Zeitplan-Berechnung
+    # des Finalblocks (es gibt dafür keine Online-Anmeldungen). JSON
+    # {"Large": 32, "Intermediate": 16, "Medium": 16, "Small": 16}
+    final_participants = db.Column(db.Text, nullable=True)
 
     # Logos (Dateiname relativ zu instance/uploads/logos/<event_id>/)
     event_logo_filename = db.Column(db.String(255), nullable=True)

@@ -15,6 +15,7 @@ SECONDS_PER_STARTER = {
     "jumping": 60,
     "open":    65,
     "tunnel":  60,   # inkl. Ringwechsel (Tunnellauf auf eigenem/wechselndem Ring)
+    "final":   240,  # American/KO: jedes Team läuft mehrfach → grosszügiger Default
 }
 CHANGEOVER_SECONDS      = 1200   # 20 Min Umbau pro Disziplin-/Klassenwechsel
 BRIEFING_MINUTES_PER_50 = 8      # 8 Min Briefing pro 50 Starter
@@ -29,6 +30,7 @@ DISCIPLINE_LABELS = {
     "jumping": "Jumping",
     "open":    "Open",
     "tunnel":  "Tunnellauf",
+    "final":   "Finale",
 }
 
 
@@ -123,12 +125,15 @@ def _split_into_groups(sorted_blocks: list) -> list:
     current_key = None
 
     for block in sorted_blocks:
-        if getattr(block, "block_type", "run") == "rank_announcement":
+        bt = getattr(block, "block_type", "run") or "run"
+        if bt != "run":
+            # Standalone-Element (unterbricht Lauf-Gruppen): Rangverkündigung
+            # (ohne Zeit) oder Finalblock (eigene, fix berechnete Dauer).
             if current_grp:
                 groups.append(("run_group", current_grp))
                 current_grp = []
                 current_key = None
-            groups.append(("rank", block))
+            groups.append(("rank" if bt == "rank_announcement" else bt, block))
         else:
             key = _group_key(block)
             force_split = getattr(block, "force_new_group", False) and current_grp
@@ -190,6 +195,23 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
                     "briefing_min":    0,
                     "prep_pause_min":  0,
                     "run_min":         0,
+                })
+            elif gtype == "final":
+                block = content
+                count = getattr(block, "_participant_count", 0)
+                secs  = _secs_per_starter("final", run_time_config)
+                run_s = max(count * secs, 60)
+                s, e, current = _advance(current, run_s, round_minutes)
+                items.append({
+                    "block":           block,
+                    "start_time":      s,
+                    "end_time":        e,
+                    "participants":    count,
+                    "total_min":       run_s // 60,
+                    "changeover_min":  0,
+                    "briefing_min":    0,
+                    "prep_pause_min":  0,
+                    "run_min":         run_s // 60,
                 })
             else:
                 run_group    = content
@@ -306,6 +328,22 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                     "participants": 0,
                 })
 
+            elif gtype == "final":
+                block = content
+                count = getattr(block, "_participant_count", 0)
+                secs  = _secs_per_starter("final", run_time_config)
+                run_s = max(count * secs, 60)
+                s, e, current = _advance(current, run_s, round_minutes)
+                items.append({
+                    "segment":      "final",
+                    "label":        (getattr(block, "_display_title", None)
+                                     or block.title or _("Finale")),
+                    "block":        block,
+                    "start_time":   s,
+                    "end_time":     e,
+                    "participants": count,
+                })
+
             else:
                 run_group   = content
                 leader      = run_group[0]
@@ -395,6 +433,40 @@ def parse_ring_start_times(json_str: str) -> dict:
         return json.loads(json_str)
     except Exception:
         return {}
+
+
+def parse_grossring_rings(json_str: str) -> set:
+    """Menge der Ringnamen, die als 'grosser Ring' markiert sind."""
+    if not json_str:
+        return set()
+    try:
+        value = json.loads(json_str)
+        return set(value) if isinstance(value, list) else set()
+    except Exception:
+        return set()
+
+
+def parse_final_participants(json_str: str) -> dict:
+    """{Kategorie: Anzahl} Finalteilnehmer für die Zeitplan-Berechnung."""
+    if not json_str:
+        return {}
+    try:
+        value = json.loads(json_str)
+    except Exception:
+        return {}
+    if not isinstance(value, dict):
+        return {}
+    out = {}
+    for cat, n in value.items():
+        try:
+            out[cat] = int(n)
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def final_participant_total(json_str: str) -> int:
+    return sum(parse_final_participants(json_str).values())
 
 
 def ring_names(ring_count: int) -> list:

@@ -38,6 +38,15 @@
         <input type="time" name="start_{{ ring.replace(' ', '_') }}"
                value="{{ start_times.get(ring, '08:00') }}"
                class="form-control form-control-sm" style="width:110px;">
+        <div class="form-check mt-1">
+          <input class="form-check-input" type="checkbox" value="1"
+                 id="grossring_{{ ring.replace(' ', '_') }}"
+                 name="grossring_{{ ring.replace(' ', '_') }}"
+                 {% if ring in grossring_rings %}checked{% endif %}>
+          <label class="form-check-label small" for="grossring_{{ ring.replace(' ', '_') }}">
+            🏟️ {{ _('Grossring') }}
+          </label>
+        </div>
       </div>
       {% endfor %}
 
@@ -78,6 +87,34 @@
               </div>
             </div>
             {% endfor %}
+            <div>
+              <label class="form-label small mb-1">{{ _('Finale') }}</label>
+              <div class="input-group input-group-sm" style="width:140px;">
+                <input type="number" name="rt_final"
+                       value="{{ run_time_cfg.get('final', rt_defaults.get('final', 240)) }}"
+                       min="30" max="1200" class="form-control">
+                <span class="input-group-text">{{ _('Sek.') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Finalteilnehmer pro Kategorie (für die Finalblock-Berechnung) ── #}
+        <div class="col-12">
+          <h6 class="mb-2">🏆 {{ _('Finalteilnehmer pro Kategorie') }}</h6>
+          <div class="d-flex flex-wrap gap-3">
+            {% for cat in final_categories %}
+            <div>
+              <label class="form-label small mb-1">{{ cat }}</label>
+              <input type="number" name="final_{{ cat }}" min="0" max="999"
+                     value="{{ final_participants.get(cat, '') }}"
+                     class="form-control form-control-sm text-center" style="width:90px;">
+            </div>
+            {% endfor %}
+          </div>
+          <div class="form-text text-muted mt-1">
+            {{ _('Für den Finale-Block (American/KO): es gibt dafür keine Online-Anmeldungen. Die Dauer = Summe aller Finalteilnehmer × Sek./Finalstarter. Beispiel: 80 Teams × 240 Sek. = 5h 20min.') }}
+            {% if final_total %}<strong>{{ _('Aktuell') }}: {{ final_total }} {{ _('Finalstarter') }}.</strong>{% endif %}
           </div>
         </div>
 
@@ -143,7 +180,9 @@
 {% set ring_blocks = blocks_by_ring.get(ring, []) | sort(attribute='sort_index') %}
 <div class="card mb-3">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">{{ ring }}</span>
+    <span class="fw-semibold">{{ ring }}
+      {% if ring in grossring_rings %}<span class="badge bg-dark ms-1">🏟️ {{ _('Grossring') }}</span>{% endif %}
+    </span>
     <span class="badge bg-secondary">{{ ring_blocks | length }} {{ _('Blöcke') }}</span>
   </div>
 
@@ -164,7 +203,8 @@
       <tbody id="sortable-{{ loop.index }}" data-ring="{{ ring }}">
         {% for block in ring_blocks %}
         <tr data-block-id="{{ block.id }}"
-            {% if block.block_type == 'rank_announcement' %}class="table-info"{% endif %}>
+            {% if block.block_type == 'rank_announcement' %}class="table-info"
+            {% elif block.block_type == 'final' %}class="table-danger"{% endif %}>
           <td class="text-center">
             <span class="drag-handle text-muted" style="cursor:grab;">⠿</span>
           </td>
@@ -172,6 +212,9 @@
             {% if block.block_type == 'rank_announcement' %}
               <span class="badge bg-info text-dark me-1">🏆</span>
               {{ block.title or _('Rangverkündigung') }}
+            {% elif block.block_type == 'final' %}
+              <span class="badge bg-danger me-1">{{ _('Finale') }}</span>
+              {{ block.title or _('Finale') }}
             {% else %}
               <span class="badge
                 {% if block.discipline == 'agility' %}bg-primary
@@ -218,7 +261,7 @@
             {% endif %}
           </td>
           <td class="text-muted small">
-            {% if block.block_type == 'rank_announcement' %}
+            {% if block.block_type in ('rank_announcement', 'final') %}
               —
             {% elif event_judges %}
               <form method="post"
@@ -261,6 +304,10 @@
           <td class="text-end text-muted small">
             {% if block.block_type == 'rank_announcement' %}
               —
+            {% elif block.block_type == 'final' %}
+              {% if block._participant_count > 0 %}
+                ~{{ (block._participant_count * run_time_cfg.get('final', 240)) // 60 }} {{ _('Min.') }}
+              {% else %}<span class="text-muted">—</span>{% endif %}
             {% elif block._participant_count > 0 %}
               {% set secs = {"agility": 65, "jumping": 60, "open": 65, "tunnel": 60} %}
               {% set run_s = block._participant_count * secs.get(block.discipline, 65) %}
@@ -472,6 +519,52 @@
   </div>
   </div>
 
+  {# ── 4c. Finale-Block hinzufügen ──────────────────────────────────────── #}
+  <div class="col-12">
+  <div class="card border-danger">
+    <div class="card-header d-flex justify-content-between align-items-center bg-danger bg-opacity-10">
+      <span>🏆 {{ _('Finale-Block hinzufügen') }}</span>
+      <button class="btn btn-sm btn-outline-danger" type="button"
+              data-bs-toggle="collapse" data-bs-target="#add-final-panel">
+        + {{ _('Hinzufügen') }}
+      </button>
+    </div>
+    <div class="collapse" id="add-final-panel">
+      <div class="card-body border-top">
+        <form method="post" action="{{ url_for('club.schedule_block_add', event_id=event.id) }}"
+              class="row g-2 align-items-end">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="block_type" value="final">
+
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Ring') }}</label>
+            <select name="ring" class="form-select form-select-sm">
+              {% for ring in rings %}
+              <option value="{{ ring }}" {% if ring in grossring_rings %}selected{% endif %}>
+                {{ ring }}{% if ring in grossring_rings %} 🏟️{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Titel') }}</label>
+            <input type="text" name="title" class="form-control form-control-sm" style="width:200px;"
+                   placeholder="{{ _('z. B. Finale HCS') }}">
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-danger">{{ _('Hinzufügen') }}</button>
+          </div>
+        </form>
+        <div class="form-text text-muted mt-1">
+          {{ _('Der Finale-Block (American/KO) berechnet seine Dauer aus den Finalteilnehmern (Einstellungen) × Sek./Finalstarter — nicht aus Online-Anmeldungen. Aktuell') }}:
+          <strong>{{ final_total }} {{ _('Finalstarter') }}</strong>
+          {% if not final_total %}<span class="text-danger">({{ _('zuerst in den Einstellungen eintragen!') }})</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
 </div>{# end row #}
 
 {# ── 5. TIMELINE ──────────────────────────────────────────────────────────── #}
@@ -503,14 +596,18 @@
           {% if ring_timeline %}
           {% for item in ring_timeline %}
           {% set is_rank = item.block.block_type == 'rank_announcement' %}
-          <tr {% if loop.first %}class="table-active fw-semibold"{% elif is_rank %}class="table-info"{% endif %}>
-            {% if loop.first %}<td rowspan="{{ ring_timeline | length }}">{{ ring }}</td>{% endif %}
+          {% set is_final = item.block.block_type == 'final' %}
+          <tr {% if loop.first %}class="table-active fw-semibold"{% elif is_rank %}class="table-info"{% elif is_final %}class="table-danger fw-semibold"{% endif %}>
+            {% if loop.first %}<td rowspan="{{ ring_timeline | length }}">{{ ring }}{% if ring in grossring_rings %}<br><span class="badge bg-dark mt-1">🏟️ {{ _('Grossring') }}</span>{% endif %}</td>{% endif %}
             <td class="fw-semibold">{{ item.start_time }}</td>
             <td class="text-muted">{% if not is_rank %}{{ item.end_time }}{% else %}—{% endif %}</td>
             <td>
               {% if is_rank %}
                 <span class="badge bg-info text-dark me-1">🏆</span>
                 {{ item.block.title or _('Rangverkündigung') }}
+              {% elif is_final %}
+                <span class="badge bg-danger me-1" style="font-size:.65rem;">{{ _('Finale') }}</span>
+                {{ item.block._display_title }}
               {% else %}
                 <span class="badge
                   {% if item.block.discipline == 'agility' %}bg-primary
@@ -522,7 +619,7 @@
               {% endif %}
             </td>
             <td class="text-muted small">
-              {% if not is_rank %}{{ item.block._effective_judge.full_name if item.block._effective_judge else "—" }}{% else %}—{% endif %}
+              {% if is_rank or is_final %}—{% else %}{{ item.block._effective_judge.full_name if item.block._effective_judge else "—" }}{% endif %}
             </td>
             <td class="text-end">{% if not is_rank %}{{ item.participants }}{% else %}—{% endif %}</td>
             <td class="text-end text-muted small">

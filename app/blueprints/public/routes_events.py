@@ -224,6 +224,8 @@ def public_schedule(event_id):
     from app.blueprints.club.schedule_utils import (auto_title,
                                                     compute_detailed_segments,
                                                     parse_ring_start_times,
+                                                    parse_grossring_rings,
+                                                    final_participant_total,
                                                     ring_names)
 
     blocks = (
@@ -232,15 +234,23 @@ def public_schedule(event_id):
         .all()
     )
     counts = _participant_counts_for_event(event_id)
+    final_total = final_participant_total(event.final_participants)
     for b in blocks:
-        b._participant_count = _effective_participant_count(b, counts)
-        b._display_title = b.title or auto_title(
-            b.discipline, b.category_code, b.class_level)
+        if b.block_type == "final":
+            b._participant_count = (b.participant_count_override
+                                    if b.participant_count_override is not None
+                                    else final_total)
+            b._display_title = b.title or "Finale"
+        else:
+            b._participant_count = _effective_participant_count(b, counts)
+            b._display_title = b.title or auto_title(
+                b.discipline, b.category_code, b.class_level)
 
     rings = ring_names(event.ring_count or 1)
     start_times = parse_ring_start_times(event.ring_start_times)
     for r in rings:
         start_times.setdefault(r, "08:00")
+    grossring_rings = parse_grossring_rings(event.grossring_rings)
     sched_by_ring = {r: [] for r in rings}
     for b in blocks:
         if b.ring in sched_by_ring:
@@ -260,7 +270,7 @@ def public_schedule(event_id):
     return render_template(
         "public/schedule.html", event=event, rings=rings,
         sched_by_ring=sched_by_ring, sched_timeline=sched_timeline,
-        has_start_numbers=has_start_numbers,
+        has_start_numbers=has_start_numbers, grossring_rings=grossring_rings,
     )
 
 

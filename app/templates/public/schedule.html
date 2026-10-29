@@ -44,9 +44,13 @@
             {% elif item.segment == 'briefing' %}table-warning
             {% elif item.segment == 'prep_pause' %}table-secondary text-muted
             {% elif item.segment == 'rank_announcement' %}table-info fw-semibold
+            {% elif item.segment == 'final' %}table-danger fw-semibold
             {% endif %}">
             {% if loop.first %}
-            <td rowspan="{{ ring_segs | length }}" class="fw-semibold align-middle">{{ ring }}</td>
+            <td rowspan="{{ ring_segs | length }}" class="fw-semibold align-middle">
+              {{ ring }}
+              {% if ring in grossring_rings %}<br><span class="badge bg-dark mt-1">🏟️ {{ _('Grossring') }}</span>{% endif %}
+            </td>
             {% endif %}
             <td class="fw-semibold text-nowrap">{{ item.start_time }}</td>
             <td class="text-muted text-nowrap">
@@ -72,6 +76,9 @@
                 <span class="text-muted">🚶 {{ item.label }}</span>
               {% elif item.segment == 'rank_announcement' %}
                 🏆 {{ item.label }}
+              {% elif item.segment == 'final' %}
+                <span class="badge bg-danger" style="font-size:.65rem;">{{ _('Finale') }}</span>
+                {{ item.label }}
               {% else %}
                 {{ item.label }}
               {% endif %}
@@ -100,11 +107,19 @@
         {% set ring_blocks = sched_by_ring.get(ring, []) | sort(attribute='sort_index') %}
         {% if ring_blocks %}
         <div class="col-md-auto" style="min-width:220px;">
-          <div class="fw-semibold text-muted small text-uppercase mb-2">{{ ring }}</div>
+          <div class="fw-semibold text-muted small text-uppercase mb-2">
+            {{ ring }}
+            {% if ring in grossring_rings %}<span class="badge bg-dark ms-1">🏟️ {{ _('Grossring') }}</span>{% endif %}
+          </div>
           <ol class="list-group list-group-numbered list-group-flush" style="font-size:.88rem;">
             {% for block in ring_blocks %}
             <li class="list-group-item d-flex align-items-start gap-2 px-0 py-1 border-0">
               <div>
+                {% if block.block_type == 'final' %}
+                <span class="badge bg-danger me-1" style="font-size:.6rem;">{{ _('Finale') }}</span>
+                {% elif block.block_type == 'rank_announcement' %}
+                <span class="badge bg-info text-dark me-1" style="font-size:.6rem;">🏆</span>
+                {% else %}
                 <span class="badge
                   {% if block.discipline == 'agility' %}bg-primary
                   {% elif block.discipline == 'jumping' %}bg-success
@@ -112,6 +127,7 @@
                   style="font-size:.6rem;">
                   {{ block.discipline | discipline_label }}
                 </span>
+                {% endif %}
                 {{ block._display_title }}
                 {% if block.judge %}
                 <div class="text-muted" style="font-size:.75rem;">{{ block.judge.full_name }}</div>

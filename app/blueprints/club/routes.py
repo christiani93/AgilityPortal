@@ -1697,7 +1697,8 @@ _START_NUMBER_SCHEMA_DEFAULT = {
 }
 
 # Standard-Laufzeit in Sekunden pro Starter
-_RUN_TIME_CONFIG_DEFAULT = {"agility": 65, "jumping": 60, "open": 65, "tunnel": 60}
+_RUN_TIME_CONFIG_DEFAULT = {"agility": 65, "jumping": 60, "open": 65, "tunnel": 60,
+                            "final": 240}
 
 # Export-Label pro Disziplin für die AgilitySoftware. Die Software matcht auf
 # exakte Literale ("Tunnellauf", nicht "Tunnel"), darum ein explizites Mapping
@@ -1722,14 +1723,16 @@ def _get_startnumber_schema(event) -> dict:
 
 
 def _get_run_time_config(event) -> dict:
-    """Gibt die Event-spezifische Laufzeit-Konfiguration zurück, oder den Default."""
+    """Gibt die Event-spezifische Laufzeit-Konfiguration zurück (Default-Werte für
+    fehlende Disziplinen ergänzt, z.B. 'final' bei Alt-Events)."""
     import json as _j
+    cfg = dict(_RUN_TIME_CONFIG_DEFAULT)
     if event.run_time_config:
         try:
-            return {k: int(v) for k, v in _j.loads(event.run_time_config).items()}
+            cfg.update({k: int(v) for k, v in _j.loads(event.run_time_config).items()})
         except Exception:
             pass
-    return dict(_RUN_TIME_CONFIG_DEFAULT)
+    return cfg
 
 
 @club_bp.post("/registrations/<int:reg_id>/confirm")
@@ -2420,6 +2423,20 @@ def event_export_zip(event_id):
                 "judge_ais_id":  effective_judge.ais_judge_id if effective_judge else None,
                 "judge_name":    effective_judge.full_name if effective_judge else None,
             })
+        elif b.block_type == "final":
+            # Finalblock: Dauer aus Finalteilnehmern × Sek./Finalstarter. Als
+            # duration_minutes exportiert, damit auch ein naiver Konsument (der
+            # "final" nicht kennt) eine sinnvolle Dauer hat.
+            from .schedule_utils import final_participant_total
+            fp_total = (b.participant_count_override
+                        if b.participant_count_override is not None
+                        else final_participant_total(event.final_participants))
+            final_secs = _get_run_time_config(event).get("final", 240)
+            blk.update({
+                "title":              b.title or "Finale",
+                "final_participants": fp_total,
+                "duration_minutes":   (fp_total * final_secs) // 60,
+            })
         else:  # rank_announcement
             blk.update({
                 "title":            b.title or "Rangverkündigung",
@@ -2655,7 +2672,9 @@ def _participant_counts_for_event(event_id):
 def event_schedule(event_id):
     import json as _json
     from .schedule_utils import (compute_timeline, parse_ring_start_times,
-                                  ring_names, auto_title, _split_into_groups)
+                                  ring_names, auto_title, _split_into_groups,
+                                  parse_grossring_rings, parse_final_participants,
+                                  final_participant_total)
 
     event = db.session.get(Event, event_id)
     if not event:
@@ -2666,6 +2685,9 @@ def event_schedule(event_id):
     start_times = parse_ring_start_times(event.ring_start_times)
     for r in rings:
         start_times.setdefault(r, "08:00")
+    grossring_rings = parse_grossring_rings(event.grossring_rings)
+    final_participants = parse_final_participants(event.final_participants)
+    final_total = final_participant_total(event.final_participants)
 
     # Alle ScheduleBlocks für dieses Event, sortiert
     all_blocks = db.session.execute(
@@ -2678,13 +2700,21 @@ def event_schedule(event_id):
     # leitet den Richter über seine EventRun-Verknüpfung ab (block.judge).
     counts = _participant_counts_for_event(event_id)
     for block in all_blocks:
-        block._participant_count = _effective_participant_count(block, counts)
+        if block.block_type == "final":
+            block._participant_count = (
+                block.participant_count_override
+                if block.participant_count_override is not None else final_total
+            )
+        else:
+            block._participant_count = _effective_participant_count(block, counts)
         block._is_group_leader = False
         block._effective_judge = block.judge
-        if not block.title:
-            block._display_title = auto_title(block.discipline, block.category_code, block.class_level)
-        else:
+        if block.title:
             block._display_title = block.title
+        elif block.block_type == "final":
+            block._display_title = _("Finale")
+        else:
+            block._display_title = auto_title(block.discipline, block.category_code, block.class_level)
 
     # Blocks nach Ring gruppieren
     blocks_by_ring = {r: [] for r in rings}
@@ -2735,6 +2765,10 @@ def event_schedule(event_id):
         event_judges=event_judges,
         run_time_cfg=run_time_cfg,
         startnr_schema=startnr_schema,
+        grossring_rings=grossring_rings,
+        final_participants=final_participants,
+        final_total=final_total,
+        final_categories=["Large", "Intermediate", "Medium", "Small"],
         sn_defaults=_START_NUMBER_SCHEMA_DEFAULT,
         rt_defaults=_RUN_TIME_CONFIG_DEFAULT,
     )
@@ -2756,6 +2790,7 @@ def schedule_save_rings(event_id):
 
     rings = ring_names(ring_count)
     times = {}
+    grossring = []
     for r in rings:
         key = f"start_{r.replace(' ', '_')}"
         val = (request.form.get(key) or "08:00").strip()
@@ -2764,7 +2799,10 @@ def schedule_save_rings(event_id):
         except ValueError:
             val = "08:00"
         times[r] = val
+        if request.form.get(f"grossring_{r.replace(' ', '_')}"):
+            grossring.append(r)
     event.ring_start_times = _json.dumps(times)
+    event.grossring_rings = _json.dumps(grossring) if grossring else None
     db.session.commit()
     flash(_("Ringkonfiguration gespeichert."), "success")
     return redirect(url_for("club.event_schedule", event_id=event_id))
@@ -2791,13 +2829,21 @@ def schedule_save_settings(event_id):
             schema[key] = val if val and val > 0 else base
     event.startnumber_schema = _json.dumps(schema)
 
-    # ── Laufzeit pro Disziplin ─────────────────────────────────────────────
+    # ── Laufzeit pro Disziplin (inkl. Finale: Sek. pro Finalstarter) ────────
     run_cfg = {}
-    for disc in ("agility", "jumping", "open", "tunnel"):
+    for disc in ("agility", "jumping", "open", "tunnel", "final"):
         val = request.form.get(f"rt_{disc}", type=int)
         default = _RUN_TIME_CONFIG_DEFAULT[disc]
         run_cfg[disc] = val if val and val > 0 else default
     event.run_time_config = _json.dumps(run_cfg)
+
+    # ── Finalteilnehmer pro Kategorie (für die Finalblock-Zeitberechnung) ───
+    final_part = {}
+    for cat in ("Large", "Intermediate", "Medium", "Small"):
+        val = request.form.get(f"final_{cat}", type=int)
+        if val and val > 0:
+            final_part[cat] = val
+    event.final_participants = _json.dumps(final_part) if final_part else None
 
     # ── Startnummern-Regelsatz: pro Kategorie klassenübergreifend? ──────────
     event.start_numbers_rule_set = (
@@ -2839,6 +2885,19 @@ def schedule_block_add(event_id):
             class_level=None,
             duration_minutes=None,
             title=title or "Rangverkündigung",
+            sort_index=max_idx + 10,
+        )
+    elif block_type == "final":
+        # Finalblock (American/KO): Dauer wird aus den Finalteilnehmern
+        # (Einstellungen) × Sek./Finalstarter berechnet, nicht aus Anmeldungen.
+        block = ScheduleBlock(
+            event_id=event_id,
+            ring=ring,
+            block_type="final",
+            discipline=None,
+            category_code=None,
+            class_level=None,
+            title=title or "Finale",
             sort_index=max_idx + 10,
         )
     else:
