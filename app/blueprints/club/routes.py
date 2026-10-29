@@ -2461,7 +2461,26 @@ def event_export_zip(event_id):
         if num is not None and start_val:
             ring_start_times_out[num] = start_val
 
-    schedule_payload = {"blocks": schedule_blocks_out, "ring_start_times": ring_start_times_out}
+    # Grossring-Markierung mitgeben (nur Anzeige, keine Berechnung) — gleiche
+    # Ring-Name->Nummer-Normalisierung wie bei den Startzeiten oben.
+    from .schedule_utils import parse_grossring_rings
+    grossring_out = []
+    for ring_label in parse_grossring_rings(event.grossring_rings):
+        num = None
+        for part in str(ring_label).split():
+            if part.isdigit():
+                num = part
+                break
+        if num is None and str(ring_label).isdigit():
+            num = str(ring_label)
+        if num is not None:
+            grossring_out.append(num)
+
+    schedule_payload = {
+        "blocks": schedule_blocks_out,
+        "ring_start_times": ring_start_times_out,
+        "grossring_rings": grossring_out,
+    }
 
     # ── ZIP zusammenbauen ─────────────────────────────────────────────────────
     import os as _os

@@ -88,3 +88,26 @@ def test_club_export_includes_breed_and_club_name(app):
         for reg in registrations:
             assert "club_name" in reg, "registrations[] ohne 'club_name' — Kontrakt verletzt"
         assert all(r["club_name"] == "1234" for r in registrations)
+
+
+def test_club_export_includes_grossring_rings(app):
+    """Grossring-Markierung (2026-10-29) MUSS im schedule.json landen, normiert
+    auf Ring-Nummern wie ring_start_times — sonst zeigt die Software die
+    Grossring-Markierung nicht an (rein visuell, keine Berechnung)."""
+    with app.app_context():
+        event_id, admin_id = _seed_event()
+        event = db.session.get(M.Event, event_id)
+        event.ring_count = 3
+        event.grossring_rings = json.dumps(["Ring 3"])
+        db.session.commit()
+
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.get(f"/club/events/{event_id}/export.zip")
+        assert resp.status_code == 200
+
+        with zipfile.ZipFile(io.BytesIO(resp.data)) as zf:
+            schedule = json.loads(zf.read("schedule.json"))
+
+        assert schedule.get("grossring_rings") == ["3"]
