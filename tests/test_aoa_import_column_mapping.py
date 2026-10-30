@@ -36,10 +36,14 @@ def _resolve_cols(headers):
     return _detect_columns(headers)
 
 
+# Optionale Spalten, die nicht jedes Export-Format hat (dürfen None sein)
+OPTIONAL_COLS = {"breed", "phone2", "sex"}
+
+
 def test_aoa_original_headers_all_mapped():
     cols = _resolve_cols(AOA_HEADERS)
-    # breed ist optional (AOA-Original hat keine Rasse-Spalte)
-    required = {k: v for k, v in cols.items() if k != "breed"}
+    # breed/phone2/sex sind optional (AOA-Original hat weder Rasse, Mobile noch Geschlecht)
+    required = {k: v for k, v in cols.items() if k not in OPTIONAL_COLS}
     assert all(required.values()), f"Unmapped: {[k for k,v in required.items() if not v]}"
     assert cols["license"] == "Lizenz"
     assert cols["dog_name"] == "Hundename"
@@ -47,7 +51,8 @@ def test_aoa_original_headers_all_mapped():
 
 def test_tkamo_h_hf_prefix_headers_all_mapped():
     cols = _resolve_cols(TKAMO_HEADERS)
-    assert all(cols.values()), f"Unmapped: {[k for k,v in cols.items() if not v]}"
+    required = {k: v for k, v in cols.items() if k not in OPTIONAL_COLS}
+    assert all(required.values()), f"Unmapped: {[k for k,v in required.items() if not v]}"
     # Korrekte Disambiguierung: "HF Name" → last_name, "H Name" → dog_name
     assert cols["license"] == "H Lizenz"
     assert cols["dog_name"] == "H Name"

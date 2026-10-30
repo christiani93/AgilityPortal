@@ -56,6 +56,13 @@ CATEGORY_MAP = {
     "s": "Small",
 }
 
+# Geschlecht (TKAMO: "Weiblich"/"Männlich") → Dog.sex (M/F)
+SEX_MAP = {
+    "m": "M", "männlich": "M", "maennlich": "M", "mannlich": "M", "male": "M",
+    "rüde": "M", "rude": "M",
+    "f": "F", "w": "F", "weiblich": "F", "female": "F", "hündin": "F", "huendin": "F",
+}
+
 # Kurzpräfixe → 3-Zeichen ISO-Code (Dog-Validator braucht genau 3 Buchstaben)
 LICENSE_PREFIX_NORMALIZE = {
     "A": "AUT",
@@ -94,6 +101,15 @@ def _detect_license_kind(license_no: str) -> LicenseKind:
     if license_no.strip().isdigit():
         return LicenseKind.CH
     return LicenseKind.FOREIGN
+
+
+def _normalize_sex(value: str) -> str | None:
+    """Geschlecht aus dem TKAMO-Export auf 'M'/'F' normalisieren (Dog.sex).
+    Leer/unbekannt → None."""
+    v = (value or "").strip().lower()
+    if not v:
+        return None
+    return SEX_MAP.get(v) or SEX_MAP.get(v[0])
 
 
 def _unescape(text: str) -> str:
@@ -142,10 +158,16 @@ def _detect_columns(headers: list[str]) -> dict[str, str | None]:
         "first_name": _find_column(headers, "Vorname", "FirstName", "Fname", "HF Vorname"),
         "last_name": _find_column(headers, "Nachname", "LastName", "Lname", "Name", "HF Name"),
         "email": _find_column(headers, "Email", "E-Mail", "EMail", "HF Email"),
-        "phone": _find_column(headers, "Telefon", "Phone", "Tel", "Mobile", "HF Telefon"),
+        "phone": _find_column(headers, "Telefon", "Phone", "Tel", "HF Telefon"),
+        # TKAMO-Exporte führen Telefon UND Mobile getrennt; Telefon ist oft leer,
+        # Mobile gefüllt. phone2 dient als Fallback beim Zeilen-Lesen.
+        "phone2": _find_column(headers, "Mobile", "Mobiltelefon", "Natel", "Handy"),
         "club": _find_column(headers, "Verein", "Club", "ClubName", "HF Verein"),
-        "club_no": _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr", "HF Vereinnr"),
+        "club_no": _find_column(headers, "Vereinsnummer", "ClubNo", "VereinsNr",
+                                "Vereins-Nr.", "Vereins-Nr", "HF Vereinnr"),
         "breed": _find_column(headers, "Rasse", "Breed", "H Rasse"),
+        # Geschlecht des Hundes (TKAMO: "Weiblich"/"Männlich") → Dog.sex (M/F)
+        "sex": _find_column(headers, "Geschlecht", "Sex", "Sexe", "Geschlecht Hund"),
     }
 
 
@@ -155,10 +177,16 @@ def _parse_csv(file_content: str) -> tuple[list[dict], list[str]]:
     Gibt (rows, headers) zurück.
     Versucht Semikolon und Komma als Trennzeichen.
     """
-    # Trennzeichen automatisch erkennen
+    # Trennzeichen automatisch erkennen. Der Sniffer scheitert an manchen
+    # TKAMO-Exporten ("Could not determine delimiter", viele leere Felder/Quotes);
+    # dann das häufigste Trennzeichen der Kopfzeile nehmen (';' ist CH/TKAMO-Standard).
     sample = file_content[:2048]
-    dialect = csv.Sniffer().sniff(sample, delimiters=";,\t")
-    reader = csv.DictReader(io.StringIO(file_content), dialect=dialect)
+    try:
+        delimiter = csv.Sniffer().sniff(sample, delimiters=";,\t").delimiter
+    except csv.Error:
+        first_line = file_content.split("\n", 1)[0]
+        delimiter = max(";,\t", key=first_line.count)
+    reader = csv.DictReader(io.StringIO(file_content), delimiter=delimiter)
     rows = list(reader)
     headers = reader.fieldnames or []
     return rows, list(headers)
@@ -471,6 +499,7 @@ def aoa_import_stammdaten_execute():
     col_category = cols["category"]
     col_class = cols["class"]
     col_breed = cols["breed"]
+    col_sex = cols["sex"]
 
     created = 0
     updated = 0
@@ -489,6 +518,7 @@ def aoa_import_stammdaten_execute():
             except ValueError:
                 class_level = None
             breed = _unescape((row.get(col_breed) or "").strip()) if col_breed else ""
+            sex = _normalize_sex(row.get(col_sex)) if col_sex else None
 
             dog = Dog.query.filter_by(license_no=license_no).first()
             if not dog:
@@ -499,6 +529,7 @@ def aoa_import_stammdaten_execute():
                     category=category[0].upper() if category else None,
                     class_level=class_level,
                     breed=breed or None,
+                    sex=sex,
                 )
                 db.session.add(dog)
                 created += 1
@@ -506,6 +537,9 @@ def aoa_import_stammdaten_execute():
                 changed = False
                 if dog_name and dog.name != dog_name:
                     dog.name = dog_name
+                    changed = True
+                if sex and not dog.sex:
+                    dog.sex = sex
                     changed = True
                 if breed and dog.breed != breed:
                     dog.breed = breed
@@ -907,9 +941,11 @@ def aoa_import_execute():
     col_last_name = cols["last_name"]
     col_email = cols["email"]
     col_phone = cols["phone"]
+    col_phone2 = cols["phone2"]
     col_club = cols["club"]
     col_club_no = cols["club_no"]
     col_breed = cols["breed"]
+    col_sex = cols["sex"]
 
     created = 0
     skipped = 0
@@ -931,7 +967,9 @@ def aoa_import_execute():
         first_name = _unescape((row.get(col_first_name) or "").strip()) if col_first_name else ""
         last_name = _unescape((row.get(col_last_name) or "").strip()) if col_last_name else ""
         email = (row.get(col_email) or "").strip() if col_email else None
-        phone = (row.get(col_phone) or "").strip() if col_phone else None
+        phone = ((row.get(col_phone) or "").strip() if col_phone else "") \
+            or ((row.get(col_phone2) or "").strip() if col_phone2 else "") or None
+        sex = _normalize_sex(row.get(col_sex)) if col_sex else None
         # Vereinsnummer bevorzugt (für TKAMO-Lizenzcheck-Export benötigt),
         # sonst Klartext-Vereinsname als Fallback. "0" = Ausland/kein CH-Verein,
         # dann lieber den Klartext-Namen (z.B. "--- AUSLAND ---") behalten.
@@ -953,6 +991,7 @@ def aoa_import_execute():
                     category=category[0].upper() if category else None,  # L/I/M/S
                     class_level=class_level,
                     breed=breed or None,
+                    sex=sex,
                 )
                 db.session.add(dog)
                 db.session.flush()
@@ -963,6 +1002,9 @@ def aoa_import_execute():
                     dog.name = dog_name
                 if breed and dog.breed != breed:
                     dog.breed = breed
+                # Geschlecht nur nachtragen, wenn noch leer (manuelle Pflege gewinnt).
+                if sex and not dog.sex:
+                    dog.sex = sex
 
             # 2. Person (Hundeführer) finden oder anlegen
             person = None
