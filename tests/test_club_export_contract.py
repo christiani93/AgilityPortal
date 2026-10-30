@@ -45,6 +45,12 @@ def _seed_event():
         breed="Border Collie",
     )
     person = M.Person(first_name="Max", last_name="Muster")
+    # Franz. Zusatzfelder (CNEAC-Formular) — pro Teilnehmer gesetzt.
+    dog.fapac_no = "D-12345"
+    dog.sex = "M"
+    person.fr_license_no = "L-98765"
+    person.fr_club = "CC Lyon"
+    person.fr_regionale = "Rhône-Alpes"
     db.session.add_all([dog, person])
     db.session.flush()
 
@@ -88,6 +94,30 @@ def test_club_export_includes_breed_and_club_name(app):
         for reg in registrations:
             assert "club_name" in reg, "registrations[] ohne 'club_name' — Kontrakt verletzt"
         assert all(r["club_name"] == "1234" for r in registrations)
+
+
+def test_club_export_includes_french_extra_fields(app):
+    """Franz. Zusatzfelder (FAPAC/Sexe am Hund, fr_licence/fr_club/fr_regionale
+    am Laeufer) MUESSEN im Export landen, sonst bleiben sie beim CNEAC-Formular
+    in der Software leer."""
+    with app.app_context():
+        event_id, admin_id = _seed_event()
+        client = app.test_client()
+        _login(client, admin_id)
+
+        resp = client.get(f"/club/events/{event_id}/export.zip")
+        assert resp.status_code == 200
+
+        with zipfile.ZipFile(io.BytesIO(resp.data)) as zf:
+            entities = json.loads(zf.read("entities.json"))
+
+        dog = entities["dogs"][0]
+        assert dog["fapac"] == "D-12345"
+        assert dog["sexe"] == "M"
+        handler = entities["handlers"][0]
+        assert handler["fr_licence"] == "L-98765"
+        assert handler["fr_club"] == "CC Lyon"
+        assert handler["fr_regionale"] == "Rhône-Alpes"
 
 
 def test_club_export_includes_grossring_rings(app):

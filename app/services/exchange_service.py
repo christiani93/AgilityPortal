@@ -66,6 +66,9 @@ def build_event_export_zip(event_id: int):
                 "license_no": dog.license_no,
                 "license_kind": dog.license_kind.value,
                 "breed": dog.breed,
+                # Franz. Zusatzfelder (CNEAC-Formular), nur bei FR-Teilnehmern gesetzt.
+                "fapac": dog.fapac_no,
+                "sexe": dog.sex,
             }
         if handler:
             if not handler.external_id:
@@ -75,6 +78,10 @@ def build_event_export_zip(event_id: int):
                 "first_name": handler.first_name,
                 "last_name": handler.last_name,
                 "email": handler.email,
+                # Franz. Zusatzfelder des Laeufers (CNEAC-Formular).
+                "fr_licence": handler.fr_license_no,
+                "fr_club": handler.fr_club,
+                "fr_regionale": handler.fr_regionale,
             }
 
         if not registration.external_id:

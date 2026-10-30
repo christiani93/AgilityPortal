@@ -127,6 +127,11 @@ class ProfileForm(FlaskForm):
     first_name = StringField(_("Vorname"), validators=[DataRequired(), Length(max=100)])
     last_name = StringField(_("Nachname"), validators=[DataRequired(), Length(max=100)])
     phone = StringField(_("Telefon"), validators=[Optional(), Length(max=50)])
+    # Franz. Zusatzangaben (nur relevant fuer Teilnehmer mit auslaendischer Lizenz,
+    # fuers offizielle CNEAC-Ergebnisformular). Alle optional.
+    fr_license_no = StringField(_("N° licence (franz. Läuferlizenz)"), validators=[Optional(), Length(max=50)])
+    fr_club = StringField(_("Club (franz. Verein)"), validators=[Optional(), Length(max=120)])
+    fr_regionale = StringField(_("Régionale"), validators=[Optional(), Length(max=120)])
     submit = SubmitField(_("Speichern"))
 
 
@@ -139,6 +144,10 @@ class DogForm(FlaskForm):
     breed = StringField(_("Rasse"), validators=[Optional(), Length(max=120)])
     license_kind = SelectField(_("Lizenz-Typ"), choices=[("CH", _("Schweiz (CH)")), ("FOREIGN", _("Ausland (FOREIGN)"))])
     license_no = StringField(_("Lizenznummer"), validators=[DataRequired(), Length(max=50)])
+    # Franz. Zusatzangaben des Hundes (nur bei auslaendischer Lizenz relevant,
+    # fuers CNEAC-Ergebnisformular). Optional.
+    fapac_no = StringField(_("FAPAC (franz. Hundelizenz)"), validators=[Optional(), Length(max=50)])
+    sex = SelectField(_("Sexe"), choices=[("", "—"), ("M", _("Rüde (M)")), ("F", _("Hündin (F)"))], validators=[Optional()])
     submit = SubmitField(_("Hund speichern"))
 
 

@@ -35,6 +35,33 @@
       <div class="form-text text-muted mb-3">
         {{ _('Der Name wird für Export/Startliste verwendet (z.B. Hundeführer-Angabe).') }}
       </div>
+
+      <hr>
+      <p class="text-muted small mb-2">
+        {{ _('Nur für Teilnehmer mit ausländischer (französischer) Lizenz – fürs offizielle CNEAC-Ergebnisformular. Leer lassen, falls nicht zutreffend.') }}
+      </p>
+      <div class="mb-3">
+        {{ form.fr_license_no.label(class="form-label") }}
+        {{ form.fr_license_no(class="form-control" + (" is-invalid" if form.fr_license_no.errors else "")) }}
+        {% for err in form.fr_license_no.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.fr_club.label(class="form-label") }}
+        {{ form.fr_club(class="form-control" + (" is-invalid" if form.fr_club.errors else "")) }}
+        {% for err in form.fr_club.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.fr_regionale.label(class="form-label") }}
+        {{ form.fr_regionale(class="form-control" + (" is-invalid" if form.fr_regionale.errors else "")) }}
+        {% for err in form.fr_regionale.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+
       {{ form.submit(class="btn btn-primary") }}
     </form>
   </div>

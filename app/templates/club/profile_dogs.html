@@ -138,6 +138,23 @@
       <div class="form-text text-muted mb-3">
         {{ _('Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), wirst du automatisch als Hundeführer verknüpft.') }}
       </div>
+
+      <hr>
+      <p class="text-muted small mb-2">
+        {{ _('Nur für ausländische (französische) Lizenzen – fürs offizielle CNEAC-Ergebnisformular. Leer lassen, falls nicht zutreffend.') }}
+      </p>
+      <div class="mb-3">
+        {{ form.fapac_no.label(class="form-label") }}
+        {{ form.fapac_no(class="form-control" + (" is-invalid" if form.fapac_no.errors else "")) }}
+        {% for err in form.fapac_no.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.sex.label(class="form-label") }}
+        {{ form.sex(class="form-select") }}
+      </div>
+
       {{ form.submit(class="btn btn-primary") }}
     </form>
   </div>

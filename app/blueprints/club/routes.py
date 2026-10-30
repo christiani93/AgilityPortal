@@ -1222,12 +1222,18 @@ def profile_edit():
     form = ProfileForm(obj=current_user)
     if request.method == "GET":
         form.phone.data = current_user.person.phone
+        form.fr_license_no.data = current_user.person.fr_license_no
+        form.fr_club.data = current_user.person.fr_club
+        form.fr_regionale.data = current_user.person.fr_regionale
     if form.validate_on_submit():
         current_user.first_name = form.first_name.data.strip()
         current_user.last_name = form.last_name.data.strip()
         current_user.person.first_name = form.first_name.data.strip()
         current_user.person.last_name = form.last_name.data.strip()
         current_user.person.phone = form.phone.data.strip() if form.phone.data else None
+        current_user.person.fr_license_no = form.fr_license_no.data.strip() if form.fr_license_no.data else None
+        current_user.person.fr_club = form.fr_club.data.strip() if form.fr_club.data else None
+        current_user.person.fr_regionale = form.fr_regionale.data.strip() if form.fr_regionale.data else None
         db.session.commit()
         flash(_("Angaben gespeichert."), "success")
         return redirect(url_for("club.profile_edit"))
@@ -1273,6 +1279,8 @@ def profile_dogs():
                 dog.breed = form.breed.data.strip() if form.breed.data else None
                 dog.license_kind = license_kind
                 dog.license_no = license_no
+                dog.fapac_no = form.fapac_no.data.strip() if form.fapac_no.data else None
+                dog.sex = form.sex.data or None
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
@@ -2333,6 +2341,11 @@ def event_export_zip(event_id):
                     "external_id": str(reg.handler_id),
                     "firstname":   p.first_name or "",
                     "lastname":    p.last_name  or "",
+                    # Franz. Zusatzfelder des Laeufers (CNEAC-Formular), nur bei
+                    # FR-Teilnehmern gesetzt.
+                    "fr_licence":  p.fr_license_no or "",
+                    "fr_club":     p.fr_club or "",
+                    "fr_regionale": p.fr_regionale or "",
                 })
         if reg.dog and reg.dog.license_no:
             dogs_list.append({
@@ -2346,6 +2359,9 @@ def event_export_zip(event_id):
                 # Teil des Portal→Software-Kontrakts, siehe
                 # test_club_export_contract.py.
                 "breed":               reg.dog.breed or "",
+                # Franz. Zusatzfelder des Hundes (CNEAC-Formular).
+                "fapac":               reg.dog.fapac_no or "",
+                "sexe":                reg.dog.sex or "",
             })
 
     entities = {"handlers": handlers_list, "dogs": dogs_list}

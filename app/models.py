@@ -169,6 +169,11 @@ class Person(db.Model):
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
     external_id = db.Column(db.String(64), unique=True)
+    # Franz. Zusatzangaben des Laeufers (nur fuer FR-Teilnehmer, CNEAC-Formular):
+    # Laeuferlizenz (N° licence), franz. Verein (Club), franz. Regionalverband (Régionale).
+    fr_license_no = db.Column(db.String(50))
+    fr_club = db.Column(db.String(120))
+    fr_regionale = db.Column(db.String(120))
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     owners = db.relationship("DogOwner", back_populates="person")
@@ -194,6 +199,10 @@ class Dog(db.Model):
     category = db.Column(db.String(1), nullable=True)   # L / I / M / S
     class_level = db.Column(db.Integer, nullable=True)  # 1 / 2 / 3
     breed = db.Column(db.String(120), nullable=True)    # Rasse (aus AOA-Import)
+    # Franz. Zusatzangaben des Hundes (nur fuer FR-Teilnehmer, CNEAC-Formular):
+    # FAPAC = franz. Hundelizenz, sex = Geschlecht (M/F).
+    fapac_no = db.Column(db.String(50), nullable=True)
+    sex = db.Column(db.String(1), nullable=True)
     # Offizieller Name laut TKAMO-Lizenzcheck (nur dort geschrieben, s.
     # _parse_and_apply_tkamo). AOA-Re-Importe überschreiben dieses Feld NICHT
     # — `name` bleibt der normale AOA-Name und wird auf allen "normalen"

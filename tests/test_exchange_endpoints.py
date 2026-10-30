@@ -61,9 +61,10 @@ def _build_results_zip(event_external_id: str, include_total_faults: bool = True
 def test_event_export_zip_contains_files(app):
     with app.app_context():
         event = Event(name="Test Event")
-        person = Person(first_name="Max", last_name="Muster")
+        person = Person(first_name="Max", last_name="Muster",
+                        fr_license_no="L-98765", fr_club="CC Lyon", fr_regionale="Rhône-Alpes")
         dog = Dog(name="Rex", license_no="12345", license_kind=LicenseKind.CH,
-                  breed="Border Collie")
+                  breed="Border Collie", fapac_no="D-12345", sex="M")
         registration = Registration(
             event=event,
             dog=dog,
@@ -96,6 +97,12 @@ def test_event_export_zip_contains_files(app):
         assert registrations_payload[0]["eligibility"]["payment_status"] == "NOT_MANAGED"
         assert registrations_payload[0]["club_name"] == "1234"
         assert entities_payload["dogs"][0]["breed"] == "Border Collie"
+        # Franz. Zusatzfelder (CNEAC-Formular)
+        assert entities_payload["dogs"][0]["fapac"] == "D-12345"
+        assert entities_payload["dogs"][0]["sexe"] == "M"
+        assert entities_payload["persons"][0]["fr_licence"] == "L-98765"
+        assert entities_payload["persons"][0]["fr_club"] == "CC Lyon"
+        assert entities_payload["persons"][0]["fr_regionale"] == "Rhône-Alpes"
 
 
 def test_liveupdate_idempotent(app):
