@@ -3158,6 +3158,11 @@ msgstr "Semifinals"
 msgid "KO-Bracket"
 msgstr "KO bracket"
 
+#: app/templates/public/ko_live.html:2 app/templates/public/ko_live.html:7
+#: app/templates/public/overview.html:97 app/templates/club/event_live.html:16
+msgid "American-Finale live"
+msgstr "American final – live"
+
 #: app/templates/public/cups/final_bracket.html:54
 msgid "Runde"
 msgstr "Round"

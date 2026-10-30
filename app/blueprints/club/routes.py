@@ -3101,7 +3101,14 @@ def event_live(event_id):
     # Testevents nur für eingeloggte Superadmins sichtbar
     if event.is_test and not (current_user.is_authenticated and current_user.is_superadmin):
         abort(404)
-    return render_template("club/event_live.html", event=event)
+    # American-Finale-Button nur zeigen, wenn die Software schon einen KO-Stand
+    # (Finalisten/Bracket) gepusht hat.
+    try:
+        from app.blueprints.public.routes_events import _event_has_ko_live
+        has_ko_final = _event_has_ko_live(event_id)
+    except Exception:
+        has_ko_final = False
+    return render_template("club/event_live.html", event=event, has_ko_final=has_ko_final)
 
 
 @club_bp.get("/api/events/<int:event_id>/live.json")
