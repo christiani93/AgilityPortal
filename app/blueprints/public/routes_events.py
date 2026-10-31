@@ -46,28 +46,42 @@ def _has_admin_key():
     return expected and provided == expected
 
 
-def _event_has_ko_live(event_id):
-    """True, wenn die Software schon einen KO-Stand gepusht hat — Startliste
-    (abgeleitete Finalisten) ODER Bracket (ausgeloste Duelle). Steuert den
-    Live-Button auf der Übersicht; die Startliste erscheint schon vor dem Auslosen."""
+def _latest_ko_bracket_payload(event_id):
+    """Neuester von der Software gepushter KO-Bracket-Stand (update_type=ko_bracket).
+
+    Gezielte Abfrage statt „letzte 50 Updates scannen": bei viel Quali-Traffic
+    (laufende result/run_changed-Pushes) rutschte der KO-Stand sonst aus dem
+    50er-Fenster und die KO-Live-Seite wurde leer. Liefert (payload, created_at)
+    oder (None, None). limit(10) als Puffer gegen seltene String-Falschtreffer."""
     import json as _json
 
-    updates = (
+    candidates = (
         LiveUpdate.query
         .filter_by(event_id=event_id)
+        .filter(LiveUpdate.payload_json.like("%ko_bracket%"))
         .order_by(LiveUpdate.created_at.desc())
-        .limit(50)
+        .limit(10)
         .all()
     )
-    for upd in updates:
+    for upd in candidates:
         try:
             payload = _json.loads(upd.payload_json or "{}")
         except Exception:
             continue
         if (payload.get("update_type") or "") == "ko_bracket":
-            return any((f.get("matchups") or []) or (f.get("participants") or [])
-                       for f in (payload.get("finals") or []))
-    return False
+            return payload, upd.created_at
+    return None, None
+
+
+def _event_has_ko_live(event_id):
+    """True, wenn die Software schon einen KO-Stand gepusht hat — Startliste
+    (abgeleitete Finalisten) ODER Bracket (ausgeloste Duelle). Steuert den
+    Live-Button auf der Übersicht; die Startliste erscheint schon vor dem Auslosen."""
+    payload, _ = _latest_ko_bracket_payload(event_id)
+    if not payload:
+        return False
+    return any((f.get("matchups") or []) or (f.get("participants") or [])
+               for f in (payload.get("finals") or []))
 
 
 @public_events_bp.get("/live")
@@ -180,26 +194,10 @@ def public_ko_live_json(event_id):
     if not event.is_published and not _has_admin_key():
         abort(404)
 
-    updates = (
-        LiveUpdate.query
-        .filter_by(event_id=event_id)
-        .order_by(LiveUpdate.created_at.desc())
-        .limit(50)
-        .all()
-    )
-    finals = []
-    event_name = event.name
-    updated_at = None
-    for upd in updates:
-        try:
-            payload = _json.loads(upd.payload_json or "{}")
-        except Exception:
-            continue
-        if (payload.get("update_type") or "") == "ko_bracket":
-            finals = payload.get("finals") or []
-            event_name = payload.get("event_name") or event_name
-            updated_at = upd.created_at.isoformat() + "Z"
-            break
+    payload, created_at = _latest_ko_bracket_payload(event_id)
+    finals = (payload or {}).get("finals") or []
+    event_name = (payload or {}).get("event_name") or event.name
+    updated_at = (created_at.isoformat() + "Z") if created_at else None
 
     return jsonify({"event_name": event_name, "finals": finals, "updated_at": updated_at})
 
