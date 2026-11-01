@@ -154,6 +154,14 @@
         {{ form.sex.label(class="form-label") }}
         {{ form.sex(class="form-select") }}
       </div>
+      <div class="mb-3">
+        {{ form.microchip.label(class="form-label") }}
+        {{ form.microchip(class="form-control" + (" is-invalid" if form.microchip.errors else "")) }}
+        <div class="form-text">{{ _('Chip-/Transpondernummer (optional). Wird u.a. fürs deutsche VDH-Auslandsergebnis-Formular verwendet.') }}</div>
+        {% for err in form.microchip.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
 
       {{ form.submit(class="btn btn-primary") }}
     </form>

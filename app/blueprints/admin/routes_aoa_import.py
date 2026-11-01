@@ -168,6 +168,10 @@ def _detect_columns(headers: list[str]) -> dict[str, str | None]:
         "breed": _find_column(headers, "Rasse", "Breed", "H Rasse"),
         # Geschlecht des Hundes (TKAMO: "Weiblich"/"Männlich") → Dog.sex (M/F)
         "sex": _find_column(headers, "Geschlecht", "Sex", "Sexe", "Geschlecht Hund"),
+        # Chip-/Transpondernummer des Hundes → Dog.microchip (optional)
+        "chip": _find_column(headers, "Chip", "Chipnummer", "Chip-Nr", "Chip-Nr.",
+                             "Chipnr", "Microchip", "Mikrochip", "Transponder",
+                             "Transpondernummer", "H Chip", "H Chipnummer"),
     }
 
 
@@ -500,6 +504,7 @@ def aoa_import_stammdaten_execute():
     col_class = cols["class"]
     col_breed = cols["breed"]
     col_sex = cols["sex"]
+    col_chip = cols["chip"]
 
     created = 0
     updated = 0
@@ -519,6 +524,7 @@ def aoa_import_stammdaten_execute():
                 class_level = None
             breed = _unescape((row.get(col_breed) or "").strip()) if col_breed else ""
             sex = _normalize_sex(row.get(col_sex)) if col_sex else None
+            chip = (row.get(col_chip) or "").strip() if col_chip else ""
 
             dog = Dog.query.filter_by(license_no=license_no).first()
             if not dog:
@@ -530,6 +536,7 @@ def aoa_import_stammdaten_execute():
                     class_level=class_level,
                     breed=breed or None,
                     sex=sex,
+                    microchip=chip or None,
                 )
                 db.session.add(dog)
                 created += 1
@@ -540,6 +547,9 @@ def aoa_import_stammdaten_execute():
                     changed = True
                 if sex and not dog.sex:
                     dog.sex = sex
+                    changed = True
+                if chip and not dog.microchip:
+                    dog.microchip = chip
                     changed = True
                 if breed and dog.breed != breed:
                     dog.breed = breed
@@ -979,6 +989,7 @@ def aoa_import_execute():
     col_club_no = cols["club_no"]
     col_breed = cols["breed"]
     col_sex = cols["sex"]
+    col_chip = cols["chip"]
 
     created = 0
     skipped = 0
@@ -1003,6 +1014,7 @@ def aoa_import_execute():
         phone = ((row.get(col_phone) or "").strip() if col_phone else "") \
             or ((row.get(col_phone2) or "").strip() if col_phone2 else "") or None
         sex = _normalize_sex(row.get(col_sex)) if col_sex else None
+        chip = (row.get(col_chip) or "").strip() if col_chip else ""
         # Vereinsnummer bevorzugt (für TKAMO-Lizenzcheck-Export benötigt),
         # sonst Klartext-Vereinsname als Fallback. "0" = Ausland/kein CH-Verein,
         # dann lieber den Klartext-Namen (z.B. "--- AUSLAND ---") behalten.
@@ -1025,6 +1037,7 @@ def aoa_import_execute():
                     class_level=class_level,
                     breed=breed or None,
                     sex=sex,
+                    microchip=chip or None,
                 )
                 db.session.add(dog)
                 db.session.flush()
@@ -1038,6 +1051,9 @@ def aoa_import_execute():
                 # Geschlecht nur nachtragen, wenn noch leer (manuelle Pflege gewinnt).
                 if sex and not dog.sex:
                     dog.sex = sex
+                # Chip nur nachtragen, wenn noch leer (manuelle Pflege gewinnt).
+                if chip and not dog.microchip:
+                    dog.microchip = chip
 
             # 2. Person (Hundeführer) finden oder anlegen
             person = None

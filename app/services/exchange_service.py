@@ -69,6 +69,8 @@ def build_event_export_zip(event_id: int):
                 # Franz. Zusatzfelder (CNEAC-Formular), nur bei FR-Teilnehmern gesetzt.
                 "fapac": dog.fapac_no,
                 "sexe": dog.sex,
+                # Chip-/Transpondernummer (optional, u.a. dt. VDH-Auslandsergebnis-Formular).
+                "chip": dog.microchip,
             }
         if handler:
             if not handler.external_id:

@@ -37,7 +37,7 @@ def _resolve_cols(headers):
 
 
 # Optionale Spalten, die nicht jedes Export-Format hat (dürfen None sein)
-OPTIONAL_COLS = {"breed", "phone2", "sex"}
+OPTIONAL_COLS = {"breed", "phone2", "sex", "chip"}
 
 
 def test_aoa_original_headers_all_mapped():
@@ -60,6 +60,8 @@ def test_tkamo_h_hf_prefix_headers_all_mapped():
     assert cols["first_name"] == "HF Vorname"
     assert cols["class"] == "H Kl Eingabe"
     assert cols["club_no"] == "HF Vereinnr"
+    # Chip-Spalte (H Chip) wird fürs VDH-Auslandsergebnis-Formular erkannt.
+    assert cols["chip"] == "H Chip"
 
 
 def test_real_aoa_export_headers_all_mapped():
@@ -77,6 +79,7 @@ def test_real_aoa_export_headers_all_mapped():
     assert cols["club"] == "Hf Verein"
     assert cols["club_no"] == "HF Vereinnr AOA"
     assert cols["breed"] == "H Rasse AOA"
+    assert cols["chip"] == "H Chip"
 
 
 def test_tkamo_csv_parses_with_real_format():

@@ -148,6 +148,8 @@ class DogForm(FlaskForm):
     # fuers CNEAC-Ergebnisformular). Optional.
     fapac_no = StringField(_("FAPAC (franz. Hundelizenz)"), validators=[Optional(), Length(max=50)])
     sex = SelectField(_("Sexe"), choices=[("", "—"), ("M", _("Rüde (M)")), ("F", _("Hündin (F)"))], validators=[Optional()])
+    # Chip-/Transpondernummer (optional). U.a. fürs deutsche VDH-Auslandsergebnis-Formular.
+    microchip = StringField(_("Chip-Nr."), validators=[Optional(), Length(max=50)])
     submit = SubmitField(_("Hund speichern"))
 
 

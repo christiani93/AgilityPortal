@@ -48,6 +48,7 @@ def _seed_event():
     # Franz. Zusatzfelder (CNEAC-Formular) — pro Teilnehmer gesetzt.
     dog.fapac_no = "D-12345"
     dog.sex = "M"
+    dog.microchip = "276098100123456"
     person.fr_license_no = "L-98765"
     person.fr_club = "CC Lyon"
     person.fr_regionale = "Rhône-Alpes"
@@ -114,6 +115,7 @@ def test_club_export_includes_french_extra_fields(app):
         dog = entities["dogs"][0]
         assert dog["fapac"] == "D-12345"
         assert dog["sexe"] == "M"
+        assert dog["chip"] == "276098100123456"
         handler = entities["handlers"][0]
         assert handler["fr_licence"] == "L-98765"
         assert handler["fr_club"] == "CC Lyon"

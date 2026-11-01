@@ -203,6 +203,10 @@ class Dog(db.Model):
     # FAPAC = franz. Hundelizenz, sex = Geschlecht (M/F).
     fapac_no = db.Column(db.String(50), nullable=True)
     sex = db.Column(db.String(1), nullable=True)
+    # Chip-/Transpondernummer des Hundes. Optional; u.a. fuers deutsche
+    # VDH-Formular "Bestaetigung fuer Auslandsergebnisse" (deutsche Starter).
+    # Wird ins Event-Paket exportiert (entities.dogs[].chip -> Software dogs.json "Chip").
+    microchip = db.Column(db.String(50), nullable=True)
     # Offizieller Name laut TKAMO-Lizenzcheck (nur dort geschrieben, s.
     # _parse_and_apply_tkamo). AOA-Re-Importe überschreiben dieses Feld NICHT
     # — `name` bleibt der normale AOA-Name und wird auf allen "normalen"

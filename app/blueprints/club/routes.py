@@ -1281,6 +1281,7 @@ def profile_dogs():
                 dog.license_no = license_no
                 dog.fapac_no = form.fapac_no.data.strip() if form.fapac_no.data else None
                 dog.sex = form.sex.data or None
+                dog.microchip = form.microchip.data.strip() if form.microchip.data else None
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
@@ -2362,6 +2363,8 @@ def event_export_zip(event_id):
                 # Franz. Zusatzfelder des Hundes (CNEAC-Formular).
                 "fapac":               reg.dog.fapac_no or "",
                 "sexe":                reg.dog.sex or "",
+                # Chip-/Transpondernummer (optional, dt. VDH-Auslandsergebnis-Formular).
+                "chip":                reg.dog.microchip or "",
             })
 
     entities = {"handlers": handlers_list, "dogs": dogs_list}
