@@ -13,6 +13,10 @@ from app.extensions import db
 from app.models import (
     Document,
     BillingMode,
+    Cup,
+    CupFinal,
+    CupFinalParticipant,
+    CupFinalResult,
     Dog,
     Event,
     EventFinalist,
@@ -374,6 +378,10 @@ def import_result_export_zip(zip_bytes: bytes):
         if "finalists.json" in zip_file.namelist() and event:
             _import_finalists(zip_file, event)
 
+        # KO-Cup-Final-Sieger (Halloween-Cup) persistent in CupFinal/-Result ablegen
+        if "cup_finals.json" in zip_file.namelist():
+            _import_cup_finals(zip_file)
+
         if final and event:
             event.is_completed = True
 
@@ -404,6 +412,99 @@ def _import_finalists(zip_file, event):
             division=(f.get("division") or None) and f.get("division")[:20],
             position=pos,
         ))
+
+
+_CUP_FINALS_IMPORT_MARKER = "imported:ko_cup_export"
+
+
+def _import_cup_finals(zip_file):
+    """Liest cup_finals.json (KO-Cup-Final-Sieger der Software) und schreibt die
+    Schlussrangliste persistent als CupFinal + CupFinalParticipant + CupFinalResult
+    zum passenden Cup. So findet `detect_title_defenders` im Folgejahr (season+1) die
+    Vorjahressieger (CupFinalResult final_rank==1) und kann sie als Titelverteidiger setzen.
+
+    Cup-Auflösung über special_ruleset + season (= dieselbe Logik wie detect_title_defenders).
+    Kein passender Cup angelegt → No-op (der Admin legt den Cup der Saison an).
+
+    Idempotent: ersetzt nur zuvor von DIESEM Importweg erzeugte Finals (notes-Marker),
+    lässt im Portal-UI manuell angelegte CupFinals unangetastet.
+    """
+    payload = json.loads(zip_file.read("cup_finals.json"))
+    ruleset = (payload.get("cup_ruleset") or "").strip()
+    season = payload.get("season")
+    finals = payload.get("finals") or []
+    if not ruleset or not season or not finals:
+        return
+
+    cup = Cup.query.filter_by(special_ruleset=ruleset, season=season).first()
+    if not cup:
+        return  # Cup der Saison (noch) nicht angelegt → nichts tun
+
+    for fin in finals:
+        category_code = (fin.get("category_code") or "")[:20]
+        class_level = fin.get("class_level")
+        group_label = (fin.get("group_label") or category_code or "")[:100]
+
+        # Vorherige Importe dieses (Cup, Kategorie, Klasse) ersetzen — nur eigene.
+        old_finals = (CupFinal.query
+                      .filter_by(cup_id=cup.id, category_code=category_code, class_level=class_level)
+                      .filter(CupFinal.notes == _CUP_FINALS_IMPORT_MARKER)
+                      .all())
+        for old in old_finals:
+            CupFinalResult.query.filter_by(final_id=old.id).delete(synchronize_session=False)
+            db.session.delete(old)  # Kaskade: participants + matchups
+        db.session.flush()
+
+        final = CupFinal(
+            cup_id=cup.id,
+            group_label=group_label,
+            category_code=category_code,
+            class_level=class_level,
+            is_published=bool(fin.get("is_published")),
+            notes=_CUP_FINALS_IMPORT_MARKER,
+        )
+        db.session.add(final)
+        db.session.flush()
+
+        by_license = {}
+        for p in fin.get("participants") or []:
+            lic = (p.get("license") or "").strip()
+            part = CupFinalParticipant(
+                final_id=final.id,
+                dog_name=(p.get("dog_name") or "")[:120],
+                handler_name=(p.get("handler_name") or "")[:120],
+                license_no=lic[:50],
+                draw_number=p.get("draw_number"),
+                seeding_rank=p.get("seeding_rank"),
+            )
+            db.session.add(part)
+            db.session.flush()
+            if lic:
+                by_license[lic] = part
+
+        for r in fin.get("results") or []:
+            lic = (r.get("license") or "").strip()
+            rank = r.get("final_rank")
+            if rank is None:
+                continue
+            part = by_license.get(lic)
+            if part is None:
+                # Ergebnis ohne passenden Teilnehmer (defensiv) → minimal anlegen
+                part = CupFinalParticipant(
+                    final_id=final.id,
+                    dog_name=(r.get("dog_name") or "")[:120],
+                    handler_name=(r.get("handler_name") or "")[:120],
+                    license_no=lic[:50],
+                )
+                db.session.add(part)
+                db.session.flush()
+                if lic:
+                    by_license[lic] = part
+            db.session.add(CupFinalResult(
+                final_id=final.id,
+                participant_id=part.id,
+                final_rank=rank,
+            ))
 
 
 def _parse_datetime(value):
