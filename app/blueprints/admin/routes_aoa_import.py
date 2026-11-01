@@ -735,30 +735,63 @@ def aoa_compare_preview():
 
 
 def _next_start_number(event, category_code: str, class_level: int) -> int | None:
-    """Startnummer für einen Nachzügler: an das bestehende Kat/Klasse-Band
-    angehängt, damit bereits vergebene/gedruckte Nummern unberührt bleiben.
-    Solange für das Event noch keine Startnummern vergeben wurden → None
-    (der Veranstalter lässt sie regulär als Ganzes erzeugen)."""
-    from sqlalchemy import func
+    """Startnummer für einen Nachzügler: an das bestehende Band angehängt, damit
+    bereits vergebene/gedruckte Nummern unberührt bleiben. Solange für das Event
+    noch keine Startnummern vergeben wurden → None (der Veranstalter lässt sie
+    regulär als Ganzes erzeugen).
+
+    WICHTIG (Bug-Fix): Bei ``per_category`` (X0XX-Schema, z.B. Tunnellauf) werden
+    die Nummern KLASSENÜBERGREIFEND pro Kategorie vergeben. Das Band ist dann die
+    ganze Kategorie — nicht (Kat, Klasse). Früher wurde ``max()`` nur über die
+    eine Klasse genommen → max+1 kollidierte mit einer anderen Klasse derselben
+    Kategorie (2× dieselbe Startnummer). Zusätzlich wird das Ergebnis jetzt gegen
+    ALLE im Event belegten Nummern geprüft (immer eindeutig)."""
+    import json as _j
     if event.start_numbers_generated_at is None:
         return None
-    max_nr = db.session.query(func.max(Registration.start_number)).filter(
+
+    per_category = (event.start_numbers_rule_set or "").strip().lower() == "per_category"
+
+    rows = db.session.query(
+        Registration.start_number,
+        Registration.category_code,
+        Registration.class_level,
+    ).filter(
         Registration.event_id == event.id,
-        Registration.category_code == category_code,
-        Registration.class_level == class_level,
+        Registration.start_number.isnot(None),
         Registration.status != RegistrationStatus.CANCELLED,
-    ).scalar()
-    if max_nr is not None:
-        return max_nr + 1
-    # Band noch leer → Schema-Basis, falls vorhanden
+    ).all()
+    all_used = {r.start_number for r in rows}
+
+    if per_category:
+        band = [r.start_number for r in rows if r.category_code == category_code]
+    else:
+        band = [r.start_number for r in rows
+                if r.category_code == category_code and r.class_level == class_level]
+
+    # Schema-Basis (wie die Hauptvergabe): per_category = X0XX-Kategorie-Basis.
     try:
-        import json as _j
-        schema = (_j.loads(event.startnumber_schema)
-                  if event.startnumber_schema else {})
-        base = schema.get(f"{category_code}-{class_level}")
-        return int(base) if base is not None else None
+        schema = {k: int(v) for k, v in
+                  (_j.loads(event.startnumber_schema) if event.startnumber_schema else {}).items()}
     except Exception:
+        schema = {}
+    if per_category:
+        cat_base = schema.get(f"{category_code}-1")
+        base_nr = (cat_base // 1000) * 1000 + 1 if cat_base is not None else None
+    else:
+        base_nr = schema.get(f"{category_code}-{class_level}")
+
+    if band:
+        candidate = max(band) + 1
+    elif base_nr is not None:
+        candidate = base_nr
+    else:
         return None
+
+    # Eindeutigkeit über das GANZE Event sicherstellen.
+    while candidate in all_used:
+        candidate += 1
+    return candidate
 
 
 def _create_registration_from_record(event_id: int, rec: dict):
