@@ -76,7 +76,7 @@ def event_lizenzcheck_csv(event_id):
     output = io.StringIO()
     writer = csv.writer(output, delimiter=";", lineterminator="\r\n")
     writer.writerow(["Lizenznummer", "Kategorie", "Klasse", "Hundename",
-                     "Vereinsnummer", "Vorname", "Nachname", "E-Mail"])
+                     "Vereinsnummer", "Vorname", "Nachname", "HF-Mail"])
 
     for reg in registrations:
         dog     = reg.dog
