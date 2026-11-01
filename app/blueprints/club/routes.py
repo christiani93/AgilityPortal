@@ -2936,40 +2936,58 @@ def schedule_block_add(event_id):
             sort_index=max_idx + 10,
         )
     else:
+        from app.services.schedule_service import link_block_to_run
+
         run_type    = request.form.get("run_type", "agility")
-        category    = request.form.get("category", "L")
         class_level = request.form.get("class_level", 1, type=int)
-        category_code = _CATEGORY_CODE_MAP.get(category, category)
+        # Preset: alle vier Kategorien in einer Reihenfolge auf einen Klick anlegen.
+        category_order = (request.form.get("category_order") or "").strip().upper()
+        _ORDER_PRESETS = {"SMIL": ["S", "M", "I", "L"], "LIMS": ["L", "I", "M", "S"]}
+        cats = _ORDER_PRESETS.get(category_order) or [request.form.get("category", "L")]
 
-        # Doppelt eintragen verhindern
-        existing = db.session.execute(
-            db.select(ScheduleBlock).filter_by(
-                event_id=event_id, discipline=run_type,
-                category_code=category_code, class_level=class_level
+        created = skipped = 0
+        idx = max_idx
+        for cat in cats:
+            category_code = _CATEGORY_CODE_MAP.get(cat, cat)
+            # Doppelt eintragen verhindern
+            existing = db.session.execute(
+                db.select(ScheduleBlock).filter_by(
+                    event_id=event_id, discipline=run_type,
+                    category_code=category_code, class_level=class_level
+                )
+            ).scalar_one_or_none()
+            if existing:
+                skipped += 1
+                continue
+            idx += 10
+            block = ScheduleBlock(
+                event_id=event_id,
+                ring=ring,
+                block_type="run",
+                discipline=run_type,
+                category_code=category_code,
+                class_level=class_level,
+                title=title,
+                sort_index=idx,
             )
-        ).scalar_one_or_none()
-        if existing:
-            flash(_("Dieser Lauf ist bereits im Zeitplan."), "warning")
-            return redirect(url_for("club.event_schedule", event_id=event_id))
+            db.session.add(block)
+            # Block mit fachlichem Lauf verknüpfen; Richter (falls gewählt) am Lauf.
+            run = link_block_to_run(block)
+            if run is not None and judge_id:
+                run.judge_id = judge_id
+            created += 1
 
-        block = ScheduleBlock(
-            event_id=event_id,
-            ring=ring,
-            block_type="run",
-            discipline=run_type,
-            category_code=category_code,
-            class_level=class_level,
-            title=title,
-            sort_index=max_idx + 10,
-        )
+        db.session.commit()
+        if created and skipped:
+            flash(_("%(n)d Lauf-Block/-Blöcke hinzugefügt, %(s)d bereits vorhanden übersprungen.",
+                    n=created, s=skipped), "info")
+        elif created:
+            flash(_("%(n)d Lauf-Block/-Blöcke hinzugefügt.", n=created), "success")
+        else:
+            flash(_("Kein neuer Lauf-Block – alle bereits im Zeitplan."), "warning")
+        return redirect(url_for("club.event_schedule", event_id=event_id))
 
     db.session.add(block)
-    if block.block_type == "run":
-        # Block mit fachlichem Lauf verknüpfen; Richter (falls gewählt) am Lauf.
-        from app.services.schedule_service import link_block_to_run
-        run = link_block_to_run(block)
-        if run is not None and judge_id:
-            run.judge_id = judge_id
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))
 

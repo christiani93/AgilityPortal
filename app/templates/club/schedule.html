@@ -470,6 +470,22 @@
           <div class="col-auto">
             <button type="submit" class="btn btn-sm btn-primary">{{ _('Hinzufügen') }}</button>
           </div>
+          <div class="col-12">
+            <div class="d-flex align-items-center gap-2 mt-1">
+              <span class="small text-muted">{{ _('oder alle Kategorien auf einen Klick:') }}</span>
+              <button type="submit" name="category_order" value="SMIL"
+                      class="btn btn-sm btn-outline-primary"
+                      title="{{ _('Legt Blöcke für Small, Medium, Intermediate, Large in dieser Reihenfolge an') }}">
+                + S-M-I-L
+              </button>
+              <button type="submit" name="category_order" value="LIMS"
+                      class="btn btn-sm btn-outline-primary"
+                      title="{{ _('Legt Blöcke für Large, Intermediate, Medium, Small in dieser Reihenfolge an') }}">
+                + L-I-M-S
+              </button>
+              <span class="small text-muted">({{ _('nutzt Ring/Disziplin/Klasse oben; bereits vorhandene werden übersprungen') }})</span>
+            </div>
+          </div>
         </form>
       </div>
     </div>
