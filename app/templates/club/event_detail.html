@@ -1103,6 +1103,40 @@
 </div>
 {% endif %}
 
+{% if cancelled_registrations is defined and cancelled_registrations %}
+<div class="card mb-4">
+  <div class="card-header">🗑 {{ _('Stornierte Anmeldungen') }}</div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>{{ _('Hund') }}</th>
+          <th>{{ _('Kat. / Kl.') }}</th>
+          <th>{{ _('Hundeführer') }}</th>
+          <th class="text-end"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in cancelled_registrations %}
+        <tr class="text-muted">
+          <td>{{ reg.dog.name if reg.dog else '—' }}</td>
+          <td class="small">{{ reg.category_code }} Kl.{{ reg.class_level }}</td>
+          <td class="small">{% if reg.handler %}{{ reg.handler.first_name }} {{ reg.handler.last_name }}{% else %}—{% endif %}</td>
+          <td class="text-end">
+            <form method="post" action="{{ url_for('club.registration_delete', reg_id=reg.id) }}" class="d-inline"
+                  onsubmit="return confirm('{{ _('Stornierte Anmeldung endgültig löschen?') }}')">
+              {{ run_form.hidden_tag() }}
+              <button class="btn btn-sm btn-outline-danger">🗑</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <script>
 // Veranstalter-Teilnehmererfassung: LIZ-Abfrage → Prefill + Hinweis
 (function () {

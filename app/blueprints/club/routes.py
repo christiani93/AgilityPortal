@@ -10,6 +10,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, abort, r
 from flask_login import login_required, current_user
 from flask_babel import _
 from sqlalchemy import case
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from flask_mail import Message
@@ -663,6 +664,11 @@ def event_detail(event_id):
         .filter(Registration.status != RegistrationStatus.CANCELLED)
         .order_by(Registration.category_code, Registration.class_level)
     ).scalars().all() if not current_user.is_handler_role else []
+    # Stornierte Anmeldungen separat (zum endgültigen Löschen, z.B. nach Testläufen)
+    cancelled_registrations = db.session.execute(
+        db.select(Registration).filter_by(event_id=event_id, status=RegistrationStatus.CANCELLED)
+        .order_by(Registration.category_code, Registration.class_level)
+    ).scalars().all() if not current_user.is_handler_role else []
     # Im Event bereits vorkommende Handler (für "Hundeführer wechseln"-Dropdown)
     event_handlers = sorted(
         {reg.handler for reg in registrations if reg.handler},
@@ -693,7 +699,8 @@ def event_detail(event_id):
         ).scalars().all()
     return render_template("club/event_detail.html", event=event, run_form=run_form,
                            sorted_runs=sorted_runs, available_judges=available_judges,
-                           registrations=registrations, event_handlers=event_handlers,
+                           registrations=registrations, cancelled_registrations=cancelled_registrations,
+                           event_handlers=event_handlers,
                            body_md_preview=body_md_preview,
                            reservation_group=reservation_group,
                            reservation_candidates=reservation_candidates)
@@ -1348,13 +1355,15 @@ def event_info(event_id):
     if not event or event.status not in ("open", "closed", "cancelled"):
         abort(404)
     if event.is_test:
-        # Testevents sieht nur der Superadmin oder der Veranstalter des eigenen Vereins.
+        # Testevents sieht der Superadmin, der Veranstalter des eigenen Vereins,
+        # oder (Self-Service-Anmeldung noch im Aufbau) ein eingeloggter Teilnehmer
+        # ohne Admin-Rolle — damit die Anmeldung testbar ist ohne zu veröffentlichen.
         is_own_organiser = (
             current_user.can_manage_club
             and current_user.club_id is not None
             and current_user.club_id == event.organiser_club_id
         )
-        if not current_user.is_superadmin and not is_own_organiser:
+        if not current_user.is_superadmin and not is_own_organiser and not current_user.is_handler_role:
             abort(404)
 
     my_registrations = []
@@ -1547,8 +1556,10 @@ def event_view(event_id):
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
         abort(404)
-    # Teilnehmeransicht nur für Superadmin
-    if not current_user.is_superadmin:
+    # Teilnehmeransicht für echte Turniere nur für Superadmin (Self-Service-
+    # Anmeldung noch im Aufbau); Testveranstaltungen sind für jeden eingeloggten
+    # Teilnehmer offen, damit die Anmeldung ohne Veröffentlichung testbar ist.
+    if not current_user.is_superadmin and not event.is_test:
         abort(403)
     form = EventRegistrationForm()
     dogs = current_user.dogs if current_user.person else []
@@ -1624,9 +1635,11 @@ def event_view(event_id):
                 cls=chosen_class,
             ), "danger")
             return redirect(url_for("club.event_view", event_id=event_id))
-        # Prüfen ob bereits angemeldet (gleicher Hund)
+        # Prüfen ob bereits angemeldet (gleicher Hund); stornierte Anmeldungen
+        # blockieren eine Neuanmeldung nicht.
         existing = db.session.execute(
             db.select(Registration).filter_by(event_id=event_id, dog_id=form.dog_id.data)
+            .filter(Registration.status != RegistrationStatus.CANCELLED)
         ).scalar_one_or_none()
         if existing:
             flash(_("Dieser Hund ist für dieses Turnier bereits angemeldet."), "warning")
@@ -1770,6 +1783,29 @@ def registration_reject(reg_id):
         db.session.commit()
         flash(_("Anmeldung abgelehnt."), "success")
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
+@club_bp.post("/registrations/<int:reg_id>/delete")
+@login_required
+def registration_delete(reg_id):
+    """Löscht eine stornierte Anmeldung endgültig (z.B. Testdaten aufräumen)."""
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+    if reg.status != RegistrationStatus.CANCELLED:
+        flash(_("Nur stornierte Anmeldungen können gelöscht werden."), "danger")
+        return redirect(url_for("club.event_detail", event_id=reg.event_id))
+    event_id = reg.event_id
+    dog_name = reg.dog.name if reg.dog else "?"
+    db.session.delete(reg)
+    try:
+        db.session.commit()
+        flash(_("Stornierte Anmeldung für %(dog)s wurde gelöscht.", dog=dog_name), "success")
+    except IntegrityError:
+        db.session.rollback()
+        flash(_("Anmeldung für %(dog)s kann nicht gelöscht werden (noch verknüpfte Daten, z.B. Export/Ergebnis).", dog=dog_name), "danger")
+    return redirect(url_for("club.event_detail", event_id=event_id))
 
 
 @club_bp.post("/registrations/<int:reg_id>/toggle-in-season-admin")
