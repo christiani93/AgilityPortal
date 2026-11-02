@@ -132,6 +132,42 @@ def test_compare_new_entry_appends_start_number(app):
         assert _reg_for(event_id, "102").start_number == 1303
 
 
+def test_compare_new_entry_imports_breed_sex_chip(app):
+    """Nachzügler-Import übernimmt auch Rasse/Geschlecht/Chip, nicht nur die
+    Pflichtfelder (vorher fehlten Geschlecht/Chip in diesem Importpfad)."""
+    with app.app_context():
+        event, admin = _seed_event()
+        event_id, admin_id = event.id, admin.id
+        client = app.test_client()
+        _login(client, admin_id)
+        _import(client, event_id, [
+            ["100", "Alpha", "Large", "3", "Anna", "A", "a@t.ch", "294"],
+        ])
+
+        headers = HEADERS + ["Rasse", "Geschlecht", "Chip"]
+        payload = base64.b64encode(json.dumps({
+            "headers": headers,
+            "rows": [dict(zip(headers, [
+                "101", "Beta", "Large", "3", "Bea", "B", "b@t.ch", "294",
+                "Border Collie", "Weiblich", "CH123456789",
+            ]))],
+        }).encode("utf-8")).decode("ascii")
+
+        resp = client.post("/admin/aoa-import/compare/execute", data={
+            "event_id": event_id,
+            "csv_b64": payload,
+            "create_license": ["101"],
+        })
+        assert resp.status_code in (302, 200)
+
+        dog = db.session.execute(
+            db.select(M.Dog).filter_by(license_no="101")
+        ).scalar_one()
+        assert dog.breed == "Border Collie"
+        assert dog.sex == "F"
+        assert dog.microchip == "CH123456789"
+
+
 def _file(rows):
     import io
     lines = [";".join(HEADERS)]

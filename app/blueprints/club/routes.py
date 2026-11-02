@@ -1277,9 +1277,19 @@ def profile_dogs():
                 if already:
                     flash(_("Du bist bereits mit diesem Hund verknüpft."), "info")
                 else:
-                    db.session.add(DogOwner(dog_id=existing.id, person_id=current_user.person_id, role=DogOwnerRole.HANDLER))
-                    db.session.commit()
-                    flash(_("Hund «%(name)s» wurde deinem Profil als Hundeführer hinzugefügt.", name=existing.name), "success")
+                    has_owner = db.session.execute(
+                        db.select(DogOwner).filter_by(dog_id=existing.id, role=DogOwnerRole.OWNER)
+                    ).scalar_one_or_none() is not None
+                    if has_owner:
+                        db.session.add(DogOwner(dog_id=existing.id, person_id=current_user.person_id, role=DogOwnerRole.HANDLER))
+                        db.session.commit()
+                        flash(_("Hund «%(name)s» wurde deinem Profil als Hundeführer hinzugefügt.", name=existing.name), "success")
+                    else:
+                        # Hund existiert (z.B. aus einem Import) aber hat noch keinen
+                        # Besitzer im Portal — wer die Lizenznummer kennt, übernimmt ihn.
+                        db.session.add(DogOwner(dog_id=existing.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
+                        db.session.commit()
+                        flash(_("Hund «%(name)s» wurde deinem Profil als Besitzer hinzugefügt.", name=existing.name), "success")
                 return redirect(url_for("club.profile_dogs"))
             else:
                 dog = Dog(name=form.name.data.strip())
@@ -2010,6 +2020,7 @@ def registration_lookup(event_id):
         "found": True,
         "license_no": license_no,
         "dog_name": dog.name or "",
+        "breed": dog.breed or "",
         "category": dog.category or "",
         "class_level": dog.class_level or 1,
         "handler_name": handler_name,
@@ -2033,6 +2044,7 @@ def registration_add(event_id):
 
     license_no = _normalize_license_no(request.form.get("license_no", ""))
     dog_name   = (request.form.get("dog_name") or "").strip()
+    breed      = (request.form.get("breed") or "").strip()
     category   = (request.form.get("category") or "").strip().upper()   # L/I/M/S
     class_raw  = (request.form.get("class_level") or "").strip()
     first_name = (request.form.get("handler_first_name") or "").strip()
@@ -2068,6 +2080,7 @@ def registration_add(event_id):
         try:
             dog = Dog(
                 name=dog_name,
+                breed=breed or None,
                 license_no=license_no,
                 license_kind=_detect_license_kind(license_no),
                 category=category,
@@ -2079,8 +2092,11 @@ def registration_add(event_id):
             db.session.rollback()
             flash(_("Ungültige Lizenznummer: %(err)s", err=str(exc)), "danger")
             return redirect(url_for("club.event_detail", event_id=event_id))
-    elif dog_name and dog.name != dog_name:
-        dog.name = dog_name
+    else:
+        if dog_name and dog.name != dog_name:
+            dog.name = dog_name
+        if breed and dog.breed != breed:
+            dog.breed = breed
 
     # 2. Schon für dieses Turnier angemeldet?
     existing = db.session.execute(

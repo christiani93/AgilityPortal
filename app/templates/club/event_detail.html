@@ -896,6 +896,10 @@
           <label class="form-label small mb-0">{{ _('Hund') }}</label>
           <input type="text" name="dog_name" id="ap-dogname" class="form-control form-control-sm">
         </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-0">{{ _('Rasse') }}</label>
+          <input type="text" name="breed" id="ap-breed" class="form-control form-control-sm">
+        </div>
         <div class="col-3 col-md-1">
           <label class="form-label small mb-0">{{ _('Kat.') }}</label>
           <select name="category" id="ap-category" class="form-select form-select-sm">
@@ -1151,6 +1155,7 @@
       .then(d => {
         if (d.found) {
           if (d.dog_name) document.getElementById('ap-dogname').value = d.dog_name;
+          if (d.breed) document.getElementById('ap-breed').value = d.breed;
           if (d.category) document.getElementById('ap-category').value = d.category;
           if (d.class_level) document.getElementById('ap-class').value = d.class_level;
           if (d.already_registered) {
