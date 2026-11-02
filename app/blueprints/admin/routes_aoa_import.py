@@ -175,6 +175,11 @@ def _detect_columns(headers: list[str]) -> dict[str, str | None]:
         # Franz. Hundelizenz (nur bei franz. Teilnehmern im Export vorhanden) → Dog.fapac_no
         "fapac": _find_column(headers, "FAPAC", "FAPAC-Nr", "FAPAC-Nr.", "N° FAPAC",
                               "Numero FAPAC", "Licence FAPAC", "H FAPAC"),
+        # Stammbuch-Nummer (Schweiz. Hundestammbuch) → Dog.shsb
+        "shsb": _find_column(headers, "SHSB", "SHSB-Nr", "SHSB-Nr.", "H SHSB", "Stammbuch-Nr", "StammbuchNr"),
+        # Dt. VDH-Leistungsbuchnummer (nur bei dt. Teilnehmern im Export vorhanden) → Dog.leistungsbuch_no
+        "leistungsbuch": _find_column(headers, "Leistungsbuch", "Leistungsbuch-Nr", "Leistungsbuch-Nr.",
+                                      "Leistungsbuchnummer", "H Leistungsbuch"),
     }
 
 
@@ -426,6 +431,8 @@ def aoa_import_stammdaten_preview():
     col_sex = cols["sex"]
     col_chip = cols["chip"]
     col_fapac = cols["fapac"]
+    col_shsb = cols["shsb"]
+    col_leistungsbuch = cols["leistungsbuch"]
 
     missing = [n for n, c in [
         ("Lizenz", col_license), ("Hundename", col_dog_name),
@@ -452,6 +459,8 @@ def aoa_import_stammdaten_preview():
         sex = _normalize_sex(row.get(col_sex)) if col_sex else None
         chip = (row.get(col_chip) or "").strip() if col_chip else ""
         fapac = (row.get(col_fapac) or "").strip() if col_fapac else ""
+        shsb = (row.get(col_shsb) or "").strip() if col_shsb else ""
+        leistungsbuch = (row.get(col_leistungsbuch) or "").strip() if col_leistungsbuch else ""
 
         dog = Dog.query.filter_by(license_no=license_no).first()
         changes = []
@@ -472,6 +481,10 @@ def aoa_import_stammdaten_preview():
                 changes.append(f"Chip-Nr.: „—“ → „{chip}“")
             if fapac and not dog.fapac_no:
                 changes.append(f"FAPAC: „—“ → „{fapac}“")
+            if leistungsbuch and not dog.leistungsbuch_no:
+                changes.append(f"Leistungsbuch: „—“ → „{leistungsbuch}“")
+            if shsb and not dog.shsb:
+                changes.append(f"SHSB: „—“ → „{shsb}“")
 
         previews.append({
             "row_no": i + 1,
@@ -521,6 +534,8 @@ def aoa_import_stammdaten_execute():
     col_sex = cols["sex"]
     col_chip = cols["chip"]
     col_fapac = cols["fapac"]
+    col_shsb = cols["shsb"]
+    col_leistungsbuch = cols["leistungsbuch"]
 
     created = 0
     updated = 0
@@ -542,6 +557,8 @@ def aoa_import_stammdaten_execute():
             sex = _normalize_sex(row.get(col_sex)) if col_sex else None
             chip = (row.get(col_chip) or "").strip() if col_chip else ""
             fapac = (row.get(col_fapac) or "").strip() if col_fapac else ""
+            shsb = (row.get(col_shsb) or "").strip() if col_shsb else ""
+            leistungsbuch = (row.get(col_leistungsbuch) or "").strip() if col_leistungsbuch else ""
 
             dog = Dog.query.filter_by(license_no=license_no).first()
             if not dog:
@@ -555,6 +572,8 @@ def aoa_import_stammdaten_execute():
                     sex=sex,
                     microchip=chip or None,
                     fapac_no=fapac or None,
+                    shsb=shsb or None,
+                    leistungsbuch_no=leistungsbuch or None,
                 )
                 db.session.add(dog)
                 created += 1
@@ -571,6 +590,12 @@ def aoa_import_stammdaten_execute():
                     changed = True
                 if fapac and not dog.fapac_no:
                     dog.fapac_no = fapac
+                    changed = True
+                if shsb and not dog.shsb:
+                    dog.shsb = shsb
+                    changed = True
+                if leistungsbuch and not dog.leistungsbuch_no:
+                    dog.leistungsbuch_no = leistungsbuch
                     changed = True
                 if breed and dog.breed != breed:
                     dog.breed = breed
@@ -652,6 +677,8 @@ def _extract_record(row: dict, cols: dict) -> dict | None:
         "sex": _normalize_sex(_col("sex")) if cols.get("sex") else None,
         "microchip": _col("chip"),
         "fapac_no": _col("fapac"),
+        "shsb": _col("shsb"),
+        "leistungsbuch_no": _col("leistungsbuch"),
     }
 
 
@@ -843,6 +870,8 @@ def _create_registration_from_record(event_id: int, rec: dict):
             sex=rec.get("sex"),
             microchip=rec.get("microchip") or None,
             fapac_no=rec.get("fapac_no") or None,
+            shsb=rec.get("shsb") or None,
+            leistungsbuch_no=rec.get("leistungsbuch_no") or None,
         )
         db.session.add(dog)
         db.session.flush()
@@ -851,13 +880,18 @@ def _create_registration_from_record(event_id: int, rec: dict):
             dog.name = rec["dog_name"]
         if rec["breed"] and dog.breed != rec["breed"]:
             dog.breed = rec["breed"]
-        # Geschlecht/Chip/FAPAC nur nachtragen, wenn noch leer (manuelle Pflege gewinnt).
+        # Geschlecht/Chip/FAPAC/SHSB/Leistungsbuch nur nachtragen, wenn noch leer
+        # (manuelle Pflege gewinnt).
         if rec.get("sex") and not dog.sex:
             dog.sex = rec["sex"]
         if rec.get("microchip") and not dog.microchip:
             dog.microchip = rec["microchip"]
         if rec.get("fapac_no") and not dog.fapac_no:
             dog.fapac_no = rec["fapac_no"]
+        if rec.get("shsb") and not dog.shsb:
+            dog.shsb = rec["shsb"]
+        if rec.get("leistungsbuch_no") and not dog.leistungsbuch_no:
+            dog.leistungsbuch_no = rec["leistungsbuch_no"]
 
     person = None
     first_name, last_name = rec["first_name"], rec["last_name"]
@@ -1025,6 +1059,8 @@ def aoa_import_execute():
     col_sex = cols["sex"]
     col_chip = cols["chip"]
     col_fapac = cols["fapac"]
+    col_shsb = cols["shsb"]
+    col_leistungsbuch = cols["leistungsbuch"]
 
     created = 0
     skipped = 0
@@ -1060,6 +1096,8 @@ def aoa_import_execute():
         club_value = club_no or club_name_raw
         breed = _unescape((row.get(col_breed) or "").strip()) if col_breed else ""
         fapac = (row.get(col_fapac) or "").strip() if col_fapac else ""
+        shsb = (row.get(col_shsb) or "").strip() if col_shsb else ""
+        leistungsbuch = (row.get(col_leistungsbuch) or "").strip() if col_leistungsbuch else ""
 
         try:
             # 1. Hund finden oder anlegen
@@ -1075,6 +1113,8 @@ def aoa_import_execute():
                     sex=sex,
                     microchip=chip or None,
                     fapac_no=fapac or None,
+                    shsb=shsb or None,
+                    leistungsbuch_no=leistungsbuch or None,
                 )
                 db.session.add(dog)
                 db.session.flush()
@@ -1085,13 +1125,18 @@ def aoa_import_execute():
                     dog.name = dog_name
                 if breed and dog.breed != breed:
                     dog.breed = breed
-                # Geschlecht/Chip/FAPAC nur nachtragen, wenn noch leer (manuelle Pflege gewinnt).
+                # Geschlecht/Chip/FAPAC/SHSB/Leistungsbuch nur nachtragen, wenn noch leer
+                # (manuelle Pflege gewinnt).
                 if sex and not dog.sex:
                     dog.sex = sex
                 if chip and not dog.microchip:
                     dog.microchip = chip
                 if fapac and not dog.fapac_no:
                     dog.fapac_no = fapac
+                if shsb and not dog.shsb:
+                    dog.shsb = shsb
+                if leistungsbuch and not dog.leistungsbuch_no:
+                    dog.leistungsbuch_no = leistungsbuch
 
             # 2. Person (Hundeführer) finden oder anlegen
             person = None

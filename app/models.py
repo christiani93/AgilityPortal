@@ -207,6 +207,12 @@ class Dog(db.Model):
     # VDH-Formular "Bestaetigung fuer Auslandsergebnisse" (deutsche Starter).
     # Wird ins Event-Paket exportiert (entities.dogs[].chip -> Software dogs.json "Chip").
     microchip = db.Column(db.String(50), nullable=True)
+    # SHSB = Stammbuch-Nummer (Schweiz. Hundestammbuch), bei Zuchthunden.
+    shsb = db.Column(db.String(50), nullable=True)
+    # Dt. VDH-Leistungsbuchnummer (z.B. "K-33333"), NICHT die CH-Lizenz. Nur
+    # fuer deutsche Teilnehmer, fuers VDH-Formular "Bestaetigung fuer
+    # Auslandsergebnisse" (analog FAPAC fuer franz. Teilnehmer).
+    leistungsbuch_no = db.Column(db.String(50), nullable=True)
     # Offizieller Name laut TKAMO-Lizenzcheck (nur dort geschrieben, s.
     # _parse_and_apply_tkamo). AOA-Re-Importe überschreiben dieses Feld NICHT
     # — `name` bleibt der normale AOA-Name und wird auf allen "normalen"

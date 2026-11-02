@@ -75,6 +75,9 @@ def build_event_export_zip(event_id: int):
                 "sexe": dog.sex,
                 # Chip-/Transpondernummer (optional, u.a. dt. VDH-Auslandsergebnis-Formular).
                 "chip": dog.microchip,
+                "shsb": dog.shsb,
+                # Dt. VDH-Leistungsbuchnummer, nur bei deutschen Teilnehmern gesetzt.
+                "leistungsbuch": dog.leistungsbuch_no,
             }
         if handler:
             if not handler.external_id:

@@ -17,7 +17,7 @@ from flask_mail import Message
 from app.extensions import mail
 from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF, StartNumber, TkaExportBatch, TkaExportRow, TkaImport, TkaFinding, ExchangeExportLog, EventFinalist, CupEvent, CupQualificationRun, CupQualifiedTeam, Document, EventTemplate, split_events_upcoming_past
 from app.services.template_service import create_event_from_template
-from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, ProfileForm, DogForm, DogClassForm, EventRegistrationForm
+from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, ProfileForm, DogForm, DogClassForm, DogDetailsForm, EventRegistrationForm
 
 
 def _send_notify(subject, body):
@@ -1299,6 +1299,8 @@ def profile_dogs():
                 dog.fapac_no = form.fapac_no.data.strip() if form.fapac_no.data else None
                 dog.sex = form.sex.data or None
                 dog.microchip = form.microchip.data.strip() if form.microchip.data else None
+                dog.shsb = form.shsb.data.strip() if form.shsb.data else None
+                dog.leistungsbuch_no = form.leistungsbuch_no.data.strip() if form.leistungsbuch_no.data else None
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
@@ -1310,12 +1312,18 @@ def profile_dogs():
     dogs = current_user.dogs
     # Klassen-Formulare je Hund (prefill)
     class_forms = {}
+    details_forms = {}
     for dog in dogs:
         cf = DogClassForm(prefix=f"dog_{dog.id}")
         cf.category.data = dog.category or "L"
         cf.class_level.data = dog.class_level or 1
         class_forms[dog.id] = cf
-    return render_template("club/profile_dogs.html", form=form, dogs=dogs, class_forms=class_forms)
+        df = DogDetailsForm(prefix=f"dog_{dog.id}")
+        df.name.data = dog.name
+        df.breed.data = dog.breed
+        details_forms[dog.id] = df
+    return render_template("club/profile_dogs.html", form=form, dogs=dogs,
+                           class_forms=class_forms, details_forms=details_forms)
 
 
 @club_bp.post("/profile/dogs/<int:dog_id>/class")
@@ -1350,6 +1358,30 @@ def dog_update_class(dog_id):
             flash(_("Klasse/Kategorie gespeichert. %(n)s offene Anmeldung(en) wurden aktualisiert.", n=len(open_regs)), "success")
         else:
             flash(_("Klasse/Kategorie gespeichert."), "success")
+    return redirect(url_for("club.profile_dogs"))
+
+
+@club_bp.post("/profile/dogs/<int:dog_id>/details")
+@login_required
+def dog_update_details(dog_id):
+    """Name/Rasse eines Hundes korrigieren — nur der Besitzer (OWNER) darf das,
+    ein blosser Hundefuehrer nicht."""
+    if not current_user.person:
+        abort(403)
+    dog = db.session.get(Dog, dog_id)
+    if not dog:
+        abort(404)
+    owner = db.session.execute(
+        db.select(DogOwner).filter_by(dog_id=dog_id, person_id=current_user.person_id, role=DogOwnerRole.OWNER)
+    ).scalar_one_or_none()
+    if not owner:
+        abort(403)
+    form = DogDetailsForm(prefix=f"dog_{dog_id}")
+    if form.validate_on_submit():
+        dog.name = form.name.data.strip()
+        dog.breed = form.breed.data.strip() if form.breed.data else None
+        db.session.commit()
+        flash(_("Name/Rasse gespeichert."), "success")
     return redirect(url_for("club.profile_dogs"))
 
 
@@ -2021,6 +2053,8 @@ def registration_lookup(event_id):
         "license_no": license_no,
         "dog_name": dog.name or "",
         "breed": dog.breed or "",
+        "microchip": dog.microchip or "",
+        "shsb": dog.shsb or "",
         "category": dog.category or "",
         "class_level": dog.class_level or 1,
         "handler_name": handler_name,
@@ -2045,6 +2079,8 @@ def registration_add(event_id):
     license_no = _normalize_license_no(request.form.get("license_no", ""))
     dog_name   = (request.form.get("dog_name") or "").strip()
     breed      = (request.form.get("breed") or "").strip()
+    microchip  = (request.form.get("microchip") or "").strip()
+    shsb       = (request.form.get("shsb") or "").strip()
     category   = (request.form.get("category") or "").strip().upper()   # L/I/M/S
     class_raw  = (request.form.get("class_level") or "").strip()
     first_name = (request.form.get("handler_first_name") or "").strip()
@@ -2081,6 +2117,8 @@ def registration_add(event_id):
             dog = Dog(
                 name=dog_name,
                 breed=breed or None,
+                microchip=microchip or None,
+                shsb=shsb or None,
                 license_no=license_no,
                 license_kind=_detect_license_kind(license_no),
                 category=category,
@@ -2097,6 +2135,10 @@ def registration_add(event_id):
             dog.name = dog_name
         if breed and dog.breed != breed:
             dog.breed = breed
+        if microchip and not dog.microchip:
+            dog.microchip = microchip
+        if shsb and not dog.shsb:
+            dog.shsb = shsb
 
     # 2. Schon für dieses Turnier angemeldet?
     existing = db.session.execute(

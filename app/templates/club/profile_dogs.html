@@ -18,6 +18,11 @@
         <span class="fw-semibold">
           {{ dog.name }}
           {% if dog.breed %}<span class="text-muted fw-normal">— {{ dog.breed }}</span>{% endif %}
+          {% if is_owner %}
+          <button type="button" class="btn btn-sm btn-link p-0 ms-1"
+                  data-bs-toggle="collapse" data-bs-target="#edit-details-{{ dog.id }}"
+                  title="{{ _('Name/Rasse ändern') }}">✏️</button>
+          {% endif %}
         </span>
         <span>
           {% if dog.license_kind.value == 'CH' %}
@@ -65,6 +70,49 @@
           </div>
           {% endif %}
         </div>
+        {% if dog.microchip or dog.shsb or dog.leistungsbuch_no %}
+        <div class="row g-2 mt-2">
+          {% if dog.microchip %}
+          <div class="col-auto">
+            <small class="text-muted d-block">{{ _('Chip-Nr.') }}</small>
+            <span class="font-monospace">{{ dog.microchip }}</span>
+          </div>
+          {% endif %}
+          {% if dog.shsb %}
+          <div class="col-auto">
+            <small class="text-muted d-block">{{ _('SHSB-Nr.') }}</small>
+            <span class="font-monospace">{{ dog.shsb }}</span>
+          </div>
+          {% endif %}
+          {% if dog.leistungsbuch_no %}
+          <div class="col-auto">
+            <small class="text-muted d-block">{{ _('Leistungsbuch-Nr.') }}</small>
+            <span class="font-monospace">{{ dog.leistungsbuch_no }}</span>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% if is_owner and details_forms[dog.id] is defined %}
+        <div class="collapse mt-3" id="edit-details-{{ dog.id }}">
+          <form method="post" action="{{ url_for('club.dog_update_details', dog_id=dog.id) }}">
+            {{ details_forms[dog.id].hidden_tag() }}
+            <div class="row g-2 align-items-end">
+              <div class="col-auto">
+                {{ details_forms[dog.id].name.label(class="form-label mb-1") }}
+                {{ details_forms[dog.id].name(class="form-control form-control-sm") }}
+              </div>
+              <div class="col-auto">
+                {{ details_forms[dog.id].breed.label(class="form-label mb-1") }}
+                {{ details_forms[dog.id].breed(class="form-control form-control-sm") }}
+              </div>
+              <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-success">{{ _('Speichern') }}</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        {% endif %}
 
         {% if is_owner and class_forms[dog.id] is defined %}
         <div class="collapse mt-3" id="edit-class-{{ dog.id }}">
@@ -159,6 +207,26 @@
         {{ form.microchip(class="form-control" + (" is-invalid" if form.microchip.errors else "")) }}
         <div class="form-text">{{ _('Chip-/Transpondernummer (optional). Wird u.a. fürs deutsche VDH-Auslandsergebnis-Formular verwendet.') }}</div>
         {% for err in form.microchip.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.shsb.label(class="form-label") }}
+        {{ form.shsb(class="form-control" + (" is-invalid" if form.shsb.errors else "")) }}
+        <div class="form-text">{{ _('Stammbuch-Nummer (optional, meist nur bei Zuchthunden).') }}</div>
+        {% for err in form.shsb.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+
+      <hr>
+      <p class="text-muted small mb-2">
+        {{ _('Nur für deutsche Teilnehmer – fürs offizielle VDH-Auslandsergebnis-Formular. Leer lassen, falls nicht zutreffend.') }}
+      </p>
+      <div class="mb-3">
+        {{ form.leistungsbuch_no.label(class="form-label") }}
+        {{ form.leistungsbuch_no(class="form-control" + (" is-invalid" if form.leistungsbuch_no.errors else "")) }}
+        {% for err in form.leistungsbuch_no.errors %}
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
       </div>

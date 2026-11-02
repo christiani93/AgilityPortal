@@ -150,7 +150,20 @@ class DogForm(FlaskForm):
     sex = SelectField(_("Sexe"), choices=[("", "—"), ("M", _("Rüde (M)")), ("F", _("Hündin (F)"))], validators=[Optional()])
     # Chip-/Transpondernummer (optional). U.a. fürs deutsche VDH-Auslandsergebnis-Formular.
     microchip = StringField(_("Chip-Nr."), validators=[Optional(), Length(max=50)])
+    # SHSB = Stammbuch-Nummer (Schweiz. Hundestammbuch). Optional, meist nur bei CH-Zuchthunden.
+    shsb = StringField(_("SHSB-Nr."), validators=[Optional(), Length(max=50)])
+    # Dt. VDH-Leistungsbuchnummer (nur bei deutschen Teilnehmern relevant, fuers
+    # VDH-Auslandsergebnis-Formular). Optional.
+    leistungsbuch_no = StringField(_("Leistungsbuch-Nr. (VDH)"), validators=[Optional(), Length(max=50)])
     submit = SubmitField(_("Hund speichern"))
+
+
+class DogDetailsForm(FlaskForm):
+    """Name/Rasse nachtraeglich korrigieren – nur fuer den Besitzer (OWNER),
+    nicht fuer blosse Hundefuehrer."""
+    name = StringField(_("Hundename"), validators=[DataRequired(), Length(max=120)])
+    breed = StringField(_("Rasse"), validators=[Optional(), Length(max=120)])
+    submit = SubmitField(_("Speichern"))
 
 
 class DogClassForm(FlaskForm):

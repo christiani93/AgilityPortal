@@ -77,3 +77,65 @@ def test_second_claimant_becomes_handler_not_owner(app):
         assert M.DogOwnerRole.OWNER in roles
         assert M.DogOwnerRole.HANDLER in roles
         assert len(links) == 2
+
+
+def test_owner_can_update_name_and_breed(app):
+    with app.app_context():
+        app.config["WTF_CSRF_ENABLED"] = False
+        owner_person = M.Person(first_name="Erika", last_name="Muster")
+        db.session.add(owner_person)
+        db.session.flush()
+        dog = M.Dog(name="Smash", license_no="55512", license_kind=M.LicenseKind.CH,
+                    category="M", class_level=1)
+        db.session.add(dog)
+        db.session.flush()
+        db.session.add(M.DogOwner(dog_id=dog.id, person_id=owner_person.id,
+                                   role=M.DogOwnerRole.OWNER))
+        db.session.commit()
+        owner_user = M.User(email="owner2@test.ch", role="handler", person_id=owner_person.id)
+        db.session.add(owner_user)
+        db.session.commit()
+        dog_id, owner_user_id = dog.id, owner_user.id
+
+        client = app.test_client()
+        _login(client, owner_user_id)
+        r = client.post(f"/club/profile/dogs/{dog_id}/details", data={
+            f"dog_{dog_id}-name": "Smash II", f"dog_{dog_id}-breed": "Border Collie",
+        }, follow_redirects=True)
+        assert r.status_code == 200
+
+        dog = db.session.get(M.Dog, dog_id)
+        assert dog.name == "Smash II"
+        assert dog.breed == "Border Collie"
+
+
+def test_handler_cannot_update_name_and_breed(app):
+    with app.app_context():
+        app.config["WTF_CSRF_ENABLED"] = False
+        owner_person = M.Person(first_name="Erika", last_name="Muster")
+        handler_person = M.Person(first_name="Hans", last_name="Beispiel")
+        db.session.add_all([owner_person, handler_person])
+        db.session.flush()
+        dog = M.Dog(name="Smash", license_no="55512", license_kind=M.LicenseKind.CH,
+                    category="M", class_level=1)
+        db.session.add(dog)
+        db.session.flush()
+        db.session.add(M.DogOwner(dog_id=dog.id, person_id=owner_person.id,
+                                   role=M.DogOwnerRole.OWNER))
+        db.session.add(M.DogOwner(dog_id=dog.id, person_id=handler_person.id,
+                                   role=M.DogOwnerRole.HANDLER))
+        db.session.commit()
+        handler_user = M.User(email="handler2@test.ch", role="handler", person_id=handler_person.id)
+        db.session.add(handler_user)
+        db.session.commit()
+        dog_id, handler_user_id = dog.id, handler_user.id
+
+        client = app.test_client()
+        _login(client, handler_user_id)
+        r = client.post(f"/club/profile/dogs/{dog_id}/details", data={
+            f"dog_{dog_id}-name": "Gehackt", f"dog_{dog_id}-breed": "Egal",
+        })
+        assert r.status_code == 403
+
+        dog = db.session.get(M.Dog, dog_id)
+        assert dog.name == "Smash"

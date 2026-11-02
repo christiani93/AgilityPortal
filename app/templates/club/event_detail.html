@@ -900,6 +900,14 @@
           <label class="form-label small mb-0">{{ _('Rasse') }}</label>
           <input type="text" name="breed" id="ap-breed" class="form-control form-control-sm">
         </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-0">{{ _('Chip-Nr.') }}</label>
+          <input type="text" name="microchip" id="ap-chip" class="form-control form-control-sm">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-0">{{ _('SHSB-Nr.') }}</label>
+          <input type="text" name="shsb" id="ap-shsb" class="form-control form-control-sm">
+        </div>
         <div class="col-3 col-md-1">
           <label class="form-label small mb-0">{{ _('Kat.') }}</label>
           <select name="category" id="ap-category" class="form-select form-select-sm">
@@ -1156,6 +1164,8 @@
         if (d.found) {
           if (d.dog_name) document.getElementById('ap-dogname').value = d.dog_name;
           if (d.breed) document.getElementById('ap-breed').value = d.breed;
+          if (d.microchip) document.getElementById('ap-chip').value = d.microchip;
+          if (d.shsb) document.getElementById('ap-shsb').value = d.shsb;
           if (d.category) document.getElementById('ap-category').value = d.category;
           if (d.class_level) document.getElementById('ap-class').value = d.class_level;
           if (d.already_registered) {
