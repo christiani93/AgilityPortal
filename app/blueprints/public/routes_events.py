@@ -312,7 +312,7 @@ def _row_from_registration(registration, start_no):
     }
 
 
-def _collect_startlist_rows(event_id):
+def _collect_startlist_rows(event_id, only_bccs_sm=False):
     """Sammelt Startlisten-Zeilen für ein Event (dreistufig):
 
     1. StartNumber-Tabelle befüllt (Rücksync aus der AgilitySoftware) → deren
@@ -322,6 +322,7 @@ def _collect_startlist_rows(event_id):
     3. sonst → vorläufige Meldeliste (alle offenen Anmeldungen, nach
        Kategorie/Klasse/Hund).
 
+    only_bccs_sm: Filter nur auf BCCS-SM-Anmeldungen (bccs_sm=True).
     Rückgabe: (rows, has_numbers)
     """
     numbers = (
@@ -333,7 +334,7 @@ def _collect_startlist_rows(event_id):
         rows = []
         for entry in numbers:
             registration = Registration.query.get(entry.registration_id)
-            if registration:
+            if registration and (not only_bccs_sm or registration.bccs_sm):
                 rows.append(_row_from_registration(registration, entry.start_no))
         return rows, True
 
@@ -342,9 +343,10 @@ def _collect_startlist_rows(event_id):
             event_id=event_id, status=RegistrationStatus.CONFIRMED
         )
         .filter(Registration.start_number.isnot(None))
-        .order_by(Registration.start_number)
-        .all()
     )
+    if only_bccs_sm:
+        confirmed_numbered = confirmed_numbered.filter(Registration.bccs_sm == True)
+    confirmed_numbered = confirmed_numbered.order_by(Registration.start_number).all()
     if confirmed_numbered:
         rows = [_row_from_registration(r, r.start_number) for r in confirmed_numbered]
         return rows, True
@@ -352,8 +354,10 @@ def _collect_startlist_rows(event_id):
     registrations = (
         Registration.query.filter_by(event_id=event_id)
         .filter(Registration.status != RegistrationStatus.CANCELLED)
-        .all()
     )
+    if only_bccs_sm:
+        registrations = registrations.filter(Registration.bccs_sm == True)
+    registrations = registrations.all()
     rows = [_row_from_registration(r, None) for r in registrations]
     rows.sort(key=lambda r: (
         _CATEGORY_ORDER.get(r["category_code"], 99),
@@ -465,11 +469,13 @@ def public_startlist(event_id):
     # gleich wie für eingeloggte Nutzer (kein startlist_public-Gate mehr).
 
     # ?cat=&cls= blendet auf genau eine Klasse/Kategorie ein → direkt verlinkbar.
+    # ?bccs=1 zeigt nur BCCS-SM-Anmeldungen
     only_cat = request.args.get("cat") or None
     only_cls = request.args.get("cls", type=int)
+    only_bccs_sm = request.args.get("bccs", type=int) == 1
     merge_classes = _resolve_merge_classes(event)
 
-    rows, has_numbers = _collect_startlist_rows(event_id)
+    rows, has_numbers = _collect_startlist_rows(event_id, only_bccs_sm=only_bccs_sm)
     groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls,
                                    merge_classes=merge_classes)
 
@@ -491,16 +497,17 @@ def public_startlist_print(event_id):
     Je ein Block pro (Kategorie, Klasse), Layout wie in der AgilitySoftware.
     Ohne Filter: alle Blöcke mit Seitenumbruch (Sammeldruck). Mit ?cat=&cls=
     genau ein Block → eine Druckseite = ein PDF pro Klasse/Kategorie beim
-    „Als PDF speichern"."""
+    „Als PDF speichern". Mit ?bccs=1 nur BCCS-SM-Anmeldungen."""
     event = Event.query.get_or_404(event_id)
     if not event.is_published and not _has_admin_key():
         abort(404)
 
     only_cat = request.args.get("cat") or None
     only_cls = request.args.get("cls", type=int)
+    only_bccs_sm = request.args.get("bccs", type=int) == 1
     merge_classes = _resolve_merge_classes(event)
 
-    rows, has_numbers = _collect_startlist_rows(event_id)
+    rows, has_numbers = _collect_startlist_rows(event_id, only_bccs_sm=only_bccs_sm)
     groups = _group_startlist_rows(rows, only_cat=only_cat, only_cls=only_cls,
                                    merge_classes=merge_classes)
     event_logo_url, club_logo_url = _event_logo_urls(event)
