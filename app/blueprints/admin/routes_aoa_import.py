@@ -180,6 +180,9 @@ def _detect_columns(headers: list[str]) -> dict[str, str | None]:
         # Dt. VDH-Leistungsbuchnummer (nur bei dt. Teilnehmern im Export vorhanden) → Dog.leistungsbuch_no
         "leistungsbuch": _find_column(headers, "Leistungsbuch", "Leistungsbuch-Nr", "Leistungsbuch-Nr.",
                                       "Leistungsbuchnummer", "H Leistungsbuch"),
+        # BCCS-SM Anmeldung (Flag ob Team bei SM mitlaufen soll) → Registration.bccs_sm
+        "bccs_sm": _find_column(headers, "S SMQ AOA", "S SMQ", "SMQ", "SM Angemeldet",
+                                "BCCS SM", "BCCS-SM", "SM Flag"),
     }
 
 
@@ -679,6 +682,7 @@ def _extract_record(row: dict, cols: dict) -> dict | None:
         "fapac_no": _col("fapac"),
         "shsb": _col("shsb"),
         "leistungsbuch_no": _col("leistungsbuch"),
+        "bccs_sm": _col("bccs_sm"),  # Flag: 1 = SM-Anmeldung
     }
 
 
@@ -936,6 +940,9 @@ def _create_registration_from_record(event_id: int, rec: dict):
     reg.tka_event_check_status = TkaEventCheckStatus.PENDING
     if rec["club_value"]:
         reg.club_name = rec["club_value"]
+    # BCCS-SM Flagge (1 = ja, 0/leer = nein)
+    if rec.get("bccs_sm"):
+        reg.bccs_sm = bool(int(rec["bccs_sm"]) if (rec["bccs_sm"] or "").isdigit() else rec["bccs_sm"])
     db.session.flush()
     return reg
 
