@@ -438,17 +438,17 @@ def _event_logo_paths(event):
 
 
 def _event_merges_classes(event):
-    """True, wenn die Läufe des Events die Klassen NICHT trennen – d.h. für jede
-    Kategorie gibt es höchstens eine Klassenstufe (gemischter Lauf wie der
-    Tunnellauf: ein Lauf pro Kategorie). Dann wird die Startliste pro Kategorie
-    statt pro (Kategorie, Klasse) gruppiert. Ohne Läufe: False (Standard = pro
+    """True nur bei echten gemischten Läufen (Tunnellauf: ein Lauf pro
+    Kategorie für alle Klassen) – dann wird die Startliste pro Kategorie statt
+    pro (Kategorie, Klasse) gruppiert. Erkennung über run_type=='tunnel',
+    NICHT über die Anzahl konfigurierter Klassenstufen: bei SM/BCCS-Events
+    sind oft nur die SM-relevanten Läufe (meist nur Kl. 3) angelegt, obwohl es
+    gleichzeitig ein offenes Meeting mit Kl. 1/2-Teilnehmern ist – das darf die
+    Klassen in der Startliste nicht verschmelzen (Bug 2026-11-09: BCCS-SM-
+    Event mit Kl.1-3-Anmeldungen zeigte nur einen Block pro Kategorie, weil
+    die Läufe nur für Kl.3 angelegt waren). Ohne Läufe: False (Standard = pro
     Klasse)."""
-    by_cat = {}
-    for run in event.runs:
-        by_cat.setdefault(run.category, set()).add(run.class_level)
-    if not by_cat:
-        return False
-    return all(len(levels) <= 1 for levels in by_cat.values())
+    return any(run.run_type == "tunnel" for run in event.runs)
 
 
 def _resolve_merge_classes(event):

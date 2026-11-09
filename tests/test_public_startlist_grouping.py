@@ -158,6 +158,32 @@ def test_classed_runs_do_not_merge(app):
         assert _event_merges_classes(event) is False
 
 
+def test_sm_runs_with_single_class_level_do_not_merge(app):
+    """BCCS/SM-Events legen oft nur die SM-relevanten Läufe (meist nur
+    Kl. 3) an, obwohl es gleichzeitig ein offenes Meeting mit Kl.1/2-
+    Teilnehmern ist. Nur EIN Lauf pro Kategorie (wie beim Tunnellauf) darf
+    NICHT automatisch zum Verschmelzen führen, wenn der Lauf kein
+    Tunnellauf ist – sonst verschwindet die Klassentrennung in der
+    Startliste (Prod-Bug Event 34, 21.11.2026)."""
+    from app.blueprints.public.routes_events import (
+        _event_merges_classes, _group_startlist_rows,
+    )
+    with app.app_context():
+        event, _ = _seed_event()
+        _add_run(event, "agility", "L", 3)
+        _add_run(event, "jumping", "L", 3)
+        _add_reg(event, "1001", "L1", "Large", 1, start_number=1101)
+        _add_reg(event, "1002", "L2", "Large", 2, start_number=1201)
+        _add_reg(event, "1003", "L3", "Large", 3, start_number=1301)
+        db.session.commit()
+
+        assert _event_merges_classes(event) is False
+        rows, _hn = _collect_startlist_rows(event.id)
+        groups = _group_startlist_rows(rows, merge_classes=_event_merges_classes(event))
+        assert [(g["category_code"], g["class_level"]) for g in groups] == [
+            ("Large", 1), ("Large", 2), ("Large", 3)]
+
+
 def test_zip_download_one_pdf_per_block(app):
     import io
     import zipfile
