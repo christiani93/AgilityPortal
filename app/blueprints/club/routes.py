@@ -3742,6 +3742,28 @@ def event_links(event_id):
             for g in startlist_groups
         ],
     })
+    # BCCS-SM: Separate Startliste nur mit BCCS-Teilnehmern
+    if event.type == "bccs_sm":
+        bccs_startlist_rows, _has_numbers = _collect_startlist_rows(event_id, only_bccs_sm=True)
+        bccs_groups = _group_startlist_rows(
+            bccs_startlist_rows, merge_classes=_event_merges_classes(event))
+        if bccs_groups:
+            links.append({
+                "label": _("BCCS-Startliste"),
+                "desc": _("Nur BCCS-SM-Anmeldungen"),
+                "url": url_for("public_events.public_startlist", event_id=event.id, bccs=1, _external=True),
+                "available": event.is_published,
+                "children": [
+                    {
+                        "label": f"{g['category_code']}" + (f" – {_('Klasse')} {g['class_level']}" if g["class_level"] else ""),
+                        "url": url_for(
+                            "public_events.public_startlist", event_id=event.id,
+                            cat=g["category_code"], cls=g["class_level"], bccs=1, _external=True,
+                        ),
+                    }
+                    for g in bccs_groups
+                ],
+            })
     if event.schedule_public:
         links.append({
             "label": _("Zeitplan"),
