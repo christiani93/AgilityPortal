@@ -261,7 +261,7 @@
             {% endif %}
           </td>
           <td class="text-muted small">
-            {% if block.block_type in ('rank_announcement', 'final') %}
+            {% if block.block_type == 'rank_announcement' %}
               —
             {% elif event_judges %}
               <form method="post"
@@ -567,6 +567,17 @@
             <input type="text" name="title" class="form-control form-control-sm" style="width:200px;"
                    placeholder="{{ _('z. B. Finale HCS') }}">
           </div>
+          {% if event_judges %}
+          <div class="col-auto">
+            <label class="form-label small mb-1">{{ _('Richter') }}</label>
+            <select name="judge_id" class="form-select form-select-sm">
+              <option value="">— {{ _('kein') }} —</option>
+              {% for judge in event_judges %}
+              <option value="{{ judge.id }}">{{ judge.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
           <div class="col-auto">
             <button type="submit" class="btn btn-sm btn-danger">{{ _('Hinzufügen') }}</button>
           </div>
@@ -635,7 +646,7 @@
               {% endif %}
             </td>
             <td class="text-muted small">
-              {% if is_rank or is_final %}—{% else %}{{ item.block._effective_judge.full_name if item.block._effective_judge else "—" }}{% endif %}
+              {% if is_rank %}—{% else %}{{ item.block._effective_judge.full_name if item.block._effective_judge else "—" }}{% endif %}
             </td>
             <td class="text-end">{% if not is_rank %}{{ item.participants }}{% else %}—{% endif %}</td>
             <td class="text-end text-muted small">

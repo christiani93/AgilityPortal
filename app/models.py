@@ -1061,11 +1061,17 @@ class ScheduleBlock(db.Model):
     # vollständigen) Online-Anmeldungen im Portal vorliegen (z.B. extern organisierte
     # Events). Wenn gesetzt, hat sie Vorrang vor der aus Registration gezählten Zahl.
     participant_count_override = db.Column(db.Integer, nullable=True)
-    # Verknüpfung zum fachlichen Lauf. Der Richter wird AUSSCHLIESSLICH am
-    # EventRun gehalten (event_run.judge); der Block leitet ihn daraus ab.
-    # Ersetzt den früheren fragilen Composite-Key-Match (discipline+category+
-    # class_level), der u.a. is_final nicht unterscheiden konnte.
+    # Verknüpfung zum fachlichen Lauf. Für "run"-Blöcke wird der Richter
+    # kanonisch am EventRun gehalten (event_run.judge); der Block leitet ihn
+    # daraus ab. Ersetzt den früheren fragilen Composite-Key-Match (discipline+
+    # category+class_level), der u.a. is_final nicht unterscheiden konnte.
     event_run_id = db.Column(db.Integer, db.ForeignKey("event_runs.id", ondelete="SET NULL"), nullable=True, index=True)
+    # Direkter Richter für Blöcke OHNE EventRun-Verknüpfung (block_type=="final":
+    # American/KO-Finale fasst mehrere Kategorien/Klassen in einem Block zusammen,
+    # hat also keinen einzelnen fachlichen Lauf, braucht aber trotzdem einen
+    # Richter im Zeitplan). Bei "run"-Blöcken bleibt der EventRun kanonisch;
+    # judge_id wird dort nicht verwendet (siehe judge-Property).
+    judge_id = db.Column(db.Integer, db.ForeignKey("judges.id"), nullable=True)
     title = db.Column(db.String(200), nullable=True)
     notes = db.Column(db.Text)
     sort_index = db.Column(db.Integer, index=True, nullable=False, default=0)
@@ -1073,11 +1079,15 @@ class ScheduleBlock(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     event_run = db.relationship("EventRun")
+    direct_judge = db.relationship("Judge", foreign_keys=[judge_id])
 
     @property
     def judge(self):
-        """Richter dieses Blocks = Richter des verknüpften Laufs (abgeleitet)."""
-        return self.event_run.judge if self.event_run else None
+        """Richter dieses Blocks: bei "run"-Blöcken vom verknüpften EventRun
+        abgeleitet; sonst (z.B. "final") der direkt am Block gesetzte Richter."""
+        if self.event_run:
+            return self.event_run.judge
+        return self.direct_judge
 
 
 @event.listens_for(Dog, "before_insert")

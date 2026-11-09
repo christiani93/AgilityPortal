@@ -3218,6 +3218,8 @@ def schedule_block_add(event_id):
     elif block_type == "final":
         # Finalblock (American/KO): Dauer wird aus den Finalteilnehmern
         # (Einstellungen) × Sek./Finalstarter berechnet, nicht aus Anmeldungen.
+        # Kein EventRun-Link (fasst mehrere Kategorien/Klassen zusammen) →
+        # Richter wird direkt am Block gesetzt (ScheduleBlock.judge_id).
         block = ScheduleBlock(
             event_id=event_id,
             ring=ring,
@@ -3225,6 +3227,7 @@ def schedule_block_add(event_id):
             discipline=None,
             category_code=None,
             class_level=None,
+            judge_id=request.form.get("judge_id", type=int) or None,
             title=title or "Finale",
             sort_index=max_idx + 10,
         )
@@ -3334,13 +3337,16 @@ def schedule_block_set_judge(event_id, block_id):
     judge_id = request.form.get("judge_id", type=int)
     judge_id = judge_id if judge_id and judge_id != 0 else None
 
-    # Richter wird kanonisch am verknüpften EventRun gesetzt. Fehlt die
-    # Verknüpfung noch (Altbestand), wird der passende Lauf verknüpft/angelegt.
     if block.block_type == "run":
+        # Richter wird kanonisch am verknüpften EventRun gesetzt. Fehlt die
+        # Verknüpfung noch (Altbestand), wird der passende Lauf verknüpft/angelegt.
         from app.services.schedule_service import link_block_to_run
         run = block.event_run or link_block_to_run(block)
         if run is not None:
             run.judge_id = judge_id
+    elif block.block_type == "final":
+        # Kein EventRun-Link → Richter direkt am Block.
+        block.judge_id = judge_id
     db.session.commit()
     return redirect(url_for("club.event_schedule", event_id=event_id))
 
