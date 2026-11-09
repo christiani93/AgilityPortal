@@ -181,9 +181,10 @@ def _detect_columns(headers: list[str]) -> dict[str, str | None]:
         "leistungsbuch": _find_column(headers, "Leistungsbuch", "Leistungsbuch-Nr", "Leistungsbuch-Nr.",
                                       "Leistungsbuchnummer", "H Leistungsbuch"),
         # BCCS-SM Anmeldung (Flag ob Team bei SM mitlaufen soll) → Registration.bccs_sm
-        # Spalten-Namen: "S SMQ AOA" (SportyDog), "S SMQ" (kurz), "SM Angemeldet" (TKAMO)
+        # Fallback: suche nach "SMQ" in jedem Spaltennamen
         "bccs_sm": _find_column(headers, "S SMQ AOA", "S SMQ", "SM Angemeldet",
-                                "SMQ", "BCCS SM", "BCCS-SM", "SM Flag"),
+                                "SMQ", "BCCS SM", "BCCS-SM", "SM Flag") or next(
+                                    (h for h in headers if "smq" in h.lower()), None),
     }
 
 
