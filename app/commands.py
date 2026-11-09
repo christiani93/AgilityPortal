@@ -378,6 +378,56 @@ _SEASON_EVENTS = [
 ]
 
 
+def _find_reservation_ais(spec_start: date):
+    """Sucht die AIS-Turniernummer für ein Datum in der AdminPortal-Reservation
+    (gleiche DB, andere App - kein eigenes Modell, daher raw SQL).
+
+    Reihenfolge:
+    1. `reservation_event`-Zeile mit exaktem `date_from`-Treffer (die saubere,
+       pro-Tag aufgeschlüsselte Quelle - siehe Reservation #63 nach dem Fix
+       vom 09.11.2026).
+    2. Fallback: `reservation`-Haupttabelle, aber NUR wenn es ein echtes
+       Eintages-Turnier ist (date_to NULL oder == date_from) - bei Mehrtage-
+       Reservationen ohne `reservation_event`-Aufschlüsselung lässt sich die
+       passende AIS-Nummer aus `ais_turniernummer_extra` (Komma-String) nicht
+       verlässlich einem bestimmten Tag zuordnen, also kein Match.
+
+    Gibt (ais_turniernummer, reservation_id) oder (None, None) zurück.
+    `reservation`/`reservation_event` gehören zum AdminPortal-Schema - in
+    Dev/Test-DBs ohne dessen Tabellen (z.B. die SQLite-Test-DB) existieren sie
+    nicht; das wird wie "keine Reservation gefunden" behandelt, nicht als Fehler.
+    """
+    from sqlalchemy import text
+    from sqlalchemy.exc import DBAPIError
+
+    try:
+        row = db.session.execute(text("""
+            SELECT re.portal_event_id, re.ais_turniernummer, re.reservation_id
+            FROM reservation_event re
+            JOIN reservation r ON r.id = re.reservation_id
+            WHERE re.date_from = :d AND r.status = 'confirmed'
+              AND re.ais_turniernummer IS NOT NULL
+            LIMIT 1
+        """), {"d": spec_start}).first()
+        if row:
+            return row.ais_turniernummer, row.reservation_id
+
+        row = db.session.execute(text("""
+            SELECT id, ais_turniernummer
+            FROM reservation
+            WHERE date_from = :d AND (date_to IS NULL OR date_to = date_from)
+              AND status = 'confirmed' AND ais_turniernummer IS NOT NULL
+            LIMIT 1
+        """), {"d": spec_start}).first()
+        if row:
+            return row.ais_turniernummer, row.id
+    except DBAPIError:
+        db.session.rollback()
+        return None, None
+
+    return None, None
+
+
 @click.command("seed-season-events")
 @click.option("--dry-run", is_flag=True,
               help="Nur anzeigen, was angelegt würde – ohne zu schreiben.")
@@ -389,6 +439,12 @@ def seed_season_events(dry_run: bool):
     Sichtbar (is_published=True), Anmeldung geschlossen (status="closed").
     Idempotent über external_id: ein zweiter Aufruf legt nichts doppelt an.
     Veranstalter werden per Namensfragment (Club.name ILIKE) zugeordnet.
+
+    Legt ein Turnier nur an, wenn für dessen Datum bereits eine BESTÄTIGTE
+    AdminPortal-Reservation mit AIS-Turniernummer existiert (siehe
+    _find_reservation_ais) - ohne das wird übersprungen und eine Warnung
+    ausgegeben, statt ein Turnier ohne AIS-Nummer anzulegen (Lehre aus
+    Reservation #63, die nie mit den Events verknüpft wurde).
 
     Beispiel:
       flask seed-season-events --dry-run
@@ -408,7 +464,7 @@ def seed_season_events(dry_run: bool):
             ).scalars().first()
         return club_cache[hint]
 
-    created = skipped = 0
+    created = skipped = missing_reservation = 0
     warnings: list[str] = []
 
     for spec in _SEASON_EVENTS:
@@ -418,6 +474,15 @@ def seed_season_events(dry_run: bool):
         if existing:
             skipped += 1
             click.echo(f"  = vorhanden: {spec['name']} (ID {existing.id})")
+            continue
+
+        ais, reservation_id = _find_reservation_ais(spec["start"])
+        if ais is None:
+            missing_reservation += 1
+            click.echo(
+                f"  ! übersprungen (keine bestätigte Reservation mit AIS-Nummer "
+                f"für {spec['start']}): {spec['name']}"
+            )
             continue
 
         club = find_club(spec["organiser"]) if spec.get("organiser") else None
@@ -438,18 +503,27 @@ def seed_season_events(dry_run: bool):
             status="closed",
             is_published=True,
             organiser_club_id=club.id if club else None,
+            ais_turniernummer=ais,
+            reservation_id=reservation_id,
+            reservation_synced_at=datetime.utcnow(),
         )
         db.session.add(event)
         created += 1
         club_label = club.name if club else "- (kein Verein)"
-        click.echo(f"  + {spec['start']} {spec['name']} -> {club_label}")
+        click.echo(f"  + {spec['start']} {spec['name']} -> {club_label} (AIS {ais})")
 
     for w in warnings:
         click.echo(f"  ! {w}", err=True)
 
     if dry_run:
         db.session.rollback()
-        click.echo(f"\n[DRY-RUN] {created} neu, {skipped} vorhanden - nichts geschrieben.")
+        click.echo(
+            f"\n[DRY-RUN] {created} neu, {skipped} vorhanden, "
+            f"{missing_reservation} ohne Reservation übersprungen - nichts geschrieben."
+        )
     else:
         db.session.commit()
-        click.echo(f"\n[OK] {created} Turniere angelegt, {skipped} bereits vorhanden.")
+        click.echo(
+            f"\n[OK] {created} Turniere angelegt, {skipped} bereits vorhanden, "
+            f"{missing_reservation} ohne Reservation übersprungen."
+        )
