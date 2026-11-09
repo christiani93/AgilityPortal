@@ -795,6 +795,7 @@ class Registration(db.Model):
     tka_issue_message = db.Column(db.Text)
     start_number = db.Column(db.Integer, nullable=True)
     is_in_season = db.Column(db.Boolean, default=False, nullable=False)
+    bccs_sm = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     event = db.relationship("Event")
