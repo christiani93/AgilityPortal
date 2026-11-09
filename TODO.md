@@ -5,6 +5,37 @@
 
 Stand: 2026-11-09
 
+## Session 2026-11-09 — BCCS-SM Portal-Infrastruktur (DEPLOYED `f9d7af1`)
+
+Memory `project-bccs-sm-portal-infrastructure-20261109`. 3 Events: Abendmeeting
+20.11 (AIS 12322, normal), BCCS-SM Sa 21.11 (12323, Kl.3+Finale), So 22.11 (12324,
+Kl.1+2 Nachwuchs). BCCS-Läufe = SM-Quali-Läufe (nicht separat).
+
+- [x] `Registration.bccs_sm`-Flag + Migration `bccs001` (Prod angewandt).
+- [x] AOA-Import liest „S SMQ AOA" → `bccs_sm` bei der Spalten-Erkennung.
+- [x] **AOA-Preview zeigt BCCS-SM-Spalte** (`f9d7af1`): Erkennung war immer korrekt,
+      Template hatte nur Whitelist → Spalte an 3 Stellen eintragen nötig (Route
+      auslesen + ans Template übergeben + preview.html-Liste). Memory
+      `reference-aoa-import-column-whitelist`.
+- [x] **Bugfix `bccs_sm` bei Re-Import/Abgleich NICHT persistiert** (Session
+      09.11. Folgefix): Prod-Check zeigte Event 34 (21.11.) 135 Anmeldungen,
+      0× `bccs_sm=True`. Ursache: zwei getrennte Import-Routen — die normale
+      `/admin/aoa-import/execute` (`aoa_import_execute`) hat `col_bccs_sm` nie
+      ausgelesen/gesetzt (weder neu noch bestehend); der Abgleich-Flow
+      (`aoa_compare_execute`) hat `bccs_sm` nur bei brandneuen Lizenzen über
+      `_create_registration_from_record` gesetzt, bei „geändert"/„unverändert"
+      nie, weil `_build_diff` das Feld gar nicht verglich. Fix: gemeinsamer
+      Helper `_parse_bccs_sm()`, `_build_diff` vergleicht jetzt auch `bccs_sm`
+      (erscheint als Diff-Zeile), `aoa_compare_execute` schreibt es bei
+      `change_set`, `aoa_import_execute` liest/schreibt es für neu+bestehend.
+- [x] Gefilterte Startlisten `?bccs=1` (`_collect_startlist_rows(only_bccs_sm=)`).
+- [x] Event-Links-Seite zeigt BCCS-Startliste-Abschnitt bei `type=="bccs_sm"`.
+- [ ] **User-Realtest**: Excel 21.11/22.11 mit dem gefixten Import/Abgleich neu
+      einlesen, SMQ-Flags in Prod prüfen, gefilterte Startlisten + kopierbare
+      Links auf `/club/events/xx/links` verifizieren.
+- [ ] **BCCS-Reglement finalisieren** (laut User „in den nächsten Tagen") — Final-/
+      Auswertungslogik kann sich noch ändern.
+
 ## Session 2026-11-09 — Events auf Portal anlegen (OFFEN, in Arbeit)
 
 Mechanismus: `app/commands.py` `_SEASON_EVENTS` + `flask seed-season-events`

@@ -37,7 +37,7 @@ def _resolve_cols(headers):
 
 
 # Optionale Spalten, die nicht jedes Export-Format hat (dürfen None sein)
-OPTIONAL_COLS = {"breed", "phone2", "sex", "chip", "fapac", "shsb", "leistungsbuch"}
+OPTIONAL_COLS = {"breed", "phone2", "sex", "chip", "fapac", "shsb", "leistungsbuch", "bccs_sm"}
 
 
 def test_aoa_original_headers_all_mapped():

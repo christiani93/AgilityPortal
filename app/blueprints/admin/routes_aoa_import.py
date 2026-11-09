@@ -186,6 +186,12 @@ def _detect_columns(headers: list[str]) -> dict[str, str | None]:
     }
 
 
+def _parse_bccs_sm(raw_value: str | None) -> bool:
+    """SMQ-Spaltenwert → bool. 1 = ja, 0/leer/unbekannt = nein."""
+    value = (raw_value or "").strip()
+    return value.isdigit() and bool(int(value))
+
+
 def _parse_csv(file_content: str) -> tuple[list[dict], list[str]]:
     """
     Parst das SportyDog/AOA CSV.
@@ -728,6 +734,9 @@ def _build_diff(rows: list[dict], cols: dict, event_id: int) -> dict:
             diffs.append(("Kategorie", reg.category_code or "—", rec["category"] or "—"))
         if reg.class_level != rec["class_level"]:
             diffs.append(("Klasse", reg.class_level or "—", rec["class_level"]))
+        new_bccs_sm = _parse_bccs_sm(rec.get("bccs_sm"))
+        if bool(reg.bccs_sm) != new_bccs_sm:
+            diffs.append(("BCCS-SM", "ja" if reg.bccs_sm else "nein", "ja" if new_bccs_sm else "nein"))
         entry = {
             "license_no": lic,
             "dog_name": reg.dog.name if reg.dog else rec["dog_name"],
@@ -943,11 +952,7 @@ def _create_registration_from_record(event_id: int, rec: dict):
     if rec["club_value"]:
         reg.club_name = rec["club_value"]
     # BCCS-SM Flagge: 1 = ja, 0/leer = nein (auch beim Re-Import aktualisieren)
-    bccs_sm_value = (rec.get("bccs_sm") or "").strip()
-    if bccs_sm_value.isdigit():
-        reg.bccs_sm = bool(int(bccs_sm_value))
-    else:
-        reg.bccs_sm = False  # Leer oder unbekannt → False
+    reg.bccs_sm = _parse_bccs_sm(rec.get("bccs_sm"))
     db.session.flush()
     return reg
 
@@ -1017,6 +1022,7 @@ def aoa_compare_execute():
         if reg:
             reg.category_code = entry["rec"]["category"]
             reg.class_level = entry["rec"]["class_level"]
+            reg.bccs_sm = _parse_bccs_sm(entry["rec"].get("bccs_sm"))
             changed += 1
 
     db.session.commit()
@@ -1073,6 +1079,7 @@ def aoa_import_execute():
     col_fapac = cols["fapac"]
     col_shsb = cols["shsb"]
     col_leistungsbuch = cols["leistungsbuch"]
+    col_bccs_sm = cols["bccs_sm"]
 
     created = 0
     skipped = 0
@@ -1110,6 +1117,7 @@ def aoa_import_execute():
         fapac = (row.get(col_fapac) or "").strip() if col_fapac else ""
         shsb = (row.get(col_shsb) or "").strip() if col_shsb else ""
         leistungsbuch = (row.get(col_leistungsbuch) or "").strip() if col_leistungsbuch else ""
+        bccs_sm = _parse_bccs_sm(row.get(col_bccs_sm)) if col_bccs_sm else False
 
         try:
             # 1. Hund finden oder anlegen
@@ -1222,6 +1230,7 @@ def aoa_import_execute():
                 existing_reg.handler_id = person.id if person else existing_reg.handler_id
                 if club_value:
                     existing_reg.club_name = club_value
+                existing_reg.bccs_sm = bccs_sm
                 created += 1
                 continue
 
@@ -1235,6 +1244,7 @@ def aoa_import_execute():
                 status=RegistrationStatus.CONFIRMED,
                 tka_event_check_status=TkaEventCheckStatus.PENDING,
                 club_name=club_value or None,
+                bccs_sm=bccs_sm,
             )
             db.session.add(reg)
             created += 1
