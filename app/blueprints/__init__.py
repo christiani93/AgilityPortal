@@ -8,6 +8,7 @@ from .admin.routes_team_challenge import team_admin_bp
 from .admin.routes_templates import templates_admin_bp
 from .admin.routes_special_rulesets import special_rulesets_admin_bp
 from .admin.routes_aoa_import import aoa_import_bp
+from .admin.routes_reglement import reglement_admin_bp
 from .api.routes_live import live_api_bp
 from .api.routes_results import results_api_bp
 from .public.routes_events import public_events_bp
@@ -29,6 +30,7 @@ def register_blueprints(app):
     app.register_blueprint(templates_admin_bp)
     app.register_blueprint(special_rulesets_admin_bp)
     app.register_blueprint(aoa_import_bp)
+    app.register_blueprint(reglement_admin_bp)
     app.register_blueprint(live_api_bp)
     app.register_blueprint(results_api_bp)
     app.register_blueprint(public_events_bp)

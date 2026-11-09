@@ -62,9 +62,11 @@ def test_profile_dogs_persists_french_dog_fields(app):
         client = app.test_client()
         _login(client, user_id)
 
+        # Lizenz-Typ "FRA": license_no ohne Präfix eingegeben → Route stellt
+        # das Landeskürzel FRA- automatisch voran; FAPAC nur beim FRA-Typ.
         r = client.post("/club/profile/dogs", data={
             "name": "Haze", "breed": "Border Collie",
-            "license_kind": "FOREIGN", "license_no": "FRA-104983",
+            "license_kind": "FRA", "license_no": "104983",
             "fapac_no": "D-12345", "sex": "M",
         }, follow_redirects=True)
         assert r.status_code == 200
@@ -72,5 +74,44 @@ def test_profile_dogs_persists_french_dog_fields(app):
         dog = db.session.execute(
             db.select(M.Dog).filter_by(license_no="FRA-104983")
         ).scalar_one()
+        assert dog.license_kind == M.LicenseKind.FOREIGN
+        assert dog.foreign_country_code == "FRA"
         assert dog.fapac_no == "D-12345"
         assert dog.sex == "M"
+
+
+def test_profile_dogs_persists_swiss_and_german_fields(app):
+    """SHSB ist eine Schweizer Angabe (CH-Typ); die dt. Leistungsbuch-Nr. gehört
+    zum DEU-Typ. Geschlecht gilt für alle Typen."""
+    with app.app_context():
+        app.config["WTF_CSRF_ENABLED"] = False
+        user_id = _seed_user()
+        client = app.test_client()
+        _login(client, user_id)
+
+        # CH-Hund mit SHSB + Geschlecht
+        client.post("/club/profile/dogs", data={
+            "name": "Fido", "breed": "Sheltie",
+            "license_kind": "CH", "license_no": "55501",
+            "shsb": "SHSB-12345", "sex": "F",
+            # ausgeblendete Fremdfelder dürfen beim CH-Typ nicht durchschlagen:
+            "fapac_no": "SHOULD-NOT-STICK", "leistungsbuch_no": "SHOULD-NOT-STICK",
+        }, follow_redirects=True)
+        ch_dog = db.session.execute(db.select(M.Dog).filter_by(license_no="55501")).scalar_one()
+        assert ch_dog.license_kind == M.LicenseKind.CH
+        assert ch_dog.shsb == "SHSB-12345"
+        assert ch_dog.sex == "F"
+        assert ch_dog.fapac_no is None
+        assert ch_dog.leistungsbuch_no is None
+
+        # DEU-Hund mit Leistungsbuch, Auto-Präfix DEU-
+        client.post("/club/profile/dogs", data={
+            "name": "Hund", "breed": "DSH",
+            "license_kind": "DEU", "license_no": "77",
+            "leistungsbuch_no": "K-33333", "sex": "M",
+        }, follow_redirects=True)
+        de_dog = db.session.execute(db.select(M.Dog).filter_by(license_no="DEU-77")).scalar_one()
+        assert de_dog.license_kind == M.LicenseKind.FOREIGN
+        assert de_dog.foreign_country_code == "DEU"
+        assert de_dog.leistungsbuch_no == "K-33333"
+        assert de_dog.shsb is None

@@ -58,6 +58,7 @@ def register():
                 first_name=form.first_name.data.strip(),
                 last_name=form.last_name.data.strip(),
                 email=email,
+                account_user_id=user.id,
             )
             db.session.add(person)
             db.session.flush()  # get person.id

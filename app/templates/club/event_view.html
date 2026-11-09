@@ -295,6 +295,16 @@
           {{ form.dog_id.label(class="form-label") }}
           {{ form.dog_id(class="form-select", id="dog-select") }}
         </div>
+        {# Läufer-Auswahl nur zeigen, wenn das Konto mehrere Läufer verwaltet #}
+        {% if form.handler_id.choices | length > 1 %}
+        <div class="mb-3">
+          {{ form.handler_id.label(class="form-label") }}
+          {{ form.handler_id(class="form-select") }}
+          <div class="form-text text-muted">
+            {{ _('Für wen ist diese Anmeldung? Weitere Läufer verwaltest du unter „Meine Läufer".') }}
+          </div>
+        </div>
+        {% endif %}
         <div class="mb-2">
           <label class="form-label">{{ _('Kategorie') }}</label>
           <div id="dog-category-display" class="form-control bg-light"></div>
@@ -304,7 +314,9 @@
           {{ form.class_level(class="form-select", id="class-select") }}
           <div class="form-text text-muted">{{ _('Eine Änderung hier aktualisiert automatisch das Hundeprofil.') }}</div>
         </div>
-        <div class="mb-3">
+        {# Läufig-Checkbox nur für Hündinnen (F) oder unbekanntes Geschlecht —
+           bei Rüden (M) blendet das JS unten den Block aus. #}
+        <div class="mb-3" id="in-season-block">
           <div class="form-check">
             {{ form.is_in_season(class="form-check-input") }}
             {{ form.is_in_season.label(class="form-check-label") }}
@@ -323,6 +335,8 @@
         const dogSelect = document.getElementById("dog-select");
         const classSelect = document.getElementById("class-select");
         const catDisplay = document.getElementById("dog-category-display");
+        const inSeasonBlock = document.getElementById("in-season-block");
+        const inSeasonInput = inSeasonBlock ? inSeasonBlock.querySelector("input[type=checkbox]") : null;
 
         function updateFromDog() {
           const id = parseInt(dogSelect.value);
@@ -332,6 +346,12 @@
           catDisplay.textContent = cat ? (catLabels[cat] || cat) : missing;
           catDisplay.className = "form-control " + (cat ? "bg-light" : "bg-warning-subtle text-warning-emphasis");
           if (data.class_level) classSelect.value = data.class_level;
+          // Läufig nur bei Hündin (F) oder unbekanntem Geschlecht anbieten.
+          if (inSeasonBlock) {
+            const isMale = (data.sex === "M");
+            inSeasonBlock.style.display = isMale ? "none" : "";
+            if (isMale && inSeasonInput) inSeasonInput.checked = false;
+          }
         }
 
         dogSelect.addEventListener("change", updateFromDog);
@@ -372,7 +392,16 @@
           {% if has_start_numbers %}
           <td class="fw-semibold text-muted">{{ reg.start_number or "—" }}</td>
           {% endif %}
-          <td class="fw-semibold">{{ reg.dog.name }}</td>
+          <td class="fw-semibold">
+            {{ reg.dog.name }}
+            {% if reg.is_in_season %}
+              <span class="badge bg-warning text-dark ms-1"
+                    title="{{ _('Läufig') }}{% if event.bitches_in_season_start_last %} — {{ _('startet am Schluss') }}{% endif %}">♀ {{ _('läufig') }}</span>
+            {% endif %}
+            {% if multi_handler and reg.handler %}
+              <div class="text-muted small fw-normal">{{ reg.handler.first_name }} {{ reg.handler.last_name }}</div>
+            {% endif %}
+          </td>
           <td>{{ reg.category_code }}</td>
           <td>{{ _('Klasse') }} {{ reg.class_level }}</td>
           <td>
@@ -387,14 +416,31 @@
             {% endif %}
           </td>
           <td class="text-end">
-            {% if reg.status.value in ('PENDING', 'SUBMITTED') %}
-            <form method="post"
-                  action="{{ url_for('club.registration_cancel', reg_id=reg.id) }}"
-                  onsubmit="return confirm('{{ _('Anmeldung stornieren?') }}')">
-              {{ form.hidden_tag() }}
-              <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Stornieren') }}</button>
-            </form>
-            {% endif %}
+            <div class="d-flex gap-1 justify-content-end flex-wrap">
+              {# Läufig nachträglich melden/aufheben — auch nach der Anmeldung.
+                 Melden nur bei Hündin (F)/unbekannt, Aufheben immer möglich. #}
+              {% if event.allows_bitches_in_season and reg.status.value != 'CANCELLED'
+                    and (reg.is_in_season or not (reg.dog and reg.dog.sex == 'M')) %}
+              <form method="post" action="{{ url_for('club.registration_toggle_in_season', reg_id=reg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if reg.is_in_season %}
+                  <button type="submit" class="btn btn-sm btn-outline-warning"
+                          title="{{ _('Läufig-Meldung aufheben') }}">♀ {{ _('Nicht läufig') }}</button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          title="{{ _('Hündin als läufig melden') }}">♀ {{ _('Läufig melden') }}</button>
+                {% endif %}
+              </form>
+              {% endif %}
+              {% if reg.status.value in ('PENDING', 'SUBMITTED') %}
+              <form method="post"
+                    action="{{ url_for('club.registration_cancel', reg_id=reg.id) }}"
+                    onsubmit="return confirm('{{ _('Anmeldung stornieren?') }}')">
+                {{ form.hidden_tag() }}
+                <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Stornieren') }}</button>
+              </form>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% endfor %}

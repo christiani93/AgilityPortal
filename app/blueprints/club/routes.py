@@ -17,7 +17,7 @@ from flask_mail import Message
 from app.extensions import mail
 from app.models import User, Club, Event, EventRun, EventJudge, Judge, PendingRequest, Person, Dog, DogOwner, DogOwnerRole, LicenseKind, Registration, RegistrationStatus, ScheduleBlock, LiveUpdate, Result, ResultImport, ResultPDF, StartNumber, TkaExportBatch, TkaExportRow, TkaImport, TkaFinding, ExchangeExportLog, EventFinalist, CupEvent, CupQualificationRun, CupQualifiedTeam, Document, EventTemplate, split_events_upcoming_past
 from app.services.template_service import create_event_from_template
-from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, ProfileForm, DogForm, DogClassForm, DogDetailsForm, EventRegistrationForm
+from .forms import AddUserForm, ChangePasswordForm, EventForm, EventRunForm, JudgeRequestForm, ClubRequestForm, ProfileForm, HandlerForm, DogForm, DogClassForm, DogDetailsForm, EventRegistrationForm
 
 
 def _send_notify(subject, body):
@@ -107,10 +107,11 @@ def dashboard():
         ).scalars().all()
         # Eigene Anmeldungen (alle nicht-stornierten, neueste zuerst)
         my_registrations = []
-        if current_user.person_id:
+        handler_ids = current_user.handler_ids
+        if handler_ids:
             my_registrations = db.session.execute(
                 db.select(Registration)
-                .filter_by(handler_id=current_user.person_id)
+                .filter(Registration.handler_id.in_(handler_ids))
                 .filter(Registration.status != RegistrationStatus.CANCELLED)
                 .order_by(Registration.created_at.desc())
             ).scalars().all()
@@ -1220,15 +1221,17 @@ def profile_edit():
     landet.
     """
     if not current_user.person:
-        p = Person(first_name=current_user.first_name or "", last_name=current_user.last_name or "", email=current_user.email)
+        p = Person(first_name=current_user.first_name or "", last_name=current_user.last_name or "", email=current_user.email, account_user_id=current_user.id)
         db.session.add(p)
         db.session.flush()
         current_user.person_id = p.id
         db.session.commit()
 
     form = ProfileForm(obj=current_user)
+    form.club_id.choices = _club_choices()
     if request.method == "GET":
         form.phone.data = current_user.person.phone
+        form.club_id.data = current_user.person.club_id or 0
         form.fr_license_no.data = current_user.person.fr_license_no
         form.fr_club.data = current_user.person.fr_club
         form.fr_regionale.data = current_user.person.fr_regionale
@@ -1238,6 +1241,7 @@ def profile_edit():
         current_user.person.first_name = form.first_name.data.strip()
         current_user.person.last_name = form.last_name.data.strip()
         current_user.person.phone = form.phone.data.strip() if form.phone.data else None
+        current_user.person.club_id = form.club_id.data or None
         current_user.person.fr_license_no = form.fr_license_no.data.strip() if form.fr_license_no.data else None
         current_user.person.fr_club = form.fr_club.data.strip() if form.fr_club.data else None
         current_user.person.fr_regionale = form.fr_regionale.data.strip() if form.fr_regionale.data else None
@@ -1245,6 +1249,115 @@ def profile_edit():
         flash(_("Angaben gespeichert."), "success")
         return redirect(url_for("club.profile_edit"))
     return render_template("club/profile_edit.html", form=form)
+
+
+# ---------------------------------------------------------------------------
+# Teilnehmer: weitere Läufer verwalten (Mehr-Personen-Konto)
+# ---------------------------------------------------------------------------
+
+def _club_choices():
+    """(0, kein Verein) + alle SKG-Vereine, nach Name sortiert."""
+    clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
+    return [(0, _("— kein Verein —"))] + [
+        (c.id, f"{c.vereinsnummer} · {c.name}") for c in clubs
+    ]
+
+
+def _ensure_own_person():
+    """Stellt sicher, dass das Konto eine eigene Person hat (Lazy-Create)."""
+    if not current_user.person:
+        p = Person(first_name=current_user.first_name or "", last_name=current_user.last_name or "",
+                   email=current_user.email, account_user_id=current_user.id)
+        db.session.add(p)
+        db.session.flush()
+        current_user.person_id = p.id
+        db.session.commit()
+
+
+@club_bp.get("/profile/handlers")
+@club_bp.post("/profile/handlers")
+@login_required
+def profile_handlers():
+    """Liste der Läufer des Kontos + Formular für einen weiteren Läufer."""
+    _ensure_own_person()
+    form = HandlerForm()
+    form.club_id.choices = _club_choices()
+    if form.validate_on_submit():
+        person = Person(
+            first_name=form.first_name.data.strip(),
+            last_name=form.last_name.data.strip(),
+            email=current_user.email,
+            account_user_id=current_user.id,
+            phone=form.phone.data.strip() if form.phone.data else None,
+            club_id=form.club_id.data or None,
+            fr_license_no=form.fr_license_no.data.strip() if form.fr_license_no.data else None,
+            fr_club=form.fr_club.data.strip() if form.fr_club.data else None,
+            fr_regionale=form.fr_regionale.data.strip() if form.fr_regionale.data else None,
+        )
+        db.session.add(person)
+        db.session.commit()
+        flash(_("Läufer «%(name)s» wurde hinzugefügt.",
+                name=f"{person.first_name} {person.last_name}".strip()), "success")
+        return redirect(url_for("club.profile_handlers"))
+
+    handlers = current_user.handlers
+    # Edit-Formulare je zusätzlichem Läufer (nicht für die eigene Person — die
+    # wird unter „Meine Angaben" bearbeitet).
+    edit_forms = {}
+    for p in handlers:
+        if p.id == current_user.person_id:
+            continue
+        ef = HandlerForm(prefix=f"h{p.id}", obj=p)
+        ef.club_id.choices = _club_choices()
+        if request.method == "GET":
+            ef.club_id.data = p.club_id or 0
+        edit_forms[p.id] = ef
+    return render_template("club/profile_handlers.html", form=form,
+                           handlers=handlers, edit_forms=edit_forms,
+                           primary_person_id=current_user.person_id)
+
+
+@club_bp.post("/profile/handlers/<int:person_id>/edit")
+@login_required
+def handler_update(person_id):
+    person = db.session.get(Person, person_id)
+    if not person or person.account_user_id != current_user.id or person.id == current_user.person_id:
+        abort(403)
+    form = HandlerForm(prefix=f"h{person_id}")
+    form.club_id.choices = _club_choices()
+    if form.validate_on_submit():
+        person.first_name = form.first_name.data.strip()
+        person.last_name = form.last_name.data.strip()
+        person.phone = form.phone.data.strip() if form.phone.data else None
+        person.club_id = form.club_id.data or None
+        person.fr_license_no = form.fr_license_no.data.strip() if form.fr_license_no.data else None
+        person.fr_club = form.fr_club.data.strip() if form.fr_club.data else None
+        person.fr_regionale = form.fr_regionale.data.strip() if form.fr_regionale.data else None
+        db.session.commit()
+        flash(_("Läufer gespeichert."), "success")
+    return redirect(url_for("club.profile_handlers"))
+
+
+@club_bp.post("/profile/handlers/<int:person_id>/delete")
+@login_required
+def handler_delete(person_id):
+    person = db.session.get(Person, person_id)
+    if not person or person.account_user_id != current_user.id or person.id == current_user.person_id:
+        abort(403)
+    # Nicht löschen, wenn der Läufer bereits Anmeldungen hat (würde Daten verwaisen).
+    has_regs = db.session.execute(
+        db.select(Registration.id).filter_by(handler_id=person.id).limit(1)
+    ).first() is not None
+    if has_regs:
+        flash(_("Dieser Läufer hat Anmeldungen und kann nicht gelöscht werden."), "danger")
+        return redirect(url_for("club.profile_handlers"))
+    # DogOwner-Zeilen dieses Läufers lösen (nur die Verknüpfung, nicht die Hunde).
+    for owner in list(person.owners):
+        db.session.delete(owner)
+    db.session.delete(person)
+    db.session.commit()
+    flash(_("Läufer entfernt."), "success")
+    return redirect(url_for("club.profile_handlers"))
 
 
 # ---------------------------------------------------------------------------
@@ -1257,7 +1370,7 @@ def profile_edit():
 def profile_dogs():
     if not current_user.person:
         # Person erstellen falls noch nicht vorhanden
-        p = Person(first_name=current_user.first_name or "", last_name=current_user.last_name or "", email=current_user.email)
+        p = Person(first_name=current_user.first_name or "", last_name=current_user.last_name or "", email=current_user.email, account_user_id=current_user.id)
         db.session.add(p)
         db.session.flush()
         current_user.person_id = p.id
@@ -1265,8 +1378,18 @@ def profile_dogs():
     form = DogForm()
     if form.validate_on_submit():
         try:
-            license_kind = LicenseKind[form.license_kind.data]
+            # Lizenz-Typ aus dem Formular → DB-Enum + ggf. Landes-Praefix.
+            # CH bleibt CH; FRA/DEU/FOREIGN sind alle LicenseKind.FOREIGN, nur das
+            # Praefix der Lizenznummer unterscheidet das Land (FRA-/DEU-).
+            type_choice = form.license_kind.data
+            _PREFIX_BY_TYPE = {"FRA": "FRA", "DEU": "DEU"}
+            license_kind = LicenseKind.CH if type_choice == "CH" else LicenseKind.FOREIGN
             license_no = form.license_no.data.strip()
+            # Fuer FRA/DEU das Landeskuerzel automatisch voranstellen, falls der
+            # Nutzer nur die Nummer eingetippt hat (kein "-"-Praefix vorhanden).
+            prefix = _PREFIX_BY_TYPE.get(type_choice)
+            if prefix and license_no and "-" not in license_no:
+                license_no = f"{prefix}-{license_no}"
             Dog._validate_license_format(license_kind, license_no)
             existing = db.session.execute(db.select(Dog).filter_by(license_no=license_no)).scalar_one_or_none()
             if existing:
@@ -1296,11 +1419,15 @@ def profile_dogs():
                 dog.breed = form.breed.data.strip() if form.breed.data else None
                 dog.license_kind = license_kind
                 dog.license_no = license_no
-                dog.fapac_no = form.fapac_no.data.strip() if form.fapac_no.data else None
+                # Geschlecht + Chip sind allgemein (alle Typen).
                 dog.sex = form.sex.data or None
                 dog.microchip = form.microchip.data.strip() if form.microchip.data else None
-                dog.shsb = form.shsb.data.strip() if form.shsb.data else None
-                dog.leistungsbuch_no = form.leistungsbuch_no.data.strip() if form.leistungsbuch_no.data else None
+                # Laenderspezifische Zusatzfelder nur fuer den passenden Typ
+                # uebernehmen — verhindert Datenmuell, wenn der Nutzer den Typ
+                # umschaltet und ausgeblendete Felder noch befuellt waren.
+                dog.shsb = (form.shsb.data.strip() if form.shsb.data else None) if type_choice == "CH" else None
+                dog.fapac_no = (form.fapac_no.data.strip() if form.fapac_no.data else None) if type_choice == "FRA" else None
+                dog.leistungsbuch_no = (form.leistungsbuch_no.data.strip() if form.leistungsbuch_no.data else None) if type_choice == "DEU" else None
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
@@ -1409,10 +1536,12 @@ def event_info(event_id):
             abort(404)
 
     my_registrations = []
-    if current_user.person_id:
+    handler_ids = current_user.handler_ids
+    if handler_ids:
         my_registrations = db.session.execute(
             db.select(Registration)
-            .filter_by(event_id=event_id, handler_id=current_user.person_id)
+            .filter(Registration.event_id == event_id,
+                    Registration.handler_id.in_(handler_ids))
             .filter(Registration.status != RegistrationStatus.CANCELLED)
         ).scalars().all()
 
@@ -1537,8 +1666,8 @@ def registration_cancel_own(reg_id):
     reg = db.session.get(Registration, reg_id)
     if not reg:
         abort(404)
-    # Nur eigene Anmeldungen
-    if reg.handler_id != current_user.person_id:
+    # Nur eigene Anmeldungen (ein Konto darf alle seine Laeufer verwalten)
+    if reg.handler_id not in current_user.handler_ids:
         abort(403)
     # Nur PENDING oder CONFIRMED, und Nennschluss nicht abgelaufen
     deadline_passed = (
@@ -1565,14 +1694,26 @@ def registration_toggle_in_season(reg_id):
     reg = db.session.get(Registration, reg_id)
     if not reg:
         abort(404)
-    if reg.handler_id != current_user.person_id:
+    if reg.handler_id not in current_user.handler_ids:
         abort(403)
     if reg.status not in (RegistrationStatus.PENDING, RegistrationStatus.CONFIRMED):
         abort(403)
+    # Zurück zur Herkunftsseite (event_view ODER event_info zeigen beide die
+    # eigenen Anmeldungen) statt immer auf event_info zu springen. Nur
+    # same-host-Referrer akzeptieren (kein Open-Redirect).
+    target = url_for("club.event_info", event_id=reg.event_id)
+    ref = request.referrer
+    if ref and ref.startswith(request.host_url):
+        target = ref
     # Turnier muss läufige Hündinnen erlauben
     if not reg.event.allows_bitches_in_season:
         flash(_("Dieses Turnier erlaubt keine läufigen Hündinnen."), "danger")
-        return redirect(url_for("club.event_info", event_id=reg.event_id))
+        return redirect(target)
+    # Rüden (M) können nicht läufig sein — nur Hündinnen oder unbekanntes
+    # Geschlecht. Das Aufheben einer bestehenden Markierung bleibt immer erlaubt.
+    if not reg.is_in_season and reg.dog and reg.dog.sex == "M":
+        flash(_("Nur Hündinnen können als läufig gemeldet werden."), "danger")
+        return redirect(target)
 
     reg.is_in_season = not reg.is_in_season
     db.session.commit()
@@ -1581,7 +1722,7 @@ def registration_toggle_in_season(reg_id):
         flash(_("%(dog)s als läufig gemeldet.", dog=reg.dog.name), "info")
     else:
         flash(_("Läufig-Meldung für %(dog)s aufgehoben.", dog=reg.dog.name), "info")
-    return redirect(url_for("club.event_info", event_id=reg.event_id))
+    return redirect(target)
 
 
 # ---------------------------------------------------------------------------
@@ -1606,16 +1747,28 @@ def event_view(event_id):
     form = EventRegistrationForm()
     dogs = current_user.dogs if current_user.person else []
     form.dog_id.choices = [(d.id, d.name) for d in dogs]
+    # Läufer-Auswahl: alle Läufer des Kontos (eigene Person zuerst). Default =
+    # eigene Person. Wird nur angezeigt/relevant, wenn >1 Läufer existiert.
+    handlers = current_user.handlers
+    form.handler_id.choices = [
+        (p.id, f"{p.first_name} {p.last_name}".strip() or _("Unbenannt")) for p in handlers
+    ]
+    if request.method == "GET" and current_user.person_id:
+        form.handler_id.data = current_user.person_id
     # Für JS-Vorausfüllung: Kategorie + Klasse je Hund
     dogs_data = {
-        d.id: {"category": d.category or "", "class_level": d.class_level or 1}
+        d.id: {"category": d.category or "", "class_level": d.class_level or 1,
+               "sex": d.sex or ""}
         for d in dogs
     }
-    # Bestehende Anmeldungen des Users für dieses Event
+    # Bestehende Anmeldungen des Kontos für dieses Event (alle Läufer)
     my_registrations = []
-    if current_user.person:
+    handler_ids = current_user.handler_ids
+    if handler_ids:
         my_registrations = db.session.execute(
-            db.select(Registration).filter_by(event_id=event_id, handler_id=current_user.person_id)
+            db.select(Registration).filter(
+                Registration.event_id == event_id,
+                Registration.handler_id.in_(handler_ids))
         ).scalars().all()
     deadline_passed = (
         event.registration_close_at and event.registration_close_at < datetime.utcnow()
@@ -1699,13 +1852,30 @@ def event_view(event_id):
                 ).scalars().all()
                 for r in other_regs:
                     r.class_level = new_class
+            # Gewählten Läufer verwenden, aber nur wenn er wirklich zum Konto
+            # gehört — sonst Fallback auf die eigene Person.
+            chosen_handler_id = (
+                form.handler_id.data
+                if form.handler_id.data in current_user.handler_ids
+                else current_user.person_id
+            )
+            # Verein des Läufers → Registration.club_name (= SKG-Vereinsnummer,
+            # wie vom TKAMO-Export erwartet).
+            handler_person = db.session.get(Person, chosen_handler_id)
+            club_name = (
+                handler_person.club.vereinsnummer
+                if handler_person and handler_person.club else None
+            )
             reg = Registration(
                 event_id=event_id,
                 dog_id=form.dog_id.data,
-                handler_id=current_user.person_id,
+                handler_id=chosen_handler_id,
+                club_name=club_name,
                 category_code=category_full,
                 class_level=new_class,
-                is_in_season=form.is_in_season.data,
+                # Läufig nur für Hündinnen (F) oder unbekanntes Geschlecht — nie
+                # für Rüden (M).
+                is_in_season=form.is_in_season.data and (dog.sex != "M"),
                 status=RegistrationStatus.PENDING,
             )
             db.session.add(reg)
@@ -1725,6 +1895,7 @@ def event_view(event_id):
     return render_template("club/event_view.html", event=event, form=form,
                            dogs=dogs, dogs_data=dogs_data, my_registrations=my_registrations,
                            deadline_passed=deadline_passed,
+                           multi_handler=len(handlers) > 1,
                            sched_by_ring=sched_by_ring, rings=rings,
                            sched_timeline=sched_timeline,
                            has_start_numbers=has_start_numbers,
@@ -1737,7 +1908,7 @@ def registration_cancel(reg_id):
     reg = db.session.get(Registration, reg_id)
     if not reg:
         abort(404)
-    if not current_user.person or reg.handler_id != current_user.person_id:
+    if reg.handler_id not in current_user.handler_ids:
         abort(403)
     if reg.status == RegistrationStatus.CANCELLED:
         flash(_("Anmeldung ist bereits storniert."), "info")
@@ -1864,6 +2035,10 @@ def registration_toggle_in_season_admin(reg_id):
     _assert_event_access(reg.event)
     if not reg.event.allows_bitches_in_season:
         flash(_("Dieses Turnier erlaubt keine läufigen Hündinnen."), "danger")
+        return redirect(url_for("club.event_detail", event_id=reg.event_id))
+    # Rüden (M) nie läufig — nur Hündinnen/unbekannt. Aufheben bleibt erlaubt.
+    if not reg.is_in_season and reg.dog and reg.dog.sex == "M":
+        flash(_("Nur Hündinnen können als läufig markiert werden."), "danger")
         return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
     reg.is_in_season = not reg.is_in_season

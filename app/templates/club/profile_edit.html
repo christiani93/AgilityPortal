@@ -32,8 +32,12 @@
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
       </div>
+      <div class="mb-3">
+        {{ form.club_id.label(class="form-label") }}
+        {{ form.club_id(class="form-select") }}
+      </div>
       <div class="form-text text-muted mb-3">
-        {{ _('Der Name wird für Export/Startliste verwendet (z.B. Hundeführer-Angabe).') }}
+        {{ _('Der Name wird für Export/Startliste verwendet (z.B. Hundeführer-Angabe). Der Verein wird bei der Anmeldung übernommen.') }}
       </div>
 
       <hr>

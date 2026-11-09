@@ -316,9 +316,24 @@ _SEASON_EVENTS = [
      "type": "regular", "ruleset": None, "organiser": "Kiesen",
      "location": "Münsingen"},
 
-    {"ext": "SEASON_2627_bccs_sm", "name": "BCCS-Schweizermeisterschaft",
-     "start": date(2026, 11, 21), "end": date(2026, 11, 22),
-     "type": "bccs_sm", "ruleset": None, "organiser": "Seeland"},
+    {"ext": "SEASON_2627_seeland_abendmeeting", "name": "Abendmeeting 20.11.2026",
+     "start": date(2026, 11, 20), "end": date(2026, 11, 20),
+     "type": "regular", "ruleset": None, "organiser": "Seeland",
+     "location": "Münsingen"},
+
+    # BCCS-SM = 2 eigenständige Tagesevents (wie HCS: EventRun-Unique-Constraint
+    # erlaubt kein 2. Agi/Jump je Kombination; Sa+So sind unabhängige Durchgänge).
+    # Sa = SM (Klasse 3), So = Nachwuchs (Klasse 1-2). AIS wird wie bei HCS separat
+    # auf Prod gesetzt (Sa 12323 / So 12324).
+    {"ext": "SEASON_2627_bccs_sm_sa", "name": "BCCS-Schweizermeisterschaft 21.11.2026",
+     "start": date(2026, 11, 21), "end": date(2026, 11, 21),
+     "type": "bccs_sm", "ruleset": None, "organiser": "Seeland",
+     "location": "Münsingen"},
+
+    {"ext": "SEASON_2627_bccs_sm_so", "name": "BCCS-Schweizermeisterschaft 22.11.2026",
+     "start": date(2026, 11, 22), "end": date(2026, 11, 22),
+     "type": "bccs_sm", "ruleset": None, "organiser": "Seeland",
+     "location": "Münsingen"},
 
     {"ext": "SEASON_2627_advent", "name": "Adventscup",
      "start": date(2026, 11, 27), "end": date(2026, 11, 29),

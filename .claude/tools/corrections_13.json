@@ -1,0 +1,496 @@
+[
+  {
+    "id": 38661,
+    "dog": "Joy",
+    "handler": "Hanspeter Bratschi",
+    "key": [
+      "Jumping",
+      "Intermediate",
+      "2",
+      "16601"
+    ],
+    "set": {
+      "time_s": 40.52
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38662,
+    "dog": "Jay-Jay",
+    "handler": "Jamielynn Thomas",
+    "key": [
+      "Jumping",
+      "Intermediate",
+      "2",
+      "13751"
+    ],
+    "set": {
+      "time_s": 41.55
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38664,
+    "dog": "Tiny Dancer",
+    "handler": "Sarina Staub",
+    "key": [
+      "Agility",
+      "Intermediate",
+      "3",
+      "16200"
+    ],
+    "set": {
+      "time_s": 38.84
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38665,
+    "dog": "Luna",
+    "handler": "Elisabeth Aebi",
+    "key": [
+      "Agility",
+      "Intermediate",
+      "3",
+      "15758"
+    ],
+    "set": {
+      "time_s": 48.66
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38666,
+    "dog": "Nikaia",
+    "handler": "Corentin Sansonnens",
+    "key": [
+      "Agility",
+      "Intermediate",
+      "3",
+      "14165"
+    ],
+    "set": {
+      "time_s": 49.27
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38669,
+    "dog": "Phoebe",
+    "handler": "Eliane Wüthrich",
+    "key": [
+      "Agility",
+      "Intermediate",
+      "3",
+      "13008"
+    ],
+    "set": {
+      "time_s": 52.55,
+      "total_faults": 16.55,
+      "status": "G"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38737,
+    "dog": "Spyke",
+    "handler": "Nadine Pauli",
+    "key": [
+      "Open",
+      "Large",
+      "1",
+      "17174"
+    ],
+    "set": {
+      "total_faults": 11.39
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38739,
+    "dog": "Ace",
+    "handler": "Tabea Werren",
+    "key": [
+      "Open",
+      "Large",
+      "1",
+      "16954"
+    ],
+    "set": {
+      "total_faults": 23.09
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38765,
+    "dog": "Bliss Folly",
+    "handler": "Alicia Mauroux",
+    "key": [
+      "Jumping",
+      "Large",
+      "2",
+      "17099"
+    ],
+    "set": {
+      "time_s": 33.57
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38766,
+    "dog": "Kai",
+    "handler": "Roland Mohr",
+    "key": [
+      "Jumping",
+      "Large",
+      "2",
+      "16454"
+    ],
+    "set": {
+      "time_s": 36.18
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38767,
+    "dog": "Wynn",
+    "handler": "Delphine Felix",
+    "key": [
+      "Jumping",
+      "Large",
+      "2",
+      "24270"
+    ],
+    "set": {
+      "time_s": 37.85
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38769,
+    "dog": "Fae",
+    "handler": "Marc Tospann",
+    "key": [
+      "Jumping",
+      "Large",
+      "2",
+      "16258"
+    ],
+    "set": {
+      "time_s": 55.6,
+      "total_faults": 8.6
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38772,
+    "dog": "Violet",
+    "handler": "Sabine Vinnicombe",
+    "key": [
+      "Jumping",
+      "Large",
+      "2",
+      "16862"
+    ],
+    "set": {
+      "time_s": 38.86
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38786,
+    "dog": "Dayo",
+    "handler": "Matthias Dietrich",
+    "key": [
+      "Agility",
+      "Large",
+      "3",
+      "14054"
+    ],
+    "set": {
+      "time_s": 41.89
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38790,
+    "dog": "Hunter",
+    "handler": "Morena Barelli",
+    "key": [
+      "Agility",
+      "Large",
+      "3",
+      "15394"
+    ],
+    "set": {
+      "time_s": 49.8
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38792,
+    "dog": "Janu",
+    "handler": "Andrea Good",
+    "key": [
+      "Agility",
+      "Large",
+      "3",
+      "15530"
+    ],
+    "set": {
+      "time_s": 41.34
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38796,
+    "dog": "Nitro",
+    "handler": "Aline Brasey",
+    "key": [
+      "Agility",
+      "Large",
+      "3",
+      "14295"
+    ],
+    "set": {
+      "time_s": 44.13
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38797,
+    "dog": "Rebel",
+    "handler": "Eric Sansonnens",
+    "key": [
+      "Agility",
+      "Large",
+      "3",
+      "15738"
+    ],
+    "set": {
+      "time_s": 43.71
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38849,
+    "dog": "Meilo",
+    "handler": "Sabrina Gruber",
+    "key": [
+      "Agility",
+      "Medium",
+      "1",
+      "17192"
+    ],
+    "set": {
+      "total_faults": 25.13,
+      "status": "G"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38857,
+    "dog": "Meilo",
+    "handler": "Sabrina Gruber",
+    "key": [
+      "Open",
+      "Medium",
+      "1",
+      "17192"
+    ],
+    "set": {
+      "total_faults": 17.99,
+      "status": "G"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38868,
+    "dog": "Camino",
+    "handler": "Karin Schönenberger",
+    "key": [
+      "Jumping",
+      "Medium",
+      "2",
+      "16746"
+    ],
+    "set": {
+      "time_s": 48.24,
+      "total_faults": 1.24
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38869,
+    "dog": "Navash",
+    "handler": "Ursula Vadagnin",
+    "key": [
+      "Jumping",
+      "Medium",
+      "2",
+      "16387"
+    ],
+    "set": {
+      "time_s": 39.94,
+      "faults": 1,
+      "refusals": 0
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38906,
+    "dog": "Miki",
+    "handler": "Milena Pfeiffer",
+    "key": [
+      "Open",
+      "Small",
+      "1",
+      "17182"
+    ],
+    "set": {
+      "rank": 3,
+      "faults": 2,
+      "refusals": 1,
+      "total_faults": 19.92,
+      "status": "G"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38907,
+    "dog": "Cookie",
+    "handler": "Paolo Salvaterra",
+    "key": [
+      "Open",
+      "Small",
+      "1",
+      "16696"
+    ],
+    "set": {
+      "rank": 1
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38908,
+    "dog": "Yara",
+    "handler": "Anette Van Dorland",
+    "key": [
+      "Open",
+      "Small",
+      "1",
+      "17203"
+    ],
+    "set": {
+      "rank": 2
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38913,
+    "dog": "Mailo",
+    "handler": "Jeanne Graf",
+    "key": [
+      "Agility",
+      "Small",
+      "2",
+      "16490"
+    ],
+    "set": {
+      "time_s": 50.21
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38914,
+    "dog": "Kitaï",
+    "handler": "Pierre-André Voegeli",
+    "key": [
+      "Agility",
+      "Small",
+      "2",
+      "16438"
+    ],
+    "set": {
+      "time_s": 53.09
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38920,
+    "dog": "Lumi",
+    "handler": "Bea Näf",
+    "key": [
+      "Jumping",
+      "Small",
+      "2",
+      "16801"
+    ],
+    "set": {
+      "time_s": 39.4
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38924,
+    "dog": "Skywalker",
+    "handler": "Marine Burnand",
+    "key": [
+      "Jumping",
+      "Small",
+      "2",
+      "16585"
+    ],
+    "set": {
+      "time_s": 50.14,
+      "faults": 1,
+      "refusals": 0
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38930,
+    "dog": "Baylee",
+    "handler": "Cécile Stoller",
+    "key": [
+      "Agility",
+      "Small",
+      "3",
+      "16784"
+    ],
+    "set": {
+      "time_s": 46.99
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38931,
+    "dog": "Fancy",
+    "handler": "Mirjam Rechsteiner",
+    "key": [
+      "Agility",
+      "Small",
+      "3",
+      "15849"
+    ],
+    "set": {
+      "time_s": 47.62
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 38932,
+    "dog": "Viva",
+    "handler": "Lia Good",
+    "key": [
+      "Agility",
+      "Small",
+      "3",
+      "16508"
+    ],
+    "set": {
+      "time_s": 49.27
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  }
+]

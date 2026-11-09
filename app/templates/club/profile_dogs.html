@@ -28,7 +28,7 @@
           {% if dog.license_kind.value == 'CH' %}
             <span class="badge bg-primary">CH</span>
           {% else %}
-            <span class="badge bg-secondary">FOREIGN</span>
+            <span class="badge bg-secondary">{{ dog.foreign_country_code or 'FOREIGN' }}</span>
           {% endif %}
           <span class="font-monospace ms-1">{{ dog.license_no }}</span>
           {% if is_owner %}
@@ -169,16 +169,21 @@
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
       </div>
+      {# Geschlecht: allgemeine Angabe für alle Hunde (nicht mehr FR-spezifisch) #}
+      <div class="mb-3">
+        {{ form.sex.label(class="form-label") }}
+        {{ form.sex(class="form-select") }}
+      </div>
       <div class="mb-3">
         {{ form.license_kind.label(class="form-label") }}
-        {{ form.license_kind(class="form-select") }}
+        {{ form.license_kind(class="form-select", id="license_kind") }}
         <div class="form-text text-muted">
-          {{ _('CH = nur Ziffern (z.B. 12345) · FOREIGN = AAA-12345 (Länderkürzel-Nummer)') }}
+          {{ _('CH = nur Ziffern (z.B. 12345) · Ausland = Länderkürzel-Nummer (z.B. FRA-12345). Für Frankreich/Deutschland wird das Kürzel automatisch gesetzt.') }}
         </div>
       </div>
       <div class="mb-3">
         {{ form.license_no.label(class="form-label") }}
-        {{ form.license_no(class="form-control" + (" is-invalid" if form.license_no.errors else "")) }}
+        {{ form.license_no(class="form-control" + (" is-invalid" if form.license_no.errors else ""), id="license_no") }}
         {% for err in form.license_no.errors %}
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
@@ -187,21 +192,37 @@
         {{ _('Falls der Hund bereits im System registriert ist (gleiche Lizenznummer), wirst du automatisch als Hundeführer verknüpft.') }}
       </div>
 
-      <hr>
-      <p class="text-muted small mb-2">
-        {{ _('Nur für ausländische (französische) Lizenzen – fürs offizielle CNEAC-Ergebnisformular. Leer lassen, falls nicht zutreffend.') }}
-      </p>
-      <div class="mb-3">
+      {# SHSB: Schweizer Angabe, nur beim CH-Typ #}
+      <div class="mb-3 license-extra" data-for-type="CH">
+        {{ form.shsb.label(class="form-label") }}
+        {{ form.shsb(class="form-control" + (" is-invalid" if form.shsb.errors else "")) }}
+        <div class="form-text">{{ _('Stammbuch-Nummer (Schweiz. Hundestammbuch), optional – meist nur bei Zuchthunden.') }}</div>
+        {% for err in form.shsb.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
+      </div>
+
+      {# FAPAC: nur Frankreich (CNEAC-Formular) #}
+      <div class="mb-3 license-extra" data-for-type="FRA">
         {{ form.fapac_no.label(class="form-label") }}
         {{ form.fapac_no(class="form-control" + (" is-invalid" if form.fapac_no.errors else "")) }}
+        <div class="form-text">{{ _('Französische Hundelizenz – fürs offizielle CNEAC-Ergebnisformular.') }}</div>
         {% for err in form.fapac_no.errors %}
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
       </div>
-      <div class="mb-3">
-        {{ form.sex.label(class="form-label") }}
-        {{ form.sex(class="form-select") }}
+
+      {# Leistungsbuch: nur Deutschland (VDH-Formular) #}
+      <div class="mb-3 license-extra" data-for-type="DEU">
+        {{ form.leistungsbuch_no.label(class="form-label") }}
+        {{ form.leistungsbuch_no(class="form-control" + (" is-invalid" if form.leistungsbuch_no.errors else "")) }}
+        <div class="form-text">{{ _('Deutsche VDH-Leistungsbuchnummer – fürs offizielle VDH-Auslandsergebnis-Formular.') }}</div>
+        {% for err in form.leistungsbuch_no.errors %}
+        <div class="invalid-feedback">{{ err }}</div>
+        {% endfor %}
       </div>
+
+      {# Chip: allgemein (u.a. VDH), immer sichtbar #}
       <div class="mb-3">
         {{ form.microchip.label(class="form-label") }}
         {{ form.microchip(class="form-control" + (" is-invalid" if form.microchip.errors else "")) }}
@@ -210,29 +231,45 @@
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
       </div>
-      <div class="mb-3">
-        {{ form.shsb.label(class="form-label") }}
-        {{ form.shsb(class="form-control" + (" is-invalid" if form.shsb.errors else "")) }}
-        <div class="form-text">{{ _('Stammbuch-Nummer (optional, meist nur bei Zuchthunden).') }}</div>
-        {% for err in form.shsb.errors %}
-        <div class="invalid-feedback">{{ err }}</div>
-        {% endfor %}
-      </div>
-
-      <hr>
-      <p class="text-muted small mb-2">
-        {{ _('Nur für deutsche Teilnehmer – fürs offizielle VDH-Auslandsergebnis-Formular. Leer lassen, falls nicht zutreffend.') }}
-      </p>
-      <div class="mb-3">
-        {{ form.leistungsbuch_no.label(class="form-label") }}
-        {{ form.leistungsbuch_no(class="form-control" + (" is-invalid" if form.leistungsbuch_no.errors else "")) }}
-        {% for err in form.leistungsbuch_no.errors %}
-        <div class="invalid-feedback">{{ err }}</div>
-        {% endfor %}
-      </div>
 
       {{ form.submit(class="btn btn-primary") }}
     </form>
   </div>
 </div>
+
+<script>
+  // Lizenz-Typ steuert, welche Zusatzfelder sichtbar sind, und setzt für
+  // Frankreich/Deutschland automatisch das Landeskürzel-Präfix der Lizenznummer.
+  (function () {
+    var kind = document.getElementById("license_kind");
+    var licenseNo = document.getElementById("license_no");
+    if (!kind) return;
+    var PREFIX = { FRA: "FRA-", DEU: "DEU-" };
+    var KNOWN_PREFIXES = ["FRA-", "DEU-"];
+
+    function applyVisibility() {
+      var t = kind.value;
+      document.querySelectorAll(".license-extra").forEach(function (el) {
+        el.style.display = (el.getAttribute("data-for-type") === t) ? "" : "none";
+      });
+    }
+
+    function applyPrefix() {
+      if (!licenseNo) return;
+      var want = PREFIX[kind.value];
+      var val = licenseNo.value.trim();
+      // Vorhandenes bekanntes Präfix entfernen, bevor wir neu setzen.
+      KNOWN_PREFIXES.forEach(function (p) {
+        if (val.toUpperCase().indexOf(p) === 0) val = val.slice(p.length);
+      });
+      licenseNo.value = want ? (want + val) : val;
+    }
+
+    kind.addEventListener("change", function () {
+      applyVisibility();
+      applyPrefix();
+    });
+    applyVisibility();
+  })();
+</script>
 {% endblock %}

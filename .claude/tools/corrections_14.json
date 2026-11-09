@@ -1,0 +1,310 @@
+[
+  {
+    "id": 87323,
+    "dog": "Daya",
+    "handler": "Josiane Amstutz",
+    "key": [
+      "Open",
+      "Large",
+      "1",
+      "16023"
+    ],
+    "set": {
+      "rank": 5,
+      "total_faults": 12.57,
+      "status": "SG"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87324,
+    "dog": "Juna",
+    "handler": "Jenny Mäusli",
+    "key": [
+      "Open",
+      "Large",
+      "1",
+      "16625"
+    ],
+    "set": {
+      "rank": 4
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87334,
+    "dog": "Alcor",
+    "handler": "Sarah Meyer",
+    "key": [
+      "Agility",
+      "Large",
+      "2",
+      "16710"
+    ],
+    "set": {
+      "time_s": 35.42
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87361,
+    "dog": "Fae",
+    "handler": "Marc Tospann",
+    "key": [
+      "Jumping",
+      "Large",
+      "2",
+      "16258"
+    ],
+    "set": {
+      "eliminated": true,
+      "status": "DIS",
+      "rank": null,
+      "total_faults": 999.0
+    },
+    "reason": "DIS laut offizieller Rangliste"
+  },
+  {
+    "id": 87444,
+    "dog": "Soleil",
+    "handler": "Irène Butor",
+    "key": [
+      "Agility",
+      "Medium",
+      "1",
+      "16379"
+    ],
+    "set": {
+      "eliminated": true
+    },
+    "reason": "DIS laut offizieller Rangliste"
+  },
+  {
+    "id": 87450,
+    "dog": "Soleil",
+    "handler": "Irène Butor",
+    "key": [
+      "Jumping",
+      "Medium",
+      "1",
+      "16379"
+    ],
+    "set": {
+      "eliminated": true
+    },
+    "reason": "DIS laut offizieller Rangliste"
+  },
+  {
+    "id": 87452,
+    "dog": "Ayuna",
+    "handler": "Malea Wenger",
+    "key": [
+      "Open",
+      "Medium",
+      "1",
+      "16961"
+    ],
+    "set": {
+      "faults": 0,
+      "total_faults": 0.0,
+      "status": "V0"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87453,
+    "dog": "Meilo",
+    "handler": "Sabrina Gruber",
+    "key": [
+      "Open",
+      "Medium",
+      "1",
+      "17192"
+    ],
+    "set": {
+      "rank": 4,
+      "total_faults": 24.9,
+      "status": "G"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87454,
+    "dog": "Quiro",
+    "handler": "Corane Dély",
+    "key": [
+      "Open",
+      "Medium",
+      "1",
+      "16779"
+    ],
+    "set": {
+      "rank": 3
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87486,
+    "dog": "Night",
+    "handler": "Monika Allgaier",
+    "key": [
+      "Jumping",
+      "Medium",
+      "3",
+      "15380"
+    ],
+    "set": {
+      "rank": 3
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87487,
+    "dog": "Dune",
+    "handler": "Corinne Gysin",
+    "key": [
+      "Jumping",
+      "Medium",
+      "3",
+      "17271"
+    ],
+    "set": {
+      "rank": 2,
+      "faults": 0,
+      "total_faults": 0.0,
+      "status": "V0"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87510,
+    "dog": "Manouche",
+    "handler": "Corane Dély",
+    "key": [
+      "Open",
+      "Small",
+      "1",
+      "13860"
+    ],
+    "set": {
+      "rank": 3,
+      "total_faults": 14.2,
+      "status": "SG"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87511,
+    "dog": "Gizmo",
+    "handler": "Daniela Oesch",
+    "key": [
+      "Open",
+      "Small",
+      "1",
+      "17086"
+    ],
+    "set": {
+      "rank": 2
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87513,
+    "dog": "Lumi",
+    "handler": "Bea Näf",
+    "key": [
+      "Agility",
+      "Small",
+      "2",
+      "16801"
+    ],
+    "set": {
+      "rank": 3,
+      "faults": 2,
+      "total_faults": 10.0,
+      "status": "SG"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87514,
+    "dog": "Riley",
+    "handler": "Bettina Stemmler",
+    "key": [
+      "Agility",
+      "Small",
+      "2",
+      "14579"
+    ],
+    "set": {
+      "rank": 1,
+      "total_faults": 0.0,
+      "status": "V0"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87515,
+    "dog": "Mr Peregrin Took",
+    "handler": "Aline Calame",
+    "key": [
+      "Agility",
+      "Small",
+      "2",
+      "16658"
+    ],
+    "set": {
+      "rank": 2
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87534,
+    "dog": "Islay",
+    "handler": "Bettina Stemmler",
+    "key": [
+      "Agility",
+      "Small",
+      "3",
+      "14067"
+    ],
+    "set": {
+      "rank": 7
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87535,
+    "dog": "Gucci",
+    "handler": "Corane Dély",
+    "key": [
+      "Agility",
+      "Small",
+      "3",
+      "12964"
+    ],
+    "set": {
+      "rank": 6,
+      "faults": 0,
+      "total_faults": 0.0,
+      "status": "V0"
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  },
+  {
+    "id": 87560,
+    "dog": "Viva",
+    "handler": "Lia Good",
+    "key": [
+      "Jumping",
+      "Small",
+      "3",
+      "16508"
+    ],
+    "set": {
+      "time_s": 52.94,
+      "total_faults": 10.94
+    },
+    "reason": "Werte an offizielle Rangliste angeglichen"
+  }
+]

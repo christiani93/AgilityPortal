@@ -1,0 +1,38 @@
+{
+  "name": "Z-B Agilityportal",
+  "short_name": "Agility",
+  "description": "Online-Anmeldung, Zeitpläne, Startlisten und Live-Resultate für Agility-Veranstaltungen.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#2c3e50",
+  "theme_color": "#212529",
+  "lang": "de-CH",
+  "categories": ["sports", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Turniere",
+      "short_name": "Turniere",
+      "description": "Übersicht der Turniere",
+      "url": "/events",
+      "icons": [{ "src": "/static/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Live",
+      "short_name": "Live",
+      "description": "Live-Resultate laufender Turniere",
+      "url": "/live",
+      "icons": [{ "src": "/static/icon.svg", "sizes": "any" }]
+    }
+  ]
+}

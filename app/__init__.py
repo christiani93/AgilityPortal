@@ -1,7 +1,8 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, redirect, url_for, render_template, session, request as flask_request
+from flask import (Flask, redirect, url_for, render_template, session,
+                   request as flask_request, send_from_directory)
 from flask_login import current_user
 
 from .blueprints import register_blueprints
@@ -44,6 +45,13 @@ def create_app():
     app.config["ADMIN_KEY"] = os.environ.get("ADMIN_KEY", "dev-admin-key")
     app.config["LIVE_API_KEY"] = os.environ.get("LIVE_API_KEY", "dev-live-key")
     app.config["RESULTS_API_KEY"] = os.environ.get("RESULTS_API_KEY", "dev-results-key")
+
+    # --- Reglement-Corpus (Tier-1-Volltextsuche; Baseline gepflegt vom Reglement-Monitor) ---
+    # Default: lokale ClaudeSync-Baseline für die Entwicklung. In Prod per
+    # REGLEMENT_CORPUS_DIR auf den Server-Ablageort (manifest.json + text/) setzen.
+    app.config["REGLEMENT_CORPUS_DIR"] = os.environ.get(
+        "REGLEMENT_CORPUS_DIR",
+        r"C:\Users\chris\OneDrive\ClaudeSync\reglement_corpus")
 
     # --- Test-/Debug-Werkzeuge (Generatoren, Testturnier-Knopf etc.) ---
     # Default AN (Testphase); in Prod ENABLE_DEBUG_TOOLS=0 → Routes 404, Buttons versteckt.
@@ -149,6 +157,15 @@ def create_app():
         if current_user.is_authenticated:
             return redirect(url_for("club.dashboard"))
         return render_template("home.html")
+
+    @app.get("/sw.js")
+    def service_worker():
+        # Service-Worker ab Root ausliefern, damit sein Scope "/" ist
+        # (PWA-Installation „zum Startbildschirm hinzufügen" auf Android).
+        response = send_from_directory(app.static_folder, "sw.js")
+        response.headers["Service-Worker-Allowed"] = "/"
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
     @app.get("/lang/<lang_code>")
     def set_language(lang_code):

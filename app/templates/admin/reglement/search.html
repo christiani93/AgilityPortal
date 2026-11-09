@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Reglement-Suche{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-3">
+  <h2 class="mb-0">📖 Reglement-Suche</h2>
+  {% if status.ok %}
+  <span class="badge bg-secondary">{{ status.document_count }} Dokumente</span>
+  {% endif %}
+</div>
+
+{% if not status.ok %}
+<div class="alert alert-warning">
+  <strong>Kein Reglement-Corpus verfügbar.</strong><br>
+  {{ status.error }}<br>
+  <small class="text-muted">Erwarteter Pfad: <code>{{ status.corpus_dir or '—' }}</code>
+  (konfigurierbar über <code>REGLEMENT_CORPUS_DIR</code>). Die Baseline wird vom
+  Reglement-Monitor gepflegt.</small>
+</div>
+{% else %}
+
+<form method="get" action="{{ url_for('reglement_admin.reglement_search') }}" class="card card-body mb-4">
+  <input type="hidden" name="key" value="{{ admin_key }}">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label small mb-1">Suchbegriff(e) <span class="text-muted">– mehrere = UND pro Zeile</span></label>
+      <input type="text" name="q" value="{{ query }}" class="form-control" autofocus
+             placeholder="z.B. Kombinationsrangliste">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1">Jahr</label>
+      <select name="year" class="form-select">
+        <option value="">alle</option>
+        {% for y in status.years %}
+        <option value="{{ y }}" {% if year == y|string %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-1">Modul</label>
+      <select name="module" class="form-select">
+        <option value="">alle</option>
+        {% for m in status.modules %}
+        <option value="{{ m }}" {% if module == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-1">
+      <label class="form-label small mb-1">Kontext</label>
+      <input type="number" name="context" value="{{ context }}" min="0" max="5" class="form-control">
+    </div>
+    <div class="col-md-1">
+      <button class="btn btn-primary w-100" type="submit">Suchen</button>
+    </div>
+  </div>
+</form>
+
+{% if results is not none %}
+  {% if results.total_hits == 0 %}
+    <div class="alert alert-info">Keine Treffer für <strong>{{ results.query }}</strong>.</div>
+  {% else %}
+    <p class="text-muted">
+      {{ results.total_hits }} Treffer in {{ results.doc_count }} Dokument(en)
+      für <strong>{{ results.terms | join(' ') }}</strong>{% if results.truncated %}
+      <span class="badge bg-warning text-dark">gekürzt</span>{% endif %}
+    </p>
+    {% for d in results.documents %}
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <strong>{{ d.filename }}</strong>
+          <span class="text-muted small">· {{ d.category }}{% if d.year %}, {{ d.year }}{% endif %}
+            {% if d.source == 'veranstalter-lokal' %}· lokal{% endif %}</span>
+        </div>
+        <div>
+          {% for m in d.modules %}<span class="badge bg-light text-dark border">{{ m }}</span>{% endfor %}
+          {% if d.url %}<a href="{{ d.url }}" target="_blank" rel="noopener" class="badge bg-primary text-decoration-none">PDF ↗</a>{% endif %}
+        </div>
+      </div>
+      <div class="card-body py-2">
+        {% for h in d.hits %}
+        <div class="mb-2">
+          <pre class="mb-0 small bg-light p-2 rounded"><code>{% for c in h.context %}<span class="{% if c.match %}fw-bold text-dark{% else %}text-muted{% endif %}">{{ '%5d'|format(c.n) }}: {{ c.text }}</span>
+{% endfor %}</code></pre>
+        </div>
+        {% endfor %}
+        {% if d.hit_count > d.hits | length %}
+        <div class="small text-muted">… {{ d.hit_count - (d.hits | length) }} weitere Treffer in diesem Dokument</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% endif %}
+{% else %}
+  <p class="text-muted">Begriff eingeben und suchen. Beispiele: <em>Kombinationsrangliste</em>,
+    <em>Standardzeit</em>, <em>Startnummer Zufall</em>, <em>Lizenz</em>.</p>
+{% endif %}
+
+<div class="text-muted small mt-4">
+  Corpus: {{ status.document_count }} Dokumente{% if status.created_utc %}, Stand {{ status.created_utc }}{% endif %}.
+  Quelle: {{ status.source_page or 'TKAMO + event-spezifisch' }}.
+</div>
+{% endif %}
+{% endblock %}

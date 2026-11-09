@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2c3e50"/>
+  <g fill="#ffc107">
+    <!-- Ballen -->
+    <ellipse cx="256" cy="360" rx="96" ry="74"/>
+    <!-- Zehen -->
+    <ellipse cx="150" cy="262" rx="37" ry="49"/>
+    <ellipse cx="216" cy="206" rx="37" ry="51"/>
+    <ellipse cx="296" cy="206" rx="37" ry="51"/>
+    <ellipse cx="362" cy="262" rx="37" ry="49"/>
+  </g>
+</svg>

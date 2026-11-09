@@ -1037,7 +1037,7 @@
             <button type="button" class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="collapse" data-bs-target="#reg-handler-{{ reg.id }}"
                     title="{{ _('Hundeführer wechseln') }}">⇄</button>
-            {% if event.allows_bitches_in_season and reg.status.value != 'CANCELLED' %}
+            {% if event.allows_bitches_in_season and reg.status.value != 'CANCELLED' and (reg.is_in_season or not (reg.dog and reg.dog.sex == 'M')) %}
             <form method="post" action="{{ url_for('club.registration_toggle_in_season_admin', reg_id=reg.id) }}" class="d-inline">
               {{ run_form.hidden_tag() }}
               <button class="btn btn-sm {{ 'btn-warning' if reg.is_in_season else 'btn-outline-warning' }}"

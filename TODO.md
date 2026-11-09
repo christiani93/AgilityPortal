@@ -3,7 +3,219 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-10-29
+Stand: 2026-11-09
+
+## Session 2026-11-09 — Events auf Portal anlegen (OFFEN, in Arbeit)
+
+Mechanismus: `app/commands.py` `_SEASON_EVENTS` + `flask seed-season-events`
+(idempotent via external_id). Siehe Memory `reference_portal_season_events_seeding`.
+
+- [x] **Abendmeeting 20.11.2026** angelegt in `_SEASON_EVENTS`: `SEASON_2627_seeland_abendmeeting`,
+      Seeland, Münsingen, `type="regular"`, zwischen WiMeSma M1 + BCCS Sa.
+- [ ] **BCCS-SM 21.+22.11.2026**: bereits im Seed-Skript (`SEASON_2627_bccs_sm_sa/_so`,
+      `type="bccs_sm"`, Seeland/Münsingen). Nur noch prüfen ob in Prod-DB vorhanden:
+      `flask seed-season-events --dry-run`; falls nicht → ohne `--dry-run`. AIS auf
+      Prod separat setzen (Sa 12323 / So 12324).
+
+
+
+## Session 2026-11-02 — Portal-Anmeldung Self-Service + Hundedaten (alle DEPLOYED)
+
+Fokus: Teilnehmer-Self-Service-Anmeldung testbar machen + Hundedaten-Felder.
+Details in Memory `project_portal_registration_invoicing_requirements_20261102`.
+
+### AgilityPortal main — DEPLOYED portal.z-b.tech
+- [x] Duplikat-Bug in `event_view`: stornierte (CANCELLED) Anmeldung blockierte
+      Neuanmeldung → jetzt gefiltert (`498752d`).
+- [x] Teilnehmeransicht-Guard gelockert: Testveranstaltungen (`is_test`) auch für
+      nicht-superadmin Handler erreichbar (`event_view`+`event_info`, `498752d`).
+- [x] Admin-Löschen stornierter Anmeldungen (`registration_delete`, Karte in
+      `event_detail.html`, `498752d`).
+- [x] Rasse im Veranstalter-Schnellformular (`event_detail`, `54a9ba8`).
+- [x] Besitzer-Übernahme für ownerlose Hunde via `/club/profile/dogs` (`54a9ba8`).
+- [x] AOA-Importer: Geschlecht/Chip/FAPAC konsistent in allen 3 Pfaden (`54a9ba8`).
+- [x] `Dog.shsb` + `Dog.leistungsbuch_no` (dt. VDH-Leistungsbuch-Nr., Pendant zu
+      FAPAC); Self-Service-Erfassung+Anzeige, AOA-Import, Event-Paket-Export;
+      Migrationen `c59b2e484df2`+`791a305093be` auf PROD gelaufen (`a424353`).
+- [x] Besitzer kann Name/Rasse ändern (`dog_update_details`, nur OWNER, `a424353`).
+
+### Offen / zurückgestellt (bewusst, User-Wunsch)
+- [ ] **Admin-seitiger Besitzer-WECHSEL** (Fehlklick-Korrektur): User hat das im
+      AdminPortal-Repo selbst angepasst — im Portal NICHT nötig. Gehörte sonst in
+      AdminPortal `/admin/licenses` (zeigt Owner bisher read-only).
+- [ ] **Bundle/Rechnungsservice**: Einzel- vs. Mehrfach-Event-Anmeldung (HCS/
+      WiMeSma), Veranstalter bestimmt Preis+Rückzahlungs-+Zahlungsbedingungen,
+      Bexio-Buchungskonto-Zuordnung. Eigenes Datenmodell, noch nicht begonnen.
+- [x] **AgilitySoftware liest SHSB/Leistungsbuch beim Import** (2026-11-02, siehe
+      Session-Abschnitt unten): `_merge_eventexport_dogs` in `routes_events.py`
+      übernimmt jetzt `shsb`→`SHSB` und `leistungsbuch`→`Leistungsbuch`. (Hinweis:
+      `portal_sync.py` ist die Export-, nicht die Import-Richtung.) FAPAC/Sexe/Chip
+      liefen schon vorher.
+- [ ] Teilnehmer-Dashboard (`participant_dashboard`) filtert `is_test=False` → für
+      Tests Event-ID direkt in URL nötig (nicht geändert).
+- [x] **Geschlecht (`Dog.sex`) für alle Hunde** — aus FR-Block herausgezogen,
+      allgemein sichtbar (2026-11-02).
+- [x] **Lizenz-Typ je Land (CH/FRA/DEU/FOREIGN)** mit konditionalen Zusatzfeldern
+      + Auto-Landeskürzel (2026-11-02). Kein Enum-Umbau; Land im `foreign_country_code`.
+
+## Session 2026-11-02 (Fortsetzung) — Lizenz-Typen, Läufigkeit, Mehr-Läufer-Konto
+
+> **STATUS: alles GEBAUT + Tests grün (Portal 205, Software-Mapping direkt
+> verifiziert), aber NOCH NICHT committed, NICHT deployed, Migration NICHT
+> angewandt.** Details in Memory
+> `project_portal_registration_invoicing_requirements_20261102`.
+
+### Umgesetzt (uncommitted)
+- [x] Lizenz-Typ je Land CH/FRA/DEU/FOREIGN im Hundeformular, konditionale Felder
+      (CH→SHSB, FRA→FAPAC, DEU→Leistungsbuch), Auto-Präfix, SHSB=CH-Angabe.
+- [x] Export-Round-Trip: AgilitySoftware `_merge_eventexport_dogs` liest SHSB+
+      Leistungsbuch; beide auch im SW-Stammdaten-Editor (`routes_master_data.py`).
+- [x] Läufigkeit nachträglich meldbar (Toggle+Badge auch in `event_view.html`,
+      Referrer-Redirect); nur Hündin (F)/unbekannt, nie Rüde (M) — Routen+UI+Create.
+- [x] Mehr-Läufer-Konto (Mauroux): `Person.account_user_id` (use_alter-Zyklus!) +
+      `Person.club_id`, Migration `a2b3c4d5e6f7` (NICHT angewandt), Seite
+      „Meine Läufer" (`/club/profile/handlers`), Läufer-Auswahl bei Anmeldung,
+      Verein pro Läufer → `Registration.club_name`, alle Ownership-Checks/
+      my_registrations auf `User.handler_ids`. Tests `test_multi_handler_account.py`,
+      `test_in_season_sex_guard.py`, `test_profile_fr_fields.py` erweitert.
+
+### Nächste Schritte
+- [ ] Migration `a2b3c4d5e6f7` lokal (MariaDB `agilityportal_dev`) anwenden + lokal testen.
+- [ ] Zwei saubere Commits (Portal + AgilitySoftware, nur die geänderten Dateien —
+      vorbestehende Änderungen an `app/__init__.py`/`commands.py`/`base.html`/TODO
+      NICHT mitnehmen), dann Deploy portal.z-b.tech inkl. Prod-Migration.
+- [ ] **Offen (Scope-Frage):** Hund direkt einem Zweit-Läufer zuordnen — aktuell
+      wird ein neuer Hund immer der eigenen Person als OWNER zugeordnet.
+- [ ] **HCS = Zeitplan-OPTIMIERUNG** (nicht bloßer Abgleich): Feature
+      `project_schedule_optimization` auf Basis der echten HCS-Wochenend-Daten
+      (30.10.–01.11.) kalibrieren. Datenquelle noch zu klären (Live-Update-/
+      Resultat-Backups unter `.claude/backups/` vs. SW-Instanz).
+
+### Hardware-Recherche ALGE-Anzeigetafel (D-Line)
+- ALGE sieht **USB-WTN** (Funk-Adapter) + separate **RS232** für Fehler-/
+  Verweigerungsanzeige vor. D-Line-RS232: 2400 Baud/8N1/kein Handshake, CR-
+  terminiert, adressierbar `[A3]`. Herstelleranfrage zur genauen Spec offen.
+  Details Memory `project_roadmap_big_goals_20261010`.
+
+## Session 2026-11-01 — HCS-Nachbesserungen (SW+Portal), SM-Modul-Sondierung, DE-Auslandsergebnis
+
+HCS-Wochenend-Bündel KOMPLETT umgesetzt, Details+Commits in Memory `project_hcs_fixes_20261101`.
+
+### AgilitySoftware main (8 Commits, lokal, NICHT auf GitHub, **KEIN EXE-Rebuild**)
+- [x] Löschen-Teilnehmer beide Wege (`e49bada`): globale Route auf `_load_data(EVENTS_FILE)`,
+      fehlende JSON-Route `/events/api/remove_run_participant` nachgebaut.
+- [x] DIS-Portal-Push + Einweiser-erster-Starter-Fallback (`e49bada`).
+- [x] „Läufig" neutralisieren + neutraler „↓ Ende"-Button (`fdeea45`, `api_toggle_start_at_end`).
+- [x] KO-Finalisten per Suche + Duplikat-Sperre (`921d4a8`, `ko_final_search_participants`).
+- [x] Ring-Monitor-Schrift grösser + Master-Einweiserliste Kreuz-Spalten vorne + print/all
+      nach Zeitplan (`18a9898`).
+- [x] KO-Ringschreiberliste in Duell-Ablauf-Reihenfolge (`e3ceb7e`, `/ko-cup/scribe_print`).
+- [x] Einweiser-KO-Latenz: `ko_update` abonniert, Poll 15s (`ced8ebb`).
+- [x] Echter Portal-Live-Ring statt „Ring 1" (`318961a`, `find_run_ring_number`).
+- [x] Einweiser-„Bereit" treibt Auto-Starter (`3999075`, `_pick_auto_starter`).
+- [x] Zuschauer-Display zeigt vorangehende Runde (`f4c8f2c`).
+- [ ] **EXE-Rebuild (AgilitySoftware + ggf. AgilityRing) + Realtest** aller obigen Punkte.
+- [ ] **AgilitySoftware main → GitHub pushen** (liegt weit vor origin).
+
+### AgilityPortal main (5 Commits, **DEPLOYED 2026-11-01**, portal.z-b.tech)
+- [x] Kategorie-Reihenfolge-Presets „+ S-M-I-L"/„+ L-I-M-S" im Lauf-Block (`932d7fd`,
+      `schedule_block_add` nimmt `category_order`). Einzelblöcke bleiben.
+- [x] Startnummer-Nachzügler-Duplikat bei per_category gefixt (`e828635`,
+      `_next_start_number` Band=ganze Kategorie + Eindeutigkeit; 3 Regressionstests).
+- [x] Chip-/Transpondernummer am Hund erfassen + ins Event-Paket exportieren (`80a803b`,
+      Migration `e9f0a1b2c3d4`).
+- [x] KO-Cup-Final-Sieger aus resultexport in `CupFinalResult` übernehmen (`f5d7ff4`,
+      Details [[project_hcs_2026_winners_seeding]]).
+- [x] Lizenzcheck-CSV-Spaltenkopf `E-Mail` → `HF-Mail` (TKAMO-Namenskonvention, `b454591`).
+- [x] **Deploy** alle 5 Commits auf portal.z-b.tech: `git reset --hard origin/main`,
+      `flask db upgrade` (Migration `e9f0a1b2c3d4` gelaufen), `supervisorctl restart agilityportal`,
+      Logs sauber, HTTP 200 verifiziert. AgilitySoftware-seitiges Pendant (Chip-Nummer-Erfassung in
+      der Software) wird laut User erst mit dem nächsten EXE-Build integriert.
+
+### Offen / vertagt
+- [ ] **#16 Mehrring Ring 2 extern** — 0.0.0.0-Fix ist in AgilityRing.exe (`99bdad3`); Rest ist
+      Verbindungs-/Infra-Prüfung am echten Event, nicht codebar.
+- [ ] **#4 Tunnellauf-Ableitung „löscht Lose"** — vom User auf nächstes Jahr vertagt.
+- [ ] (latent) Portal `registration_set_startnumber` prüft manuell gesetzte Nummern nicht auf
+      Duplikate; portal_sync Result-Export-Ring (Z.654) nutzt noch `assigned_ring` (unkritisch).
+
+### Nächste Bau-Schritte (nach HCS)
+- [x] **DE-/VDH-Auslandsergebnis-Formular** GEBAUT (SW `e4a1b6b` HTML-Druckseite je deutschem
+      Starter/Lauf + Button; Portal `80a803b` `Dog.microchip`+Migration `e9f0a1b2c3d4`+Export;
+      SW-Import `eb75f1c` `dogs.json["Chip"]`). Tests grün, DEV-Migration gelaufen.
+      OFFEN: Portal-Prod-Deploy + Prod-Migration, EXE-Rebuild, Realtest. `reference_de_auslandsergebnis_formular`.
+- [x] **SM-Modul CSV-Import GEBAUT** (AgilitySoftware, `4526986`+`6eea848`, NICHT EXE): Resultat-
+      Import `sm_import.parse_sm_result_csv` (header-agnostisch/POSITIONSBASIERT, 25-Spalten SportyDog,
+      Fehler/Verw /5; Phase Quali/Final pro Datei) + Teilnehmer-Import `build_sm_event_from_participants`
+      + Route `/sm/import-participants`. 2 Reglements-Fixes an `sm_qualification.py` (starters=alle
+      Gestarteten; 16%-Direkt pro Lauf auch bei DIS im anderen), an 2024-Echtdaten validiert. Reglement
+      2025 geklärt (strenge Kombi=beide Läufe ohne DIS; 40%-Deckel; TV in 40%). `reference_sm_module_state`.
+  - [ ] **Startnummern** einlesen/zuweisen (User liefert Datei/Form nach).
+  - [ ] **Resultat-Upload-Route `/sm/import-csv`** (Quali/Final-Datei wählen → Ergebnisse ins Event).
+  - [ ] **sm_config-Titelverteidiger** je Kategorie setzen.
+
+### BCCS-SM (Prio, Event 21./22.11.2026) — Session 2026-11-01
+Modul-Logik FERTIG + an Echtdaten (TKAMO-CSV 2025) verifiziert: Quali/Finalisten, Kombi-Rangliste
+(Reglement 3.2; **DIS=nicht klassiert**, gelistet hinter Nicht-DIS, kein +100-Penalty), Startreihenfolge
+2. Final (`apply_final_start_order`, Route `POST /bccs-sm/final-startorder/<id>` + Dashboard-Button `1013525`).
+Test-Builder: `C:\Users\chris\AppData\Local\bccs_test_build\build_bccs_event.py`; CSVs unter
+`OneDrive\Agility_Test_20260620\bccs_2025_reference\tkamo_results\` (+ SM-File MIT Finals als Session-Attachment).
+- [x] **A2 Kombi-Rangliste live + A3 Platz-1-Projektion GEBAUT** (`2f36a66`, NICHT EXE): im
+      Ring-Monitor (`render_ring_monitor_content` → `_render_bccs_monitor_extras`), nur BCCS-SM-Final.
+      7 Tests. OFFEN: A3-Semantik-Abnahme (ex aequo vs strikt), i18n, Realtest.
+- [ ] Final-Lauf-Struktur am echten Event-Aufbau verifizieren (is_final je Kat/Kl, Nachwuchs Kl.1+2).
+- [ ] (Nachwuchs-Finals-CSV noch nicht geliefert — nur SM-Tag hat Finals-Export.)
+
+### HCS Titelverteidiger-Automatik (für 2027) — Session 2026-11-01
+2026-Sa-Sieger gesichert in Memory `project_hcs_2026_winners_seeding` (S Carioca/15736, M Kaja/16132,
+I Liv/15953, L Youri/14554; aus `AgilitySoftware/dist/data/events.json` → `ko_cup.finals[].results`).
+User: voll automatisieren. cross-repo — **GEBAUT (getestet, NICHT EXE/deployed):**
+- [x] Software `b2cf6b3`: `cup_finals.json` ins resultexport-ZIP (`_build_cup_finals_payload`, cup_ruleset+season).
+- [x] Portal `f5d7ff4`: `import_result_export_zip`→`_import_cup_finals` schreibt `CupFinal`/`CupFinalResult`
+      (Cup via special_ruleset+season, idempotent via notes-Marker).
+- [x] `detect_title_defenders` findet damit Vorjahressieger (End-to-End-Test grün).
+- [ ] OFFEN: EXE-Rebuild + echter Round-Trip am Event + Portal-Deploy.
+
+## Session 2026-10-30 — FR-Felder, TKAMO-Importer, Reservationen B
+
+**Committet, aber NICHT prod-deployed** (Prod-Deploy bewusst erst NACH HCS-Wochenende,
+~ab 2026-11-02; Schema-Migration auf gemeinsamer Prod-DB mitten im Live-Betrieb vermeiden):
+- [x] **FR-CNEAC-Zusatzfelder** `6da606b` + Migration `d8e9f0a1b2c3` (5 nullable Spalten:
+      dogs.fapac_no/sex, people.fr_license_no/fr_club/fr_regionale). Erfassung DogForm/
+      ProfileForm, beide Export-Pfade. Lokal auf Dev-MariaDB migriert. [[project_fr_cneac_result_form]]
+- [x] **TKAMO-Importer** `61b263f` (AOA-Importer erweitert: Delimiter-Fallback ';',
+      Alias Vereins-Nr., Mobile-Fallback, Geschlecht→Dog.sex). KEINE Migration.
+      ⏳ ACR-Rang/Punkte + SHSB/Adresse NOCH NICHT gespeichert → mit SM/WM-Modul 2027.
+      [[reference_tkamo_import_csv_schema]]
+- [x] **FR-Migration `d8e9f0a1b2c3` bereits am 2026-10-30 Abend auf PROD ausgeführt**
+      (5 nullable Spalten gesetzt, alembic head=d8e9f0a1b2c3) — vorgezogen, weil
+      additiv/reversibel und für den American-Finale-Fix sauber isoliert nötig.
+      FR-Code (Templates/Formulare) selbst ist NOCH NICHT deployed.
+- [x] **PROD auf `main` zurückgeführt** (2026-11-01 Abend, im Zuge des HF-Mail-Deploys):
+      regulärer `git reset --hard origin/main` supersedet den Seiten-Branch
+      `hcs-american-finale-deploy`. FR-Migration `d8e9f0a1b2c3` war schon gelaufen (no-op),
+      FR-Templates (`6da606b`) + TKAMO-Importer (`61b263f`) + American-Finale (`02e5284`)
+      sind damit jetzt mit live (ungeprüft im Detail — kein gezielter Realtest dieser
+      drei Commits gemacht, nur allgemeiner Smoke-Test HTTP 200).
+
+### Reservationen — Variante B (bauen NACH HCS)
+Ziel: im AgilityPortal ein Turnier an eine **bestehende AdminPortal-Reservation**
+anhängen, die (noch) kein Portal-Turnier hat (z.B. via z-b.tech gebucht).
+User-Entscheide festgelegt:
+- [ ] **Variante a = nur Liste** (Dropdown offener AdminPortal-Reservationen), KEIN
+      Nummern-Eingabe-Fallback.
+- [ ] **Daten-Richtung: AdminPortal-Reservation NICHT überschreiben**, sondern
+      Richtung AgilityPortal synchronisieren (Portal-Turnier übernimmt die
+      Reservationsdaten). D.h. beim Link KEINE Master-Felder (event_name/location/
+      date) an die Reservation patchen — nur verknüpfen.
+- [ ] Nötig: **AdminPortal** `GET /api/reservations` (nicht archiviert, service=Agility,
+      portal_event_id NULL + keine ReservationEvent). **AgilityPortal**: Service
+      list + link-Route (`event.reservation_id` setzen, minimalen events-only-PATCH),
+      Dropdown in `event_detail.html`-Reservationskarte.
+Hinweis: Variante A (an ein anderes Portal-Turnier mit Reservation anhängen) gibt es
+schon: Route `event_reservation_join` + `reservation_candidates` in `event_detail`.
+AdminPortal-PATCH `reservation_update` setzt `portal_event_id` bereits, wenn nur
+`events` mitgeschickt wird (überschreibt dann die Master-Felder NICHT).
 
 ## Session 2026-10-29 — Zeitplan Finale/Grossring + Infra
 

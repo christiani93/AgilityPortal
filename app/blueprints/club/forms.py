@@ -127,12 +127,28 @@ class ProfileForm(FlaskForm):
     first_name = StringField(_("Vorname"), validators=[DataRequired(), Length(max=100)])
     last_name = StringField(_("Nachname"), validators=[DataRequired(), Length(max=100)])
     phone = StringField(_("Telefon"), validators=[Optional(), Length(max=50)])
+    # Verein des Läufers (pro Läufer). choices werden in der Route gesetzt;
+    # 0 = kein Verein.
+    club_id = SelectField(_("Verein"), coerce=int, validators=[Optional()])
     # Franz. Zusatzangaben (nur relevant fuer Teilnehmer mit auslaendischer Lizenz,
     # fuers offizielle CNEAC-Ergebnisformular). Alle optional.
     fr_license_no = StringField(_("N° licence (franz. Läuferlizenz)"), validators=[Optional(), Length(max=50)])
     fr_club = StringField(_("Club (franz. Verein)"), validators=[Optional(), Length(max=120)])
     fr_regionale = StringField(_("Régionale"), validators=[Optional(), Length(max=120)])
     submit = SubmitField(_("Speichern"))
+
+
+class HandlerForm(FlaskForm):
+    """Weiterer Läufer/Hundeführer, den ein Konto verwaltet (z.B. Familie mit
+    gemeinsamer Mailadresse)."""
+    first_name = StringField(_("Vorname"), validators=[DataRequired(), Length(max=100)])
+    last_name = StringField(_("Nachname"), validators=[DataRequired(), Length(max=100)])
+    phone = StringField(_("Telefon"), validators=[Optional(), Length(max=50)])
+    club_id = SelectField(_("Verein"), coerce=int, validators=[Optional()])
+    fr_license_no = StringField(_("N° licence (franz. Läuferlizenz)"), validators=[Optional(), Length(max=50)])
+    fr_club = StringField(_("Club (franz. Verein)"), validators=[Optional(), Length(max=120)])
+    fr_regionale = StringField(_("Régionale"), validators=[Optional(), Length(max=120)])
+    submit = SubmitField(_("Läufer speichern"))
 
 
 # ---------------------------------------------------------------------------
@@ -142,19 +158,32 @@ class ProfileForm(FlaskForm):
 class DogForm(FlaskForm):
     name = StringField(_("Hundename"), validators=[DataRequired(), Length(max=120)])
     breed = StringField(_("Rasse"), validators=[Optional(), Length(max=120)])
-    license_kind = SelectField(_("Lizenz-Typ"), choices=[("CH", _("Schweiz (CH)")), ("FOREIGN", _("Ausland (FOREIGN)"))])
+    # Geschlecht ist eine allgemeine Hunde-Eigenschaft (fuer alle Laender), nicht
+    # mehr nur FR. Wird ins Event-Paket exportiert (sexe).
+    sex = SelectField(_("Geschlecht"), choices=[("", "—"), ("M", _("Rüde (M)")), ("F", _("Hündin (F)"))], validators=[Optional()])
+    # Lizenz-Typ bestimmt gleichzeitig das Land: CH, oder auslaendisch mit
+    # laenderspezifischen Zusatzfeldern (FRA=CNEAC, DEU=VDH) bzw. ein anderes
+    # Ausland. Der eigentliche DB-Enum kennt nur CH/FOREIGN — das Mapping passiert
+    # in der Route; das Landeskuerzel landet im Lizenz-Praefix (FRA-/DEU-).
+    license_kind = SelectField(
+        _("Lizenz-Typ"),
+        choices=[
+            ("CH", _("Schweiz (CH)")),
+            ("FRA", _("Frankreich (FRA) – CNEAC")),
+            ("DEU", _("Deutschland (DEU) – VDH")),
+            ("FOREIGN", _("Ausland (anderes Land)")),
+        ],
+    )
     license_no = StringField(_("Lizenznummer"), validators=[DataRequired(), Length(max=50)])
-    # Franz. Zusatzangaben des Hundes (nur bei auslaendischer Lizenz relevant,
-    # fuers CNEAC-Ergebnisformular). Optional.
-    fapac_no = StringField(_("FAPAC (franz. Hundelizenz)"), validators=[Optional(), Length(max=50)])
-    sex = SelectField(_("Sexe"), choices=[("", "—"), ("M", _("Rüde (M)")), ("F", _("Hündin (F)"))], validators=[Optional()])
-    # Chip-/Transpondernummer (optional). U.a. fürs deutsche VDH-Auslandsergebnis-Formular.
-    microchip = StringField(_("Chip-Nr."), validators=[Optional(), Length(max=50)])
-    # SHSB = Stammbuch-Nummer (Schweiz. Hundestammbuch). Optional, meist nur bei CH-Zuchthunden.
+    # SHSB = Stammbuch-Nummer (Schweiz. Hundestammbuch). Schweizer Angabe, nur
+    # beim CH-Typ sichtbar. Optional, meist nur bei Zuchthunden.
     shsb = StringField(_("SHSB-Nr."), validators=[Optional(), Length(max=50)])
-    # Dt. VDH-Leistungsbuchnummer (nur bei deutschen Teilnehmern relevant, fuers
-    # VDH-Auslandsergebnis-Formular). Optional.
+    # FAPAC = franz. Hundelizenz. Nur beim FRA-Typ relevant (CNEAC-Formular).
+    fapac_no = StringField(_("FAPAC (franz. Hundelizenz)"), validators=[Optional(), Length(max=50)])
+    # Dt. VDH-Leistungsbuchnummer. Nur beim DEU-Typ relevant (VDH-Auslandsergebnis).
     leistungsbuch_no = StringField(_("Leistungsbuch-Nr. (VDH)"), validators=[Optional(), Length(max=50)])
+    # Chip-/Transpondernummer (optional, allgemein). U.a. fürs deutsche VDH-Formular.
+    microchip = StringField(_("Chip-Nr."), validators=[Optional(), Length(max=50)])
     submit = SubmitField(_("Hund speichern"))
 
 
@@ -181,6 +210,12 @@ class DogClassForm(FlaskForm):
 
 class EventRegistrationForm(FlaskForm):
     dog_id = SelectField(_("Hund"), coerce=int)
+    # Läufer/Hundeführer der Anmeldung — ein Konto kann mehrere Läufer verwalten.
+    # choices werden in der Route gesetzt (alle Läufer des Kontos). validate_choice
+    # aus: das Feld wird bei nur 1 Läufer gar nicht gerendert (dann nicht gepostet),
+    # und die Zugehörigkeit prüft die Route ohnehin selbst (Fallback eigene Person).
+    handler_id = SelectField(_("Hundeführer"), coerce=int, validators=[Optional()],
+                             validate_choice=False)
     class_level = SelectField(_("Klasse"), choices=[("1", _("Klasse 1")), ("2", _("Klasse 2")), ("3", _("Klasse 3"))], coerce=int)
     is_in_season = BooleanField(_("Hündin ist läufig"))
     submit = SubmitField(_("Anmelden"))

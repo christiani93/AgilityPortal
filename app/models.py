@@ -123,12 +123,40 @@ class User(UserMixin, db.Model):
 
     person_id = db.Column(db.Integer, db.ForeignKey("people.id"), nullable=True)
     person = db.relationship("Person", foreign_keys=[person_id])
+    # Weitere Laeufer, die dieses Konto verwaltet (Person.account_user_id).
+    managed_persons = db.relationship(
+        "Person",
+        foreign_keys="Person.account_user_id",
+        backref="account_user",
+    )
+
+    @property
+    def handlers(self):
+        """Alle Laeufer/Hundefuehrer dieses Kontos (eigene Person zuerst, dann
+        weitere verwaltete Personen) — ohne Duplikate."""
+        result = []
+        seen = set()
+        candidates = ([self.person] if self.person else []) + list(self.managed_persons or [])
+        for p in candidates:
+            if p and p.id not in seen:
+                seen.add(p.id)
+                result.append(p)
+        return result
+
+    @property
+    def handler_ids(self):
+        return [p.id for p in self.handlers]
 
     @property
     def dogs(self):
-        if not self.person:
-            return []
-        return [owner.dog for owner in self.person.owners]
+        result = []
+        seen = set()
+        for person in self.handlers:
+            for owner in person.owners:
+                if owner.dog_id not in seen:
+                    seen.add(owner.dog_id)
+                    result.append(owner.dog)
+        return result
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -169,6 +197,21 @@ class Person(db.Model):
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
     external_id = db.Column(db.String(64), unique=True)
+    # Konto (User), das diesen Laeufer verwaltet. Ein Account kann mehrere
+    # Laeufer/Hundefuehrer fuehren (Familie/Fahrgemeinschaft, gleiche Mail) —
+    # die eigene Person des Accounts hat dies ebenfalls gesetzt. NULL = Person
+    # ohne Portal-Account (z.B. aus AOA-Import).
+    # use_alter: users.person_id ↔ people.account_user_id bilden einen FK-Zyklus;
+    # das markiert diese Kante als bekannt, damit create_all/drop_all sortieren kann.
+    account_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", use_alter=True, name="fk_people_account_user_id"),
+        nullable=True,
+    )
+    # Verein des Laeufers (pro Laeufer waehlbar, nicht pro Hund). Wird bei der
+    # Anmeldung in Registration.club_name (= SKG-Vereinsnummer) uebernommen.
+    club_id = db.Column(db.Integer, db.ForeignKey("clubs.id"), nullable=True)
+    club = db.relationship("Club")
     # Franz. Zusatzangaben des Laeufers (nur fuer FR-Teilnehmer, CNEAC-Formular):
     # Laeuferlizenz (N° licence), franz. Verein (Club), franz. Regionalverband (Régionale).
     fr_license_no = db.Column(db.String(50))

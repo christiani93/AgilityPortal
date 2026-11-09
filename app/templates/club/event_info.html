@@ -382,8 +382,10 @@
           {% if not deadline_passed %}
           <td class="text-end">
             <div class="d-flex gap-1 justify-content-end flex-wrap">
-              {# Läufig melden / aufheben — nur wenn Turnier es erlaubt #}
-              {% if event.allows_bitches_in_season %}
+              {# Läufig melden / aufheben — nur wenn Turnier es erlaubt. Das
+                 Melden gibt es nur für Hündinnen (F) oder unbekanntes Geschlecht;
+                 das Aufheben einer bestehenden Meldung bleibt immer möglich. #}
+              {% if event.allows_bitches_in_season and (reg.is_in_season or not (reg.dog and reg.dog.sex == 'M')) %}
               <form method="post"
                     action="{{ url_for('club.registration_toggle_in_season', reg_id=reg.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
