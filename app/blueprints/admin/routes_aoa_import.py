@@ -940,9 +940,12 @@ def _create_registration_from_record(event_id: int, rec: dict):
     reg.tka_event_check_status = TkaEventCheckStatus.PENDING
     if rec["club_value"]:
         reg.club_name = rec["club_value"]
-    # BCCS-SM Flagge (1 = ja, 0/leer = nein)
-    if rec.get("bccs_sm"):
-        reg.bccs_sm = bool(int(rec["bccs_sm"]) if (rec["bccs_sm"] or "").isdigit() else rec["bccs_sm"])
+    # BCCS-SM Flagge: 1 = ja, 0/leer = nein (auch beim Re-Import aktualisieren)
+    bccs_sm_value = (rec.get("bccs_sm") or "").strip()
+    if bccs_sm_value.isdigit():
+        reg.bccs_sm = bool(int(bccs_sm_value))
+    else:
+        reg.bccs_sm = False  # Leer oder unbekannt → False
     db.session.flush()
     return reg
 
