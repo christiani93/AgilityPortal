@@ -983,6 +983,9 @@
               <span class="badge bg-warning text-dark ms-1"
                     title="{{ _('Läufig') }}{% if event.bitches_in_season_start_last %} — {{ _('startet am Schluss') }}{% endif %}">♀ {{ _('läufig') }}</span>
             {% endif %}
+            {% if event.type == 'bccs_sm' and reg.bccs_sm %}
+              <span class="badge bg-info text-dark ms-1" title="{{ _('BCCS-SM-Anmeldung') }}">SM</span>
+            {% endif %}
           </td>
           <td>
             <form method="post" action="{{ url_for('club.registration_set_class', reg_id=reg.id) }}"
@@ -1042,6 +1045,13 @@
               {{ run_form.hidden_tag() }}
               <button class="btn btn-sm {{ 'btn-warning' if reg.is_in_season else 'btn-outline-warning' }}"
                       title="{{ _('Läufig-Markierung aufheben') if reg.is_in_season else _('Als läufig markieren') }}">♀</button>
+            </form>
+            {% endif %}
+            {% if event.type == 'bccs_sm' and reg.status.value != 'CANCELLED' %}
+            <form method="post" action="{{ url_for('club.registration_toggle_bccs_sm', reg_id=reg.id) }}" class="d-inline">
+              {{ run_form.hidden_tag() }}
+              <button class="btn btn-sm {{ 'btn-info' if reg.bccs_sm else 'btn-outline-info' }}"
+                      title="{{ _('BCCS-SM-Markierung aufheben') if reg.bccs_sm else _('Für BCCS-SM markieren') }}">SM</button>
             </form>
             {% endif %}
             {% if reg.status.value in ('PENDING', 'SUBMITTED') %}

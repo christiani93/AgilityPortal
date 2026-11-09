@@ -2051,6 +2051,27 @@ def registration_toggle_in_season_admin(reg_id):
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
 
+@club_bp.post("/registrations/<int:reg_id>/toggle-bccs-sm")
+@login_required
+def registration_toggle_bccs_sm(reg_id):
+    """Veranstalter setzt/entfernt das BCCS-SM-Flag einer Anmeldung von Hand
+    (z.B. wenn der AOA-Import die SMQ-Spalte nicht enthielt oder der Teilnehmer
+    nachträglich an- bzw. abgemeldet wird)."""
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+
+    reg.bccs_sm = not reg.bccs_sm
+    db.session.commit()
+
+    if reg.bccs_sm:
+        flash(_("%(dog)s für BCCS-SM markiert.", dog=reg.dog.name if reg.dog else "?"), "info")
+    else:
+        flash(_("BCCS-SM-Markierung für %(dog)s aufgehoben.", dog=reg.dog.name if reg.dog else "?"), "info")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
 @club_bp.post("/registrations/<int:reg_id>/class")
 @login_required
 def registration_set_class(reg_id):
