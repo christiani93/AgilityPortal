@@ -315,6 +315,7 @@ def aoa_import_preview():
     col_phone = cols["phone"]
     col_club = cols["club"]
     col_club_no = cols["club_no"]
+    col_bccs_sm = cols["bccs_sm"]
 
     missing = [n for n, c in [
         ("Lizenz", col_license), ("Hundename", col_dog_name),
@@ -394,6 +395,7 @@ def aoa_import_preview():
         col_email=col_email,
         col_phone=col_phone,
         col_club=col_club,
+        col_bccs_sm=col_bccs_sm,
     )
 
 
