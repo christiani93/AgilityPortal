@@ -339,14 +339,20 @@ _SEASON_EVENTS = [
      "start": date(2026, 11, 27), "end": date(2026, 11, 29),
      "type": "regular", "ruleset": "advents_cup", "organiser": "LiTyWee"},
 
-    {"ext": "SEASON_2627_skbs_sm", "name": "SKBS-Schweizermeisterschaft",
-     "start": date(2026, 12, 5), "end": date(2026, 12, 6),
+    # SKBS-SM + FMBB-WM-Quali am selben Wochenende (Sa 05.12 + So 06.12.2026):
+    # pro Tag EIN kombiniertes Turnier mit denselben Läufen. type=skbs_sm bringt
+    # das Finalisten-Feature; FMBB hat im Portal keine eigene Logik (nur Label),
+    # die FMBB-Auswertung läuft in der AgilitySoftware aus denselben Läufen.
+    # AIS je Tag kommt aus der AdminPortal-Reservation (noch nicht erfasst → das
+    # Reservation-Gate überspringt beide, bis die Reservationen angelegt sind).
+    {"ext": "SEASON_2627_skbs_fmbb_sa", "name": "SKBS-SM + FMBB-WM-Quali 05.12.2026",
+     "start": date(2026, 12, 5), "end": date(2026, 12, 5),
      "type": "skbs_sm", "ruleset": None, "organiser": "Seeland",
      "location": "Münsingen"},
 
-    {"ext": "SEASON_2627_fmbb_quali", "name": "FMBB-WM-Qualifikation",
-     "start": date(2026, 12, 5), "end": date(2026, 12, 6),
-     "type": "fmbb_quali", "ruleset": None, "organiser": "Seeland",
+    {"ext": "SEASON_2627_skbs_fmbb_so", "name": "SKBS-SM + FMBB-WM-Quali 06.12.2026",
+     "start": date(2026, 12, 6), "end": date(2026, 12, 6),
+     "type": "skbs_sm", "ruleset": None, "organiser": "Seeland",
      "location": "Münsingen"},
 
     {"ext": "SEASON_2627_wimesma_m2", "name": "WiMeSma 26/27 – Meeting 2",
