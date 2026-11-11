@@ -104,14 +104,15 @@ def test_profile_dogs_persists_swiss_and_german_fields(app):
         assert ch_dog.fapac_no is None
         assert ch_dog.leistungsbuch_no is None
 
-        # DEU-Hund mit Leistungsbuch, Auto-Präfix DEU-
+        # DEU-Hund mit Leistungsbuch; Dropdown-Wert bleibt "DEU", das gespeicherte
+        # Präfix ist aber der IOC-Code GER (Deutschland = GER, nicht ISO DEU).
         client.post("/club/profile/dogs", data={
             "name": "Hund", "breed": "DSH",
             "license_kind": "DEU", "license_no": "77",
             "leistungsbuch_no": "K-33333", "sex": "M",
         }, follow_redirects=True)
-        de_dog = db.session.execute(db.select(M.Dog).filter_by(license_no="DEU-77")).scalar_one()
+        de_dog = db.session.execute(db.select(M.Dog).filter_by(license_no="GER-77")).scalar_one()
         assert de_dog.license_kind == M.LicenseKind.FOREIGN
-        assert de_dog.foreign_country_code == "DEU"
+        assert de_dog.foreign_country_code == "GER"
         assert de_dog.leistungsbuch_no == "K-33333"
         assert de_dog.shsb is None

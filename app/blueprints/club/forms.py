@@ -170,7 +170,7 @@ class DogForm(FlaskForm):
         choices=[
             ("CH", _("Schweiz (CH)")),
             ("FRA", _("Frankreich (FRA) – CNEAC")),
-            ("DEU", _("Deutschland (DEU) – VDH")),
+            ("DEU", _("Deutschland (GER) – VDH")),
             ("FOREIGN", _("Ausland (anderes Land)")),
         ],
     )

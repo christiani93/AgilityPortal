@@ -1382,7 +1382,10 @@ def profile_dogs():
             # CH bleibt CH; FRA/DEU/FOREIGN sind alle LicenseKind.FOREIGN, nur das
             # Praefix der Lizenznummer unterscheidet das Land (FRA-/DEU-).
             type_choice = form.license_kind.data
-            _PREFIX_BY_TYPE = {"FRA": "FRA", "DEU": "DEU"}
+            # IOC-Ländercode als Lizenz-Präfix (TKAMO-Weisung): Deutschland = GER
+            # (nicht ISO 'DEU'). Der Dropdown-Wert bleibt 'DEU' (steuert die VDH-
+            # Zusatzfelder), nur das gespeicherte Präfix ist der IOC-Code.
+            _PREFIX_BY_TYPE = {"FRA": "FRA", "DEU": "GER"}
             license_kind = LicenseKind.CH if type_choice == "CH" else LicenseKind.FOREIGN
             license_no = form.license_no.data.strip()
             # Fuer FRA/DEU das Landeskuerzel automatisch voranstellen, falls der

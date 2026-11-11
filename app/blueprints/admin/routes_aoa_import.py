@@ -63,16 +63,18 @@ SEX_MAP = {
     "f": "F", "w": "F", "weiblich": "F", "female": "F", "hündin": "F", "huendin": "F",
 }
 
-# Kurzpräfixe → 3-Zeichen ISO-Code (Dog-Validator braucht genau 3 Buchstaben)
+# Kurzpräfixe → 3-Zeichen IOC-Ländercode (Dog-Validator braucht genau 3 Buchstaben).
+# ACHTUNG IOC ≠ ISO-3166: Deutschland=GER (nicht DEU), Niederlande=NED (nicht NLD),
+# Schweiz=SUI (nicht CHE). TKAMO verlangt IOC-Codes (Weisung Resultatmeldung 3.1).
 LICENSE_PREFIX_NORMALIZE = {
     "A": "AUT",
-    "D": "DEU",
+    "D": "GER",
     "F": "FRA",
     "B": "BEL",
     "I": "ITA",
     "E": "ESP",
-    "NL": "NLD",
-    "CH": "CHE",
+    "NL": "NED",
+    "CH": "SUI",
 }
 
 
