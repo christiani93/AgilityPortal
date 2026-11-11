@@ -406,6 +406,18 @@ _SEASON_EVENTS = [
 ]
 
 
+def _as_date(value):
+    """Coerce DB-Rückgabe (date / datetime / 'YYYY-MM-DD') zu `date`.
+    (MySQL liefert date/datetime, die SQLite-Test-DB Strings.)"""
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        return date.fromisoformat(value[:10])
+    return value
+
+
 def _find_reservation_ais(spec_start: date):
     """Sucht die AIS-Turniernummer für ein Datum in der AdminPortal-Reservation
     (gleiche DB, andere App - kein eigenes Modell, daher raw SQL).
@@ -414,11 +426,15 @@ def _find_reservation_ais(spec_start: date):
     1. `reservation_event`-Zeile mit exaktem `date_from`-Treffer (die saubere,
        pro-Tag aufgeschlüsselte Quelle - siehe Reservation #63 nach dem Fix
        vom 09.11.2026).
-    2. Fallback: `reservation`-Haupttabelle, aber NUR wenn es ein echtes
-       Eintages-Turnier ist (date_to NULL oder == date_from) - bei Mehrtage-
-       Reservationen ohne `reservation_event`-Aufschlüsselung lässt sich die
-       passende AIS-Nummer aus `ais_turniernummer_extra` (Komma-String) nicht
-       verlässlich einem bestimmten Tag zuordnen, also kein Match.
+    2. Fallback: `reservation`-Haupttabelle, echtes Eintages-Turnier
+       (date_to NULL oder == date_from).
+    3. Fallback: Mehrtages-Reservation OHNE `reservation_event`-Aufschlüsselung -
+       die AIS-Nummern (`ais_turniernummer` + Komma-Liste `ais_turniernummer_extra`)
+       werden den Tagen der Reihe nach zugeordnet, ABER nur wenn die Anzahl AIS
+       exakt der Anzahl Tage entspricht. Sonst ist die Zuordnung mehrdeutig
+       (z.B. HCS: 3 Tage, 2 AIS, Freitag-Tunnellauf ohne AIS) → kein Match.
+       So lösen sich Mehrtages-Anlässe mit lückenloser AIS-Reihe (Advent/Edelweiss)
+       automatisch pro Tag auf.
 
     Gibt (ais_turniernummer, reservation_id) oder (None, None) zurück.
     `reservation`/`reservation_event` gehören zum AdminPortal-Schema - in
@@ -449,6 +465,25 @@ def _find_reservation_ais(spec_start: date):
         """), {"d": spec_start}).first()
         if row:
             return row.ais_turniernummer, row.id
+
+        # 3. Mehrtages-Reservation ohne reservation_event: AIS der Reihe nach den
+        #    Tagen zuordnen, nur bei lückenloser AIS-Reihe (Anzahl AIS == Tage).
+        row = db.session.execute(text("""
+            SELECT id, date_from, date_to, ais_turniernummer, ais_turniernummer_extra
+            FROM reservation
+            WHERE date_from <= :d AND date_to >= :d
+              AND status = 'confirmed' AND ais_turniernummer IS NOT NULL
+            LIMIT 1
+        """), {"d": spec_start}).first()
+        if row:
+            d_from, d_to = _as_date(row.date_from), _as_date(row.date_to)
+            ais_list = [row.ais_turniernummer]
+            if row.ais_turniernummer_extra:
+                ais_list += [int(x) for x in str(row.ais_turniernummer_extra).split(",") if x.strip()]
+            num_days = (d_to - d_from).days + 1
+            offset = (spec_start - d_from).days
+            if len(ais_list) == num_days and 0 <= offset < len(ais_list):
+                return ais_list[offset], row.id
     except DBAPIError:
         db.session.rollback()
         return None, None

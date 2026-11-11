@@ -9,7 +9,7 @@ from datetime import date
 
 from app.extensions import db
 from app import models as M
-from app.commands import _SEASON_EVENTS
+from app.commands import _SEASON_EVENTS, _find_reservation_ais
 
 
 def _create_reservation_tables():
@@ -19,7 +19,8 @@ def _create_reservation_tables():
             status VARCHAR(20) NOT NULL,
             date_from DATE NOT NULL,
             date_to DATE,
-            ais_turniernummer INTEGER
+            ais_turniernummer INTEGER,
+            ais_turniernummer_extra VARCHAR(100)
         )
     """))
     db.session.execute(db.text("""
@@ -136,3 +137,36 @@ def test_multiday_main_reservation_without_breakdown_does_not_match_secondary_da
             db.select(M.Event).filter_by(external_id=bccs_sa["ext"])
         ).scalar_one_or_none()
         assert event is None
+
+
+def test_multiday_full_ais_series_resolves_per_day(app):
+    """Mehrtages-Reservation mit lückenloser AIS-Reihe (Anzahl AIS == Tage):
+    jeder Tag bekommt automatisch die richtige AIS-Nummer (Advent/Edelweiss-Muster)."""
+    from datetime import date as _date
+    with app.app_context():
+        _create_reservation_tables()
+        db.session.execute(db.text(
+            "INSERT INTO reservation (id, status, date_from, date_to, "
+            "ais_turniernummer, ais_turniernummer_extra) "
+            "VALUES (70, 'confirmed', '2026-11-27', '2026-11-29', 11097, '11098, 11099')"
+        ))
+        db.session.commit()
+        assert _find_reservation_ais(_date(2026, 11, 27)) == (11097, 70)
+        assert _find_reservation_ais(_date(2026, 11, 28)) == (11098, 70)
+        assert _find_reservation_ais(_date(2026, 11, 29)) == (11099, 70)
+
+
+def test_multiday_mismatched_ais_count_does_not_resolve(app):
+    """Deckt die Anzahl AIS die Tage NICHT lückenlos ab (z.B. 3 Tage, 2 AIS wie
+    HCS mit Tunnellauf-Freitag), bleibt die Zuordnung mehrdeutig → kein Match."""
+    from datetime import date as _date
+    with app.app_context():
+        _create_reservation_tables()
+        db.session.execute(db.text(
+            "INSERT INTO reservation (id, status, date_from, date_to, "
+            "ais_turniernummer, ais_turniernummer_extra) "
+            "VALUES (71, 'confirmed', '2026-11-27', '2026-11-29', 11097, '11098')"
+        ))
+        db.session.commit()
+        assert _find_reservation_ais(_date(2026, 11, 28)) == (None, None)
+        assert _find_reservation_ais(_date(2026, 11, 29)) == (None, None)
