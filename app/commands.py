@@ -339,13 +339,16 @@ _SEASON_EVENTS = [
     # (Reservation #39: 11097/11098/11099).
     {"ext": "SEASON_2627_advent_fr", "name": "Adventscup 27.11.2026",
      "start": date(2026, 11, 27), "end": date(2026, 11, 27),
-     "type": "regular", "ruleset": "advents_cup", "organiser": "LyTiWee"},
+     "type": "regular", "ruleset": "advents_cup", "organiser": "LyTiWee",
+     "location": "Münsingen"},
     {"ext": "SEASON_2627_advent_sa", "name": "Adventscup 28.11.2026",
      "start": date(2026, 11, 28), "end": date(2026, 11, 28),
-     "type": "regular", "ruleset": "advents_cup", "organiser": "LyTiWee"},
+     "type": "regular", "ruleset": "advents_cup", "organiser": "LyTiWee",
+     "location": "Münsingen"},
     {"ext": "SEASON_2627_advent_so", "name": "Adventscup 29.11.2026",
      "start": date(2026, 11, 29), "end": date(2026, 11, 29),
-     "type": "regular", "ruleset": "advents_cup", "organiser": "LyTiWee"},
+     "type": "regular", "ruleset": "advents_cup", "organiser": "LyTiWee",
+     "location": "Münsingen"},
 
     # SKBS-SM + FMBB-WM-Quali am selben Wochenende (Sa 05.12 + So 06.12.2026):
     # pro Tag EIN kombiniertes Turnier mit denselben Läufen. type=skbs_sm bringt
@@ -372,13 +375,16 @@ _SEASON_EVENTS = [
     # AIS-Nummer (Reservation #41: 11806/11807/11808).
     {"ext": "SEASON_2627_edelweiss_fr", "name": "Edelweiss Challenge 08.01.2027",
      "start": date(2027, 1, 8), "end": date(2027, 1, 8),
-     "type": "regular", "ruleset": "edelweiss_challenge", "organiser": "LyTiWee"},
+     "type": "regular", "ruleset": "edelweiss_challenge", "organiser": "LyTiWee",
+     "location": "Münsingen"},
     {"ext": "SEASON_2627_edelweiss_sa", "name": "Edelweiss Challenge 09.01.2027",
      "start": date(2027, 1, 9), "end": date(2027, 1, 9),
-     "type": "regular", "ruleset": "edelweiss_challenge", "organiser": "LyTiWee"},
+     "type": "regular", "ruleset": "edelweiss_challenge", "organiser": "LyTiWee",
+     "location": "Münsingen"},
     {"ext": "SEASON_2627_edelweiss_so", "name": "Edelweiss Challenge 10.01.2027",
      "start": date(2027, 1, 10), "end": date(2027, 1, 10),
-     "type": "regular", "ruleset": "edelweiss_challenge", "organiser": "LyTiWee"},
+     "type": "regular", "ruleset": "edelweiss_challenge", "organiser": "LyTiWee",
+     "location": "Münsingen"},
 
     {"ext": "SEASON_2627_wimesma_m3", "name": "WiMeSma 26/27 – Meeting 3",
      "start": date(2027, 1, 17), "end": date(2027, 1, 17),
