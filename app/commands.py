@@ -590,3 +590,57 @@ def seed_season_events(dry_run: bool):
             f"\n[OK] {created} Turniere angelegt, {skipped} bereits vorhanden, "
             f"{missing_reservation} ohne Reservation übersprungen."
         )
+
+
+@click.command("configure-bccs-startnumbers")
+@click.option("--dry-run", is_flag=True,
+              help="Nur anzeigen, was gesetzt würde – ohne zu schreiben.")
+@with_appcontext
+def configure_bccs_startnumbers(dry_run: bool):
+    """
+    Konfiguriert die Startnummern-Schemas für BCCS-SM Events (33/34/35).
+
+    Schema: pro Kategorie × Klasse auto-sequenziell ab 101:
+      Intermediate-1: 101–110, Intermediate-2: 111–120, Intermediate-3: 121–130
+      Large-1: 201–210, Large-2: 211–220, Large-3: 221–230
+
+    Beispiel:
+      flask configure-bccs-startnumbers --dry-run
+      flask configure-bccs-startnumbers
+    """
+    from app.models import Event
+    import json
+
+    bccs_event_ids = [33, 34, 35]  # Abendmeeting + Sa/So SM
+    schema = {
+        "Intermediate-1": 101,
+        "Intermediate-2": 111,
+        "Intermediate-3": 121,
+        "Large-1": 201,
+        "Large-2": 211,
+        "Large-3": 221,
+    }
+    schema_json = json.dumps(schema)
+
+    updated = 0
+    for event_id in bccs_event_ids:
+        event = db.session.get(Event, event_id)
+        if not event:
+            click.echo(f"  ⚠️  Event {event_id} nicht gefunden.", err=True)
+            continue
+
+        old_schema = event.startnumber_schema
+        click.echo(f"Event {event_id} ({event.name})")
+        click.echo(f"  alt: {old_schema}")
+        click.echo(f"  neu: {schema_json}")
+
+        if not dry_run:
+            event.startnumber_schema = schema_json
+            updated += 1
+
+    if dry_run:
+        db.session.rollback()
+        click.echo(f"\n[DRY-RUN] {len(bccs_event_ids)} Events bereit, nichts geschrieben.")
+    else:
+        db.session.commit()
+        click.echo(f"\n[OK] {updated} Events aktualisiert.")

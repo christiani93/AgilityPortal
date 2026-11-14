@@ -146,11 +146,12 @@ def create_app():
 
     # --- CLI-Befehle ---
     from .commands import (seed_test_regs, clear_test_regs, create_test_event,
-                           seed_season_events)
+                           seed_season_events, configure_bccs_startnumbers)
     app.cli.add_command(seed_test_regs)
     app.cli.add_command(clear_test_regs)
     app.cli.add_command(create_test_event)
     app.cli.add_command(seed_season_events)
+    app.cli.add_command(configure_bccs_startnumbers)
 
     @app.get("/")
     def home():

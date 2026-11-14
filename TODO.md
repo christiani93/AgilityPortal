@@ -30,23 +30,58 @@ Kl.1+2 Nachwuchs). BCCS-Läufe = SM-Quali-Läufe (nicht separat).
       `change_set`, `aoa_import_execute` liest/schreibt es für neu+bestehend.
 - [x] Gefilterte Startlisten `?bccs=1` (`_collect_startlist_rows(only_bccs_sm=)`).
 - [x] Event-Links-Seite zeigt BCCS-Startliste-Abschnitt bei `type=="bccs_sm"`.
-- [ ] **User-Realtest**: Excel 21.11/22.11 mit dem gefixten Import/Abgleich neu
-      einlesen, SMQ-Flags in Prod prüfen, gefilterte Startlisten + kopierbare
-      Links auf `/club/events/xx/links` verifizieren.
-- [ ] **BCCS-Reglement finalisieren** (laut User „in den nächsten Tagen") — Final-/
-      Auswertungslogik kann sich noch ändern.
+- [x] **BCCS-SM Realtest Import/Flags**: Prod-Check 09.11. — Event 34 104/135,
+      Event 35 47/85 Anmeldungen mit `bccs_sm=True`. Import/Abgleich/manuelles
+      Toggle alle deployed. (User-Durchklick der Links-Seite noch empfohlen.)
+- [x] **BCCS-SM Zeitpläne** (Events 33/34/35) exakt nach PDFs aufgebaut
+      (`OneDrive\Zeitnehmung Braunschweiler\AgilityEvents\{20,21,22}.11\Zeitplan.pdf`):
+      Läufe, Richter (Ismael Elpida/Salas Alejandro), Ring-Config, Final-Blöcke
+      mit eigenem Richter (neues Feature `ScheduleBlock.judge_id`, Migr. `sb01judge`).
+- [x] **Startnummern für Events 33/34/35 konfiguriert** (CLI `configure-bccs-startnumbers`,
+      Commit 2026-11-14): Schema pro Kategorie/Klasse ab 101 (I-1: 101–110, I-2: 111–120,
+      I-3: 121–130, L-1: 201–210, L-2: 211–220, L-3: 221–230). Tests grün, 233 Portal OK.
+      Deploy auf Prod + Smoke-Test morgen nötig.
+- [ ] **Finalteilnehmer-Ableitung operativ** — braucht Sa-Quali-Ergebnisse. Logik validiert
+      in AgilitySoftware `bccs_sm_qualification.py`, Portal-API/View noch zu bauen.
+      Siehe `project_sm_module_backlog`.
+- [x] **BCCS-Reglement ist final** (User 2026-11-14) — Qualifikation 15% pro Lauf,
+      Final-Summe, ex aequo bei Gleichstand.
 
-## Session 2026-11-09 — Events auf Portal anlegen (OFFEN, in Arbeit)
+## Session 2026-11-09 — Saison-Events + Reservation-Gate (DEPLOYED)
 
-Mechanismus: `app/commands.py` `_SEASON_EVENTS` + `flask seed-season-events`
-(idempotent via external_id). Siehe Memory `reference_portal_season_events_seeding`.
+Mechanismus: `app/commands.py` `_SEASON_EVENTS` + `flask seed-season-events`.
+Siehe Memory `reference_portal_season_events_seeding`.
 
-- [x] **Abendmeeting 20.11.2026** angelegt in `_SEASON_EVENTS`: `SEASON_2627_seeland_abendmeeting`,
-      Seeland, Münsingen, `type="regular"`, zwischen WiMeSma M1 + BCCS Sa.
-- [ ] **BCCS-SM 21.+22.11.2026**: bereits im Seed-Skript (`SEASON_2627_bccs_sm_sa/_so`,
-      `type="bccs_sm"`, Seeland/Münsingen). Nur noch prüfen ob in Prod-DB vorhanden:
-      `flask seed-season-events --dry-run`; falls nicht → ohne `--dry-run`. AIS auf
-      Prod separat setzen (Sa 12323 / So 12324).
+- [x] **Reservation-Gate** (`9985a39`): `seed-season-events` legt Turniere nur
+      noch an, wenn bestätigte AdminPortal-Reservation mit AIS fürs Datum
+      existiert (`_find_reservation_ais`). AIS/reservation_id/synced_at werden von
+      der Reservation übernommen — NICHT mehr hartcodieren. Tests:
+      `test_seed_season_events_reservation_gate.py`. 223 Tests grün.
+- [x] **Prod-Reservation-Verknüpfungen nachgetragen** (beide Seiten): 13/14→Res#7,
+      18/19/20→#36, 33/34/35→#63, 36→#39, 40→#41.
+## Session 2026-11-11 — Portal-Turniere pro AIS + SW-Guide (DEPLOYED)
+
+Prinzip: **1 Portal-Turnier pro AIS-Nummer**; Daten (AIS/Veranstalter/Ort) aus der
+Reservation. Details Memory `reference_portal_season_events_seeding`.
+
+- [x] **SKBS-SM + FMBB-Quali kombiniert** (Prod `a49cae5`): pro Tag 1 Turnier, das
+      beide Bewerbe ist → Events 37 (Sa 05.12) + 38 (So 06.12), `type=skbs_sm`,
+      Name „SKBS-SM + FMBB-WM-Quali", Veranstalter Seeland. FMBB-Auswertung in SW.
+- [x] **Adventscup + Edelweiss in Tagesevents gesplittet** (`defcd2b`/`8081981`):
+      Advent 36/49/50 (Fr/Sa/So, AIS 11097/98/99), Edelweiss 40/51/52 (AIS
+      11806/07/08), beide Veranstalter **LyTiWee=club 295**, Ort Münsingen.
+- [x] **Seeding-Fallback #3** (`3f4d3df`): Mehrtages-Reservation → AIS pro Tag
+      ableiten, Guard „Anzahl AIS==Tage" (sonst mehrdeutig). 2 Tests, 231 grün.
+- [ ] **AIS für SKBS/FMBB (Events 37/38) nachtragen** — Reservation kommt laut User
+      erst **nach der BCCS** (21./22.11, Veranstalter-Eigenheit). Danach AIS setzen.
+- [ ] **Dänzer Jan/Feb** (22.-24.01 / 19.-21.02) noch als 3-Tages-Specs; wenn
+      Reservation mit lückenloser AIS-Reihe da ist → zu Tagesevents machen
+      (Fallback #3 füllt AIS dann automatisch).
+- [x] **M-05 IOC-Fix** (`96c1100`, deployed): Portal speichert IOC (GER/NED/SUI)
+      statt ISO (DEU/NLD/CHE) für ausländische Lizenzen. Prod: 0 Altdaten betroffen.
+- [ ] **M-01/M-03/M-10** (SW-Guide, brauchen Migration): WKO-Bestätigung,
+      Mikrochip-Pflicht+Adresse/Nationalität, Tierschutz-Teilnehmerliste. M-04
+      (Oldie-Filter) blockiert bis Oldie-Datenquelle entschieden.
 
 
 
