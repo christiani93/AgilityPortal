@@ -428,6 +428,13 @@ def _parse_and_apply_tkamo_multi(events: list, report_text: str) -> tuple[list, 
 			m_lic = re.search(r'Lizenz\s+(\S+)', line, re.IGNORECASE)
 			if m_lic:
 				license_no = m_lic.group(1).rstrip('.,')
+			else:
+				# Zeilennummer verwenden, wenn Lizenz nicht in der Zeile ist
+				m_row = re.search(r'Zeile\s+(\d+)', line, re.IGNORECASE)
+				if m_row:
+					row_num_lookup = int(m_row.group(1))
+					if row_num_lookup in row_to_license_event:
+						license_no = row_to_license_event[row_num_lookup][0]
 
 			if license_no:
 				dog = db.session.execute(
