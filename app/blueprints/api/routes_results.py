@@ -5,6 +5,7 @@ from flask import Blueprint, current_app, jsonify, request
 from app.extensions import db
 from app.models import Event, ResultPDF
 from app.services.exchange_service import import_result_export_zip
+from app.services.bccs_qualification_service import calculate_bccs_finalists
 
 
 results_api_bp = Blueprint("results_api", __name__)
@@ -103,3 +104,59 @@ def result_pdf_upload():
 
     db.session.commit()
     return jsonify({"status": "ok", "event_id": event.id})
+
+
+@results_api_bp.post("/api/events/<int:event_id>/bccs-finalists")
+def calculate_bccs_event_finalists(event_id):
+    """
+    Berechnet die BCCS-SM-Finalisten für ein Event und speichert sie.
+
+    Authentifizierung: RESULTS_API_KEY
+
+    Input: event_id (URL)
+
+    Output:
+      {
+        "status": "ok",
+        "event_id": int,
+        "divisions": {
+          "Intermediate/sm": { quota, finalists_count, ... },
+          ...
+        },
+        "finalists_count": int,
+      }
+    """
+    if not _require_api_key(current_app.config.get("RESULTS_API_KEY")):
+        return jsonify({"error": "unauthorized"}), 403
+
+    event = Event.query.get(event_id)
+    if not event:
+        return jsonify({"error": "event not found"}), 404
+
+    if event.type != "bccs_sm":
+        return jsonify({"error": "event is not a bccs_sm event"}), 400
+
+    try:
+        result = calculate_bccs_finalists(event)
+
+        # Konstruiere Response
+        divisions_summary = {}
+        for div_key, div_data in result.get("divisions", {}).items():
+            divisions_summary[div_key] = {
+                "quota": div_data.get("quota"),
+                "finalists_count": len(div_data.get("finalists", [])),
+                "open_spots": div_data.get("open_spots", 0),
+            }
+
+        return jsonify({
+            "status": "ok",
+            "event_id": event.id,
+            "divisions": divisions_summary,
+            "finalists_count": len(result.get("finalists", [])),
+        })
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        current_app.logger.exception(f"Error calculating BCCS finalists for event {event_id}")
+        return jsonify({"error": f"internal error: {str(e)}"}), 500
