@@ -746,6 +746,8 @@ def _build_diff(rows: list[dict], cols: dict, event_id: int) -> dict:
             "dog_name": reg.dog.name if reg.dog else rec["dog_name"],
             "reg_id": reg.id,
             "start_number": reg.start_number,
+            "category_code": reg.category_code,
+            "class_level": reg.class_level,
             "rec": rec,
             "diffs": diffs,
         }
