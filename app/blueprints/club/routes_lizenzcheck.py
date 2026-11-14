@@ -20,7 +20,7 @@ from datetime import datetime
 
 from flask import abort, current_app, render_template, request, Response, url_for
 from flask_babel import _
-from flask_login import login_required
+from flask_login import login_required, current_user
 from flask_mail import Message
 from itsdangerous import URLSafeSerializer, BadSignature
 
