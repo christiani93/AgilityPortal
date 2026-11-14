@@ -131,7 +131,7 @@ def event_lizenzcheck_csv(event_id):
 
 # ── 1b. Multi-Event CSV-Export (Wochenend-Bundle) ────────────────────────────
 
-@club_bp.get("/club/lizenzcheck-multi/csv")
+@club_bp.get("/lizenzcheck-multi/csv")
 @login_required
 def club_lizenzcheck_multi_csv():
     """
