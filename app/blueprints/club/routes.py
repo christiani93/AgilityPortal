@@ -628,7 +628,7 @@ def event_duplicate_as_test(event_id):
             event_id=copy.id, dog_id=reg.dog_id, handler_id=reg.handler_id,
             category_code=reg.category_code, class_level=reg.class_level,
             status=reg.status, club_name=reg.club_name,
-            is_in_season=reg.is_in_season,
+            is_in_season=reg.is_in_season, bccs_sm=reg.bccs_sm,
         ))
 
     db.session.commit()
