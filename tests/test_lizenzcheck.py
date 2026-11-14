@@ -18,6 +18,7 @@ from app.extensions import db
 from app.models import Dog, Event, LicenseKind, Registration, RegistrationStatus
 from app.blueprints.club.routes_lizenzcheck import (
     _parse_and_apply_tkamo,
+    _parse_and_apply_tkamo_multi,
     _make_confirm_token,
     _decode_confirm_token,
 )
@@ -328,3 +329,137 @@ def test_multi_event_confirm_updates_all_registrations(app):
         assert reg1_after.category_code == "Large"
         assert reg2_after.class_level == 3
         assert reg2_after.category_code == "Large"
+
+
+def test_multi_event_tkamo_import_dog_name_change(app):
+	"""Multi-Event TKAMO-Import: Hundenamen-Änderung wird verarbeitet."""
+	with app.app_context():
+		from app.models import Person, User
+
+		# 2 Events
+		event1 = Event(name="Samstag")
+		event2 = Event(name="Sonntag")
+		db.session.add(event1)
+		db.session.add(event2)
+		db.session.flush()
+
+		# Handler
+		person = Person(first_name="Max", last_name="Muster", email="max@test.ch")
+		user = User(email="max@test.ch", person=person)
+		db.session.add(person)
+		db.session.add(user)
+		db.session.flush()
+
+		# Dog
+		dog = Dog(
+			name="Bello",
+			license_no="20001",
+			license_kind=LicenseKind.CH,
+			category="L",
+			class_level=1,
+		)
+		db.session.add(dog)
+		db.session.flush()
+
+		# Registrierungen in beiden Events
+		reg1 = Registration(
+			event_id=event1.id,
+			dog_id=dog.id,
+			handler_id=person.id,
+			status=RegistrationStatus.CONFIRMED,
+			class_level=1,
+			category_code="Large",
+		)
+		reg2 = Registration(
+			event_id=event2.id,
+			dog_id=dog.id,
+			handler_id=person.id,
+			status=RegistrationStatus.CONFIRMED,
+			class_level=1,
+			category_code="Large",
+		)
+		db.session.add(reg1)
+		db.session.add(reg2)
+		db.session.commit()
+
+		# TKAMO-Report mit Hundenamen-Änderung
+		report_text = (
+			"Hundename und Lizenznummer stimmen auf Zeile 2 nicht überein. "
+			f"Lizenz {dog.license_no} Hundename im File: Bello / Im System Bella"
+		)
+
+		name_changes, class_emails, inactive_licenses = _parse_and_apply_tkamo_multi(
+			[event1, event2], report_text
+		)
+
+		# Verifiziere Ergebnisse
+		assert len(name_changes) == 1
+		assert "Bella" in name_changes[0]
+		assert dog.tka_name == "Bella"
+		assert class_emails == []
+		assert inactive_licenses == []
+
+
+def test_multi_event_tkamo_import_class_mismatch(app):
+	"""Multi-Event TKAMO-Import: Klassen-Diskrepanz wird erkannt."""
+	with app.app_context():
+		from app.models import Person, User
+
+		# 2 Events
+		event1 = Event(name="Samstag")
+		event2 = Event(name="Sonntag")
+		db.session.add(event1)
+		db.session.add(event2)
+		db.session.flush()
+
+		# Handler
+		person = Person(first_name="Anna", last_name="Schmidt", email="anna@test.ch")
+		user = User(email="anna@test.ch", person=person)
+		db.session.add(person)
+		db.session.add(user)
+		db.session.flush()
+
+		# Dog
+		dog = Dog(
+			name="Pluto",
+			license_no="20002",
+			license_kind=LicenseKind.CH,
+			category="M",
+			class_level=2,
+		)
+		db.session.add(dog)
+		db.session.flush()
+
+		# Registrierungen
+		reg1 = Registration(
+			event_id=event1.id,
+			dog_id=dog.id,
+			handler_id=person.id,
+			status=RegistrationStatus.CONFIRMED,
+			class_level=2,
+			category_code="Medium",
+		)
+		reg2 = Registration(
+			event_id=event2.id,
+			dog_id=dog.id,
+			handler_id=person.id,
+			status=RegistrationStatus.CONFIRMED,
+			class_level=2,
+			category_code="Medium",
+		)
+		db.session.add(reg1)
+		db.session.add(reg2)
+		db.session.commit()
+
+		# TKAMO-Report mit inaktiver Lizenz
+		report_text = "Lizenz 20002 ist inaktiv und nicht startberechtigt."
+
+		name_changes, class_emails, inactive_licenses = _parse_and_apply_tkamo_multi(
+			[event1, event2], report_text
+		)
+
+		# Inaktive Lizenz wird erkannt
+		assert len(inactive_licenses) == 1
+		assert "20002" in inactive_licenses[0]
+		assert name_changes == []
+		assert class_emails == []

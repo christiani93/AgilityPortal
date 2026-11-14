@@ -226,6 +226,202 @@ def club_lizenzcheck_multi_csv():
 
 # ── 2. TKAMO-Antwort verarbeiten ─────────────────────────────────────────────
 
+def _parse_and_apply_tkamo_multi(events: list, report_text: str) -> tuple[list, list, list]:
+	"""
+	Parst TKAMO-Text für mehrere Events zusammen.
+	Ähnlich wie Single-Event, aber verarbeitet Anmeldungen aus allen Events.
+
+	Rückgabe: (name_changes, class_emails, inactive_licenses)
+	"""
+	event_ids = [e.id for e in events]
+
+	# Zeilennummer → (license_no, event_id) aufbauen
+	# Events in der gleichen Reihenfolge wie im TKAMO-Export (Sortierung!)
+	regs_by_event = {}
+	for event_id in event_ids:
+		regs = db.session.execute(
+			db.select(Registration)
+			.filter_by(event_id=event_id)
+			.filter(Registration.status.in_([
+				RegistrationStatus.PENDING,
+				RegistrationStatus.CONFIRMED,
+				RegistrationStatus.SUBMITTED,
+			]))
+			.order_by(Registration.category_code, Registration.class_level, Registration.id)
+		).scalars().all()
+		regs_by_event[event_id] = regs
+
+	# Row-Mapping
+	row_to_license_event: dict[int, tuple[str, int]] = {}
+	row_num = 2  # Header
+	for event_id in event_ids:
+		for reg in regs_by_event[event_id]:
+			if reg.dog and reg.dog.license_kind != LicenseKind.FOREIGN:
+				row_to_license_event[row_num] = (reg.dog.license_no, event_id)
+				row_num += 1
+
+	# Reply-To vom ersten Event
+	reply_to = None
+	if events[0].organiser_club and events[0].organiser_club.email:
+		reply_to = events[0].organiser_club.email
+
+	name_changes: list[str] = []
+	class_emails: list[str] = []
+	inactive_licenses: list[str] = []
+
+	for line in report_text.splitlines():
+		line = line.strip()
+		if not line:
+			continue
+
+		if re.search(r'nicht mit Hundeführer überein', line, re.IGNORECASE):
+			continue
+
+		if line.lower().startswith('warnung'):
+			class_emails.append(f"ℹ️ {line}")
+			continue
+
+		if re.search(r'inaktiv|nicht aktiv|gesperrt|inactif|inactive', line, re.IGNORECASE):
+			m_lic = re.search(r'Lizenz\s+(\S+)', line, re.IGNORECASE)
+			license_no = m_lic.group(1).rstrip('.,') if m_lic else "?"
+			inactive_licenses.append(f"⛔ Inaktive Lizenz {license_no} — nicht startberechtigt!")
+			continue
+
+		# Falsche Klasse → Multi-Event-Token generieren
+		if 'Klasse im System' in line:
+			m_cls = re.search(
+				r'Lizenz\s+(\S+).*?Klasse im System:\s*([SMIL])(\d)',
+				line, re.IGNORECASE
+			)
+		else:
+			m_cls = None
+		if m_cls and 'Klasse im System' in line:
+			license_no  = m_cls.group(1).rstrip('.')
+			sys_cat_raw = m_cls.group(2).upper()
+			sys_cls     = int(m_cls.group(3))
+			sys_cat     = _CAT_FROM_CODE.get(sys_cat_raw, sys_cat_raw)
+
+			m_imp = re.search(r'Klasse im Import:\s*([SMIL])(\d)', line, re.IGNORECASE)
+			if m_imp:
+				imp_cat = _CAT_FROM_CODE.get(m_imp.group(1).upper(), m_imp.group(1).upper())
+				imp_cls = int(m_imp.group(2))
+			else:
+				imp_cat, imp_cls = sys_cat, sys_cls
+
+			dog = db.session.execute(
+				db.select(Dog).filter_by(license_no=license_no)
+			).scalar_one_or_none()
+
+			if not dog:
+				class_emails.append(f"Lizenz {license_no} nicht im System — Mail nicht gesendet.")
+				continue
+
+			# Alle Events mit diesem Dog sammeln
+			event_ids_for_dog = []
+			for event_id in event_ids:
+				reg = db.session.execute(
+					db.select(Registration).filter_by(event_id=event_id, dog_id=dog.id)
+				).scalar_one_or_none()
+				if reg:
+					event_ids_for_dog.append(event_id)
+
+			if not event_ids_for_dog:
+				class_emails.append(f"Lizenz {license_no} in keinem Event — Mail nicht gesendet.")
+				continue
+
+			# Handler aus einer beliebigen Registration
+			reg = db.session.execute(
+				db.select(Registration).filter_by(dog_id=dog.id).filter(Registration.event_id.in_(event_ids_for_dog))
+			).scalars().first()
+
+			handler_email = reg.handler.email if reg and reg.handler else None
+			handler_name  = (
+				f"{reg.handler.first_name} {reg.handler.last_name}".strip()
+				if reg and reg.handler else license_no
+			)
+
+			# Multi-Event-Token
+			token_import = _make_confirm_token(event_ids_for_dog, dog.id, imp_cat, imp_cls)
+			token_system = _make_confirm_token(event_ids_for_dog, dog.id, sys_cat, sys_cls)
+
+			url_import = url_for(
+				"club.lizenzcheck_confirm", token=token_import, _external=True
+			)
+			url_system = url_for(
+				"club.lizenzcheck_confirm", token=token_system, _external=True
+			)
+
+			if handler_email and current_app.config.get("MAIL_SERVER"):
+				try:
+					html = render_template(
+						"email/class_confirm.html",
+						event=events[0],  # Primary event
+						handler_name=handler_name,
+						dog_name=dog.name,
+						license_no=license_no,
+						cat_import_label=_CAT_LABEL.get(imp_cat, imp_cat),
+						cls_import=imp_cls,
+						cat_system_label=_CAT_LABEL.get(sys_cat, sys_cat),
+						cls_system=sys_cls,
+						url_confirm_import=url_import,
+						url_confirm_system=url_system,
+					)
+					msg = Message(
+						subject=f"Klassen-Bestätigung / Confirmation de classe – Wochenende",
+						recipients=[handler_email],
+						html=html,
+						reply_to=reply_to,
+					)
+					mail.send(msg)
+					event_count = len(event_ids_for_dog)
+					class_emails.append(
+						f"📧 Mail gesendet an {handler_email} — {dog.name} ({license_no}): "
+						f"{_CAT_LABEL.get(imp_cat, imp_cat)} Kl.{imp_cls} vs. "
+						f"{_CAT_LABEL.get(sys_cat, sys_cat)} Kl.{sys_cls} ({event_count} Events)"
+					)
+					time.sleep(0.5)
+				except Exception as exc:
+					class_emails.append(f"⚠️ Mail-Fehler {license_no}: {exc}")
+			else:
+				class_emails.append(
+					f"Keine Mail-Adresse für {license_no} — Klasse offen: "
+					f"{_CAT_LABEL.get(imp_cat, imp_cat)} Kl.{imp_cls} vs. "
+					f"{_CAT_LABEL.get(sys_cat, sys_cat)} Kl.{sys_cls}"
+				)
+			continue
+
+		# Hundename
+		if 'Hundename' in line:
+			m_name = re.search(r'Im System\s+(.+)$', line, re.IGNORECASE)
+			if not m_name:
+				continue
+			system_name = m_name.group(1).strip()
+
+			license_no = None
+			m_lic = re.search(r'Lizenz\s+(\S+)', line, re.IGNORECASE)
+			if m_lic:
+				license_no = m_lic.group(1).rstrip('.,')
+
+			if license_no:
+				dog = db.session.execute(
+					db.select(Dog).filter_by(license_no=license_no)
+				).scalar_one_or_none()
+				if dog:
+					old_tka_name = dog.tka_name
+					dog.tka_name = system_name
+					if old_tka_name != system_name:
+						name_changes.append(
+							f"✏️ TKAMO-Name: {license_no} '{old_tka_name or dog.name}' → '{system_name}'"
+						)
+					else:
+						name_changes.append(
+							f"✏️ TKAMO-Name: {license_no} '{system_name}' (Schreibweise bestätigt)"
+						)
+
+	db.session.commit()
+	return name_changes, class_emails, inactive_licenses
+
+
 def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
     """
     Parst TKAMO-Text und führt automatische Aktionen aus.
@@ -421,6 +617,59 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
 
     db.session.commit()
     return name_changes, class_emails, inactive_licenses
+
+
+@club_bp.post("/lizenzcheck-multi")
+@login_required
+def club_lizenzcheck_multi():
+	"""
+	Multi-Event TKAMO-Import.
+	Input: ?events=34,35 + tkamo_result im Body
+	Verarbeitet Lizenzcheck für alle Events zusammen.
+	"""
+	events_param = request.args.get("events", "").strip()
+	if not events_param:
+		abort(400)
+
+	try:
+		event_ids = [int(x.strip()) for x in events_param.split(",")]
+	except ValueError:
+		abort(400)
+
+	if not event_ids:
+		abort(400)
+
+	# Access-Check
+	events = []
+	for event_id in event_ids:
+		event = db.session.get(Event, event_id)
+		if not event:
+			abort(404)
+		_assert_event_access(event)
+		events.append(event)
+
+	report_text = request.form.get("tkamo_result", "").strip()
+	if not report_text:
+		from flask import redirect, url_for, flash
+		flash(_("Bitte TKAMO-Ergebnis einfügen."), "warning")
+		return redirect(url_for("club.club_home"))
+
+	name_changes, class_emails, inactive_licenses = _parse_and_apply_tkamo_multi(events, report_text)
+
+	# Speichere Lizenzcheck für alle Events
+	for event in events:
+		event.lizenzcheck_done_at = datetime.utcnow()
+		event.lizenzcheck_report  = report_text
+	db.session.commit()
+
+	return render_template(
+		"club/lizenzcheck_result_multi.html",
+		events=events,
+		report_text=report_text,
+		name_changes=name_changes,
+		class_emails=class_emails,
+		inactive_licenses=inactive_licenses,
+	)
 
 
 @club_bp.post("/events/<int:event_id>/lizenzcheck")

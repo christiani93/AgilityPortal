@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Lizenzcheck Wochenende') }}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:860px">
+
+  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <h4 class="mb-0">🔍 {{ _('Lizenzcheck Wochenende') }}</h4>
+    <a href="{{ url_for('club.club_home') }}" class="btn btn-sm btn-outline-secondary ms-auto">
+      ← {{ _('Zurück') }}
+    </a>
+  </div>
+
+  {# ── Events-Übersicht ── #}
+  <div class="card mb-3 border-primary">
+    <div class="card-header bg-primary text-white">
+      📅 {{ _('Veranstaltungen') }} ({{ events|length }})
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for event in events %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ event.name }}</strong><br>
+          <small class="text-muted">{{ event.starts_at.strftime('%d.%m.%Y') if event.starts_at else '?' }}</small>
+        </div>
+        <span class="badge bg-secondary">ID: {{ event.id }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {# ── Inaktive Lizenzen (rot, ganz oben) ── #}
+  {% if inactive_licenses %}
+  <div class="card mb-3 border-danger">
+    <div class="card-header bg-danger text-white fw-bold">
+      ⛔ {{ _('Inaktive Lizenzen — nicht startberechtigt!') }} ({{ inactive_licenses|length }})
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for item in inactive_licenses %}
+      <li class="list-group-item list-group-item-danger small font-monospace">{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# ── Klassen-Mails ── #}
+  {% if class_emails %}
+  <div class="card mb-3 border-warning">
+    <div class="card-header bg-warning text-dark">
+      📧 {{ _('Klassen-Bestätigung — Mails versendet') }} ({{ class_emails|length }})
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for item in class_emails %}
+      <li class="list-group-item small font-monospace">{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# ── Hundenamen-Korrekturen ── #}
+  {% if name_changes %}
+  <div class="card mb-3 border-success">
+    <div class="card-header bg-success text-white">
+      ✏️ {{ _('Hundenamen automatisch korrigiert') }} ({{ name_changes|length }})
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for item in name_changes %}
+      <li class="list-group-item small font-monospace">{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if not inactive_licenses and not class_emails and not name_changes %}
+  <div class="alert alert-success mb-3">
+    ✅ {{ _('Keine Abweichungen erkannt.') }}
+  </div>
+  {% endif %}
+
+  {# ── TKAMO-Originaltext ── #}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>{{ _('TKAMO-Originaltext') }}</span>
+      <button class="btn btn-sm btn-outline-secondary" onclick="copyReport(event)">📋 {{ _('Kopieren') }}</button>
+    </div>
+    <div class="card-body p-0">
+      <textarea id="report-text" class="form-control border-0 font-monospace"
+                rows="18" readonly
+                style="resize:vertical; font-size:12px; border-radius:0 0 .375rem .375rem;">{{ report_text }}</textarea>
+    </div>
+  </div>
+
+  {# Nochmals einfügen #}
+  <div class="mt-3">
+    <form method="post" action="{{ url_for('club.club_lizenzcheck_multi') }}?events={% for event in events %}{{ event.id }}{% if not loop.last %},{% endif %}{% endfor %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-2">
+        <label class="form-label small text-muted">{{ _('Neues TKAMO-Ergebnis einfügen:') }}</label>
+        <textarea name="tkamo_result" class="form-control font-monospace" rows="5" required
+                  placeholder="{{ _('Text vom TKAMO-Lizenzcheck hier einfügen...') }}"></textarea>
+      </div>
+      <button type="submit" class="btn btn-sm btn-warning">🔄 {{ _('Neues Ergebnis verarbeiten') }}</button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+function copyReport(e) {
+  const ta = document.getElementById('report-text');
+  ta.select();
+  document.execCommand('copy');
+  const btn = e.target.closest('button');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Kopiert';
+  setTimeout(() => btn.textContent = orig, 2000);
+}
+</script>
+{% endblock %}

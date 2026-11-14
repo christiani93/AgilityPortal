@@ -10,6 +10,9 @@
         <strong>{{ dog_name }}</strong> ({{ license_no }})<br>
         {{ _('Klasse gesetzt auf:') }}
         <strong>{{ cat_label }} Klasse {{ cls }}</strong>
+        {% if num_events > 1 %}
+        <br><small>({{ _('gültig für') }} {{ num_events }} {{ _('Veranstaltungen') }})</small>
+        {% endif %}
       </p>
       <p class="text-muted small">
         {{ _('Vielen Dank! Die Änderung wurde gespeichert.') }}<br>
