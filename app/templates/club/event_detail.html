@@ -45,9 +45,9 @@
     {% endif %}
     {% if current_user.is_superadmin %}
     <a href="{{ url_for('club.event_export_zip', event_id=event.id) }}"
-       class="btn btn-sm {% if not event.lizenzcheck_done_at %}btn-outline-secondary disabled{% else %}btn-outline-dark{% endif %}"
-       title="{% if not event.lizenzcheck_done_at %}{{ _('Lizenzcheck muss zuerst durchgeführt werden (TKAMO-Pflicht)') }}{% endif %}">
-      ⬇ {{ _('Export ZIP') }}
+       class="btn btn-sm {% if not event.lizenzcheck_done_at and not event.is_test %}btn-outline-secondary disabled{% else %}btn-outline-dark{% endif %}"
+       title="{% if not event.lizenzcheck_done_at and not event.is_test %}{{ _('Lizenzcheck muss zuerst durchgeführt werden (TKAMO-Pflicht)') }}{% elif event.is_test %}{{ _('Testveranstaltung – Export ohne Lizenzcheck möglich') }}{% endif %}">
+      ⬇ {{ _('Export ZIP') }}{% if event.is_test %} <span class="badge bg-warning text-dark">TEST</span>{% endif %}
     </a>
     {% endif %}
     {% if current_user.is_superadmin and event.special_ruleset == 'edelweiss_challenge' %}
