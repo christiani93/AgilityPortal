@@ -62,10 +62,13 @@
                     placeholder="{{ _('Text vom TKAMO-Lizenzcheck hier einfügen...') }}" autofocus></textarea>
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
           <button type="submit" class="btn btn-primary">
             ✓ {{ _('Ergebnis verarbeiten') }}
           </button>
+          <a href="" id="csv-link" class="btn btn-outline-info" style="display:none;">
+            📥 {{ _('CSV generieren') }}
+          </a>
           <button type="button" class="btn btn-outline-secondary" onclick="resetSelection()">
             ← {{ _('Zurück zur Event-Auswahl') }}
           </button>
@@ -86,6 +89,7 @@ const selectedEventsLabel = document.getElementById('selected-events-label');
 const eventsInput = document.getElementById('events-input');
 const importForm = document.getElementById('lizenzcheck-import-form');
 const noSelectionMessage = document.getElementById('no-selection-message');
+const csvLink = document.getElementById('csv-link');
 
 function updateSelection() {
   const selected = Array.from(checkboxes)
@@ -96,12 +100,15 @@ function updateSelection() {
     selectedEventsLabel.textContent = '{{ _("Keine Events ausgewählt") }}';
     eventsInput.value = '';
     importForm.style.display = 'none';
+    csvLink.style.display = 'none';
     noSelectionMessage.style.display = 'block';
   } else {
     const eventNames = selected.map(e => e.name).join(', ');
     const eventIds = selected.map(e => e.id).join(',');
     selectedEventsLabel.innerHTML = `<span class="badge bg-success">${eventIds}</span> ${eventNames}`;
     eventsInput.value = eventIds;
+    csvLink.href = `{{ url_for('club.club_lizenzcheck_multi_csv') }}?events=${eventIds}`;
+    csvLink.style.display = 'inline-block';
     importForm.style.display = 'block';
     noSelectionMessage.style.display = 'none';
   }

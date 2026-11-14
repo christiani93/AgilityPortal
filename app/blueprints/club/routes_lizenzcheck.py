@@ -70,10 +70,13 @@ def club_lizenzcheck_select():
 	if not current_user.can_manage_club:
 		abort(403)
 
-	# Nur offene Events (nach Datum sortiert)
+	# Nur zukünftige offene Events (nach Datum sortiert)
+	from datetime import datetime as dt
+	now = dt.utcnow()
 	events = db.session.execute(
 		db.select(Event)
 		.filter_by(status='open')
+		.filter(Event.starts_at >= now)
 		.order_by(Event.starts_at.asc())
 	).scalars().all()
 
