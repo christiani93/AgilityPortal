@@ -2616,6 +2616,9 @@ def event_export_zip(event_id):
             "event_number":       event.ais_turniernummer or "",
             "location":           event.location or "",
             "lizenzcheck_done_at": event.lizenzcheck_done_at.isoformat() if event.lizenzcheck_done_at else None,
+            # Event-Typ (z.B. "bccs_sm") — die AgilitySoftware leitet daraus die
+            # Veranstaltungsart ab (BCCS-SM-Dashboard, is_final-Läufe, SM-Flag).
+            "type":               event.type or "regular",
             "allows_bitches_in_season":     event.allows_bitches_in_season,
             "bitches_in_season_start_last": event.bitches_in_season_start_last,
         }
@@ -2690,6 +2693,10 @@ def event_export_zip(event_id):
                 # Anzeigename. Teil des Portal→Software-Kontrakts, siehe
                 # test_club_export_contract.py.
                 "club_name":                reg.club_name or "",
+                # BCCS-SM-Teilnahme-Flag (vom Portal gesetzt). Die AgilitySoftware
+                # liest es als entry["bccs_sm"] für die SM-Finalisten-Ableitung
+                # (_apply_eventexport_registrations → _sm_keys).
+                "bccs_sm":                  bool(reg.bccs_sm),
             })
 
     # ── start_numbers.json ────────────────────────────────────────────────────
@@ -2743,9 +2750,14 @@ def event_export_zip(event_id):
             fp_total = (b.participant_count_override
                         if b.participant_count_override is not None
                         else final_participant_total(event.final_participants))
-            final_secs = _get_run_time_config(event).get("final", 240)
+            # Final-Block mit Disziplin (z.B. BCCS Jumping/Agility-Finale) nutzt die
+            # normale Disziplin-Zeit aus dem Schema; ohne Disziplin (KO/American) den
+            # 'final'-Satz. Disziplin mitgeben, damit die Software konsistent rechnet.
+            _rtc = _get_run_time_config(event)
+            final_secs = _rtc.get(b.discipline or "final", _rtc.get("final", 240))
             blk.update({
                 "title":              b.title or "Finale",
+                "discipline":         _export_discipline_label(b.discipline) if b.discipline else None,
                 "final_participants": fp_total,
                 "duration_minutes":   (fp_total * final_secs) // 60,
             })
@@ -2794,6 +2806,20 @@ def event_export_zip(event_id):
         "grossring_rings": grossring_out,
     }
 
+    # ── runs.json ─────────────────────────────────────────────────────────────
+    # Alle Laufdefinitionen inkl. FINAL-Läufe (is_final). Quali-Läufe baut die
+    # AgilitySoftware aus den Registrierungen; die Final-Läufe (ohne Anmeldungen,
+    # Teilnehmer werden abgeleitet) werden NUR hierüber übertragen. Kategorie als
+    # Vollname (Intermediate/Large), passend zu registrations.json + BCCS-Kern.
+    runs_out = []
+    for r in event.runs:
+        runs_out.append({
+            "discipline":    _export_discipline_label(r.run_type),
+            "category_code": EventRun.CATEGORY_LABELS.get(r.category, r.category),
+            "class_level":   str(r.class_level),
+            "is_final":      bool(r.is_final),
+        })
+
     # ── ZIP zusammenbauen ─────────────────────────────────────────────────────
     import os as _os
     buf = io.BytesIO()
@@ -2807,6 +2833,7 @@ def event_export_zip(event_id):
         _add("registrations.json", {"registrations": registrations})
         _add("start_numbers.json", start_numbers_payload)
         _add("schedule.json",      schedule_payload)
+        _add("runs.json",          {"runs": runs_out})
 
         # Logos als Binärdateien einpacken (falls vorhanden)
         from flask import current_app as _ca
