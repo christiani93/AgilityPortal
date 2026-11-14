@@ -278,7 +278,9 @@ def _read_upload(file) -> tuple[list[dict], list[str]]:
 @aoa_import_bp.get("/admin/aoa-import")
 @_require_admin_key
 def aoa_import_home():
-    events = Event.query.order_by(Event.starts_at.desc()).limit(100).all()
+    from datetime import datetime as dt
+    now = dt.utcnow()
+    events = Event.query.filter(Event.starts_at >= now).order_by(Event.starts_at.asc()).limit(100).all()
     return render_template(
         "admin/aoa_import/home.html",
         events=events,
