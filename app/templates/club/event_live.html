@@ -383,6 +383,13 @@ function fetchLive() {
       renderSchedule(data.schedule);
       renderPdfs(data.pdfs);
       renderResults(data.result_classes, data.result_updated, data.final, data.pdfs);
+      if (data.bccs_result_classes && data.bccs_result_classes.length > 0) {
+        const bccsDiv = document.createElement('div');
+        bccsDiv.className = 'alert alert-info mt-4 mb-0';
+        bccsDiv.innerHTML = '<h5 class="mb-3">🐕 BCCS-SM Kombirangliste (nur Finalisten)</h5>';
+        document.getElementById('resultsContainer').appendChild(bccsDiv);
+        renderResults(data.bccs_result_classes, data.result_updated, data.final, data.pdfs);
+      }
       const now = new Date().toLocaleTimeString('de-CH', {hour:'2-digit', minute:'2-digit'});
       document.getElementById('lastUpdate').textContent = `${I18N.lastUpdated}: ${now} ${I18N.clock}`;
     })

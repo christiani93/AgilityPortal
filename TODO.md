@@ -43,6 +43,50 @@ nur 1× fürs ganze Wochenende statt pro Event. Alles in
       Kandidaten: Startgebühren, Briefing-/Umbauzeiten (schedule_utils-Konstanten),
       Cutoff-/Qualifikations-Prozente, SCT-Faktoren. Siehe SW-Guide-Compliance-Matrix.
 
+## BCCS-SM Titelverteidiger-Register (NEU, Design bestätigt vom User, Bau ausstehend)
+Design (User-Anforderungen 2026-11-14): Online-Register im Portal, da Titelverteidiger
+EXTERNE Vorjahres-Champions sind (anderer Veranstalter evtl. ohne eigene Software → nicht ableitbar).
+- [ ] Modell `BccsTitleDefender` (jahr, kategorie Intermediate/Large, division sm/nachwuchs,
+      lizenz, hund, hundefuehrer; unique je jahr×kat×division) + Alembic-Migration (Prod).
+- [ ] Online-Übersicht „wer ist wo Titelverteidiger" je Jahr + Erfass-/Bearbeiten-Formular.
+- [ ] Jahr-Check: BCCS-SM-Event Jahr Y zieht Verteidiger mit jahr = Y−1 (Warnhinweis wenn fehlt).
+- [ ] Export: `bccs_sm_config.defending_champions` in event.json beim ZIP-Export mitgeben.
+- [ ] Software-Import: `bccs_sm_config` aus event.json → `event['bccs_sm_config']` lesen.
+- [ ] Vorbefüllen mit Champions 2025 (Tease/16214, Less/15866, Win/16790, Beany/16480).
+- Offene Design-Frage an User: Übersicht im AgilityPortal oder AdminPortal?
+
+## Session 2026-11-14 (Teil 2) — BCCS Final-Startnummern + Ring-Monitor (AgilitySoftware, lokal, NICHT committed/EXE)
+Alles im SW-Dev-Run aktiv, **EXE-Rebuild + Commit offen**. Details Memory
+`project_bccs_sm_realtest_2026_11_15`.
+- [x] **Button „Final-Startnummern auslosen"** (`routes_bccs_sm.py`, `POST /bccs-sm/assign-final-startnumbers/<id>`):
+      losst Final-Startnr pro Kat/Kl zufällig, gleiche Nr Jump+Agi, nur `is_final`, Quali unberührt.
+- [x] **BUG Sentinel 998/999** (`bccs_sm_qualification.py` + `skbs_sm_qualification.py`): noch-nicht-
+      gelaufen=998 wurde als klassiert gewertet → Schwelle `>= 998`. 31 Tests grün.
+- [x] **BUG Finalläufe nicht nach Zeitplan** (`_match_run_to_block` utils.py + planner): prüfte nicht
+      `is_final` → Finalläufe falsch einsortiert. Fix + Checkbox „Final-Lauf" im Block-Formular.
+- [x] **Ring-Monitor BCCS-Final-Layout**: A2 Top-4 (leer→Karte weg), A3+Vorlauf-Zeile „Jumping: Platz X…"
+      in Starter-Karte eingebettet (3-Spalten: Jumping | Name+Hund | Platz-1-Budget), Startnr beim
+      Starter raus, `.ring-band` 6→3.5rem, MIN_ROWS=3. `tests/test_bccs_monitor_combined.py` 11 grün.
+- [x] **Ring-Monitor-Fit Pixel-Fix** (`ring_monitor.html`): Kombi-Platz 4 wurde um wenige px
+      abgeschnitten (Sub-Pixel-Mess-Effekt, `scrollHeight` rundet ab). Fix `fitMonitor`:
+      `SAFETY=16`px-Puffer + Floor 0.6→0.5 + vertikale Straffung (`mt-3/mb-3`→0.4rem,
+      `.ring-band` 3.5→3rem, Band-py→0.25rem) + `scheduleFit()` (2×RAF+250ms+fonts.ready).
+      Headless-Harness-verifiziert. „Bei Null Fehlern…" = KEIN Bug (Platz-1-Projektion Z.2).
+- [ ] **Server-Neustart** für den Monitor-Fit-Fix (Dev-Server `python app.py` hat Vorlage
+      gecacht, `debug=False`→kein Auto-Reload). Check: `curl .../ring_monitor/1 | grep "const SAFETY"`.
+- [ ] **EXE-Rebuild + Commit** aller obigen SW-Änderungen (inkl. Monitor-Fit-Fix).
+- [ ] **Nachwuchs-Durchtest (Kl.1+2)** (User): Finalisten übernehmen → Startnr auslosen → Resultate.
+
+## ⚠️ Nicht wieder tun
+- [ ] AgilitySoftware: NIE `pytest` (web_app-Suite) gegen Live-`data/events.json` laufen —
+      ein Test (E_PDF, PDF-Upload) überschreibt sie. **Auch `tests/test_schedule_atomic_smoke.py`
+      clobbered events.json (seedet „LIVE") UND active_event.json.** Nur gezielt einzelne Testdateien
+      + `tests_pure/` (sicher) laufen. Recovery via `web_app/backups/events_<ts>.json` bzw.
+      `web_app/data/events_backup_clean_testresults_*.json`.
+- [ ] AgilitySoftware `planner/`-Änderungen brauchen KOMPLETTEN Neustart (kein Auto-Reload).
+- [ ] Testresultate IMMER via `POST /live/save_result/<eid>/<rid>` eintragen (JSON-Body), NICHT
+      flache `zeit`/`fehler`-Felder direkt ins JSON — sonst zeigt das Ring-PC-Dashboard nichts.
+
 ## Session 2026-11-09 — BCCS-SM Portal-Infrastruktur (DEPLOYED `f9d7af1`)
 
 Memory `project-bccs-sm-portal-infrastructure-20261109`. 3 Events: Abendmeeting

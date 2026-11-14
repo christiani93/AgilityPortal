@@ -3580,6 +3580,46 @@ def event_live_json(event_id):
     else:
         result_updated = None
 
+    # ── BCCS-SM Ranglisten (gefiltert nach Finalisten) ──────────────────────────
+    bccs_result_classes = []
+    if event.type == "bccs_sm":
+        from app.models import EventFinalist
+        finalists = db.session.execute(
+            db.select(EventFinalist).filter_by(event_id=event_id)
+        ).scalars().all()
+        if finalists:
+            finalist_pairs = {
+                (f.handler_name or "", f.dog_name or "")
+                for f in finalists
+            }
+            bccs_rows = [
+                r for r in rows
+                if (r.handler_name or "", r.dog_name or "") in finalist_pairs
+            ] if latest_import else []
+            bccs_rows.sort(key=_result_class_order_key)
+            def _bccs_ck(r):
+                return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
+            for key, grp in groupby(bccs_rows, key=_bccs_ck):
+                ring, disc, cat, cls = key
+                bccs_result_classes.append({
+                    "ring": ring, "discipline": disc,
+                    "category_code": cat, "class_level": cls,
+                    "results": [
+                        {
+                            "rank":         r.rank,
+                            "dog_name":     r.dog_name or "",
+                            "handler_name": r.handler_name or "",
+                            "start_no":     r.start_no,
+                            "time_s":       r.time_s,
+                            "faults":       r.faults,
+                            "refusals":     r.refusals,
+                            "status":       r.status or "",
+                            "eliminated":   r.eliminated,
+                        }
+                        for r in sorted(grp, key=_result_sort_key)
+                    ],
+                })
+
     # ── Zeitplan ──────────────────────────────────────────────────────────────
     from .schedule_utils import (compute_detailed_segments, parse_ring_start_times,
                                   ring_names as _ring_names_live, auto_title as _auto_title_live)
@@ -3672,6 +3712,7 @@ def event_live_json(event_id):
         "event_name":     event.name,
         "rings":          list(ring_state.values()),
         "result_classes": result_classes,
+        "bccs_result_classes": bccs_result_classes if event.type == "bccs_sm" else [],
         "result_updated": result_updated,
         "final":          latest_import.final if latest_import else False,
         "schedule":       schedule_json,
