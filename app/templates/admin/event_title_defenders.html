@@ -1,0 +1,104 @@
+{% extends "admin/layout.html" %}
+{% block title %}Titelverteidiger – {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Titelverteidiger (TV) – {{ event.name }}</h1>
+    <p class="text-muted">Manuelle Registrierung von Titelverteidiern für HCS, SKBS-SM, BCCS-SM, WiMeSma etc.</p>
+
+    {% if event.type == "bccs_sm" %}
+    <div class="alert alert-info">
+        <strong>BCCS-SM:</strong> 4 TV pro Division (SM Kl.3 + Nachwuchs Kl.1+2) × Kategorie (Large/Intermediate)
+    </div>
+    {% endif %}
+
+    <!-- Form zum Hinzufügen -->
+    <div class="card mb-4">
+        <div class="card-header">Neuer TV hinzufügen</div>
+        <div class="card-body">
+            <form method="POST" class="form-inline gap-2">
+                <input type="hidden" name="action" value="add">
+
+                <div class="mb-2">
+                    <label class="form-label">Lizenz</label>
+                    <input type="text" name="license_no" class="form-control" placeholder="z.B. 12345" required>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Hund</label>
+                    <input type="text" name="dog_name" class="form-control" placeholder="Hundename" required>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Läufer</label>
+                    <input type="text" name="handler_name" class="form-control" placeholder="Hundeführer" required>
+                </div>
+
+                {% if event.type == "bccs_sm" %}
+                <div class="mb-2">
+                    <label class="form-label">Kategorie</label>
+                    <select name="category" class="form-control" required>
+                        <option value="Large">Large</option>
+                        <option value="Intermediate">Intermediate</option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Division</label>
+                    <select name="division" class="form-control" required>
+                        <option value="sm">SM (Klasse 3)</option>
+                        <option value="nachwuchs">Nachwuchs (Klasse 1+2)</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary">Hinzufügen</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TV-Liste -->
+    {% if title_defenders %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Lizenz</th>
+                    <th>Hund</th>
+                    <th>Läufer</th>
+                    {% if event.type == "bccs_sm" %}
+                    <th>Kategorie</th>
+                    <th>Division</th>
+                    {% endif %}
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tv in title_defenders %}
+                <tr>
+                    <td>{{ tv.license }}</td>
+                    <td>{{ tv.dog_name }}</td>
+                    <td>{{ tv.handler_name }}</td>
+                    {% if event.type == "bccs_sm" %}
+                    <td>{{ tv.category or "—" }}</td>
+                    <td>{{ tv.division or "—" }}</td>
+                    {% endif %}
+                    <td>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="finalist_id" value="{{ tv.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('TV löschen?')">Löschen</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-secondary">Keine Titelverteidiger eingetragen.</div>
+    {% endif %}
+
+    <a href="javascript:history.back()" class="btn btn-secondary">Zurück</a>
+</div>
+{% endblock %}

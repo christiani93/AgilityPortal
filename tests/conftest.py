@@ -17,9 +17,28 @@ def app():
     # löscht die lokale Dev-DB! (config.update("SQLALCHEMY_DATABASE_URI") danach greift nicht mehr.)
     os.environ["DATABASE_URL"] = "sqlite:///:memory:"
     app = create_app()
-    app.config.update(TESTING=True)
+    app.config.update(TESTING=True, ADMIN_KEY="test-admin-key-123")
     with app.app_context():
         db.create_all()
         yield app
         db.session.remove()
         db.drop_all()
+
+
+@pytest.fixture()
+def client(app):
+    """Test client for the app"""
+    return app.test_client()
+
+
+@pytest.fixture()
+def admin_key(app):
+    """Admin key for protected routes"""
+    return app.config.get("ADMIN_KEY")
+
+
+@pytest.fixture()
+def database(app):
+    """Database instance"""
+    with app.app_context():
+        yield db

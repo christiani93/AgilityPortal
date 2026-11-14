@@ -428,10 +428,14 @@ def _save_finalists_to_event(event: Event, result: dict) -> None:
     """
     Speichert berechnete Finalisten in der EventFinalist-Tabelle.
 
-    Ersetzt bestehende Einträge (idempotent).
+    Ersetzt nur Quali-Finalisten (source != 'title_defender'), behält TV-Einträge
+    (source='title_defender') bei → TV-Auto-Qualifikation später.
     """
-    # Lösche bestehende Finalisten für dieses Event
-    EventFinalist.query.filter_by(event_id=event.id).delete(synchronize_session=False)
+    # Lösche nur Quali-Finalisten, nicht Titelverteidiger
+    EventFinalist.query.filter(
+        EventFinalist.event_id == event.id,
+        EventFinalist.source != 'title_defender'
+    ).delete(synchronize_session=False)
 
     # Füge neue Finalisten ein
     finalists = result.get("finalists") or []
@@ -449,5 +453,85 @@ def _save_finalists_to_event(event: Event, result: dict) -> None:
             position=pos,
             imported_at=datetime.now(timezone.utc),
         ))
+
+    db.session.commit()
+
+    # Auto-Qualifikation: TV qualifizieren wenn in Quali gestartet
+    _auto_qualify_title_defenders(event)
+
+
+def _auto_qualify_title_defenders(event: Event) -> None:
+    """
+    Auto-Qualifikation von Titelverteidern: Wenn ein TV in ≥1 Quali-Lauf
+    seiner Division gestartet ist, wird er/sie zum Finalist qualifiziert.
+
+    Prüfung:
+    1. Sammle alle TV (source='title_defender') für dieses Event
+    2. Für jeden TV: Prüfe, ob Lizenz in Quali-Läufen der gleichen Division gestartet ist
+    3. Wenn ja → Position auto-assign, zu Finalisten hinzufügen
+    """
+    from app.models import Result
+
+    # Sammle alle TV für dieses Event
+    tvs = EventFinalist.query.filter_by(
+        event_id=event.id,
+        source='title_defender'
+    ).all()
+
+    if not tvs:
+        return
+
+    # Für jeden TV: Prüfe Quali-Start
+    for tv in tvs:
+        # Finde Quali-Läufe für diese Division
+        quali_runs = db.session.execute(
+            db.select(EventRun).where(
+                EventRun.event_id == event.id,
+                EventRun.is_final == False,  # Nur Quali-Läufe
+                EventRun.category == (tv.category[0] if tv.category else None) or True,  # Kat-Match oder beliebig
+                # Division-Match wenn vorhanden (für BCCS: sm/nachwuchs = Klasse 3 / 1-2)
+            )
+        ).scalars().all()
+
+        # Prüfe ob TV in irgendwelchen Quali-Läufen gestartet ist
+        started_in_quali = False
+        for run in quali_runs:
+            result = db.session.execute(
+                db.select(Result).where(
+                    Result.run_id == run.id,
+                    Result.dog_license == tv.license,
+                )
+            ).scalars().first()
+            if result:
+                started_in_quali = True
+                break
+
+        # Wenn TV in Quali gestartet: zu Finalisten hinzufügen (falls nicht schon da)
+        if started_in_quali:
+            existing = db.session.execute(
+                db.select(EventFinalist).where(
+                    EventFinalist.event_id == event.id,
+                    EventFinalist.license == tv.license,
+                    EventFinalist.source == 'title_defender',
+                )
+            ).scalars().first()
+
+            if not existing:
+                # Position = nächste Nummer
+                max_pos = db.session.query(db.func.max(EventFinalist.position)).filter_by(
+                    event_id=event.id
+                ).scalar() or 0
+
+                db.session.add(EventFinalist(
+                    event_id=event.id,
+                    license=tv.license,
+                    dog_name=tv.dog_name,
+                    handler_name=tv.handler_name,
+                    source='title_defender',
+                    from_class=None,
+                    category=tv.category,
+                    division=tv.division,
+                    position=max_pos + 1,
+                ))
 
     db.session.commit()
