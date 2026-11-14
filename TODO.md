@@ -3,7 +3,45 @@
 > Persistente ToDo-Liste fuer dieses Projekt. Wird beim Wechsel ins Projekt von
 > Claude gelesen. Bei Aenderungen manuell aktuell halten.
 
-Stand: 2026-11-09
+Stand: 2026-11-14
+
+## Session 2026-11-14 — Multi-Event-Wochenend-Lizenzcheck KOMPLETT (DEPLOYED)
+
+Wochenend-Bundle-Lizenzcheck fertig ausgebaut: ein Teilnehmer bestätigt die Klasse
+nur 1× fürs ganze Wochenende statt pro Event. Alles in
+`app/blueprints/club/routes_lizenzcheck.py` + Templates.
+
+- [x] **UI-Auswahlseite** `GET /club/lizenzcheck` (`club_lizenzcheck_select`): Event-
+      Checkboxen (nur offene/zukünftige Events, `can_manage_club`), JS baut `events=ID,ID`.
+- [x] **Nav-Link** „🔍 Lizenzcheck Wochenende" unter „Verwaltung" (`base.html`).
+- [x] **Import-Route** `POST /club/lizenzcheck-multi?events=…` + `_parse_and_apply_tkamo_multi`:
+      verarbeitet EINEN kombinierten TKAMO-Report über alle Events, Result-Template
+      `lizenzcheck_result_multi.html`.
+- [x] **CSV-Button** in Auswahlseite (linkt `club_lizenzcheck_multi_csv`).
+- [x] **Hundename-Zeilen-Fix**: TKAMO-Zeilen ohne Lizenznr („auf Zeile N") → über
+      `row_to_license_event`-Mapping aufgelöst (vom User in Prod bestätigt: Nos→O'Nos).
+- [x] 9 Tests grün. Mehrere Crash-Fixes (siehe Quirks unten).
+- [x] **AOA-Import-Home + Lizenzcheck zeigen nur zukünftige Events** (`starts_at >= now`).
+- [x] **AOA-Compare „Geändert"-Tabelle zeigt Kat/Kl** (auch unverändert) — wichtig für
+      BCCS-SM (Sa nur Kl.3 SM, So Kl.1+2). `_build_diff` legt category_code/class_level ab.
+
+**Quirks teuer gelernt (4× 500-Crash-Deploy):**
+- `club.club_home` existiert NICHT → Dashboard-Route = `club.dashboard` (`@club_bp.get("/")`).
+- `current_user` muss explizit aus `flask_login` importiert werden.
+- `url_for()` in `_parse_and_apply_tkamo_multi` MUSS in try/except (sonst Route-Crash).
+- Dog mehrfach über Events → `.scalars().first()` statt `.scalar_one_or_none()`.
+- Live-500-Debug: `tail ~/.services/supervisord/agilityportal/log/stderr.log` via Admin-SSH.
+
+**Offen für den Realtest-Durchlauf (User erstellt Test-Events):**
+- [ ] Multi-Event-Lizenzcheck mit echten Test-Events end-to-end durchspielen (CSV→TKAMO→
+      Bestätigungs-Mail→Confirm für alle Events).
+
+## Allgemein / Code-Qualität
+- [ ] **Code auf weitere Hardcodes prüfen** (Auslöser: Zeitplan-Final-Dauer war auf 240 Sek
+      „final" fest verdrahtet statt aus dem Disziplin-Schema). Zeiten/Werte/Regel-Parameter
+      sollen konfigurierbar/aus dem Schema kommen — entspricht sonst nicht dem TKAMO SW-Guide.
+      Kandidaten: Startgebühren, Briefing-/Umbauzeiten (schedule_utils-Konstanten),
+      Cutoff-/Qualifikations-Prozente, SCT-Faktoren. Siehe SW-Guide-Compliance-Matrix.
 
 ## Session 2026-11-09 — BCCS-SM Portal-Infrastruktur (DEPLOYED `f9d7af1`)
 

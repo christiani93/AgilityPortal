@@ -199,7 +199,10 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
             elif gtype == "final":
                 block = content
                 count = getattr(block, "_participant_count", 0)
-                secs  = _secs_per_starter("final", run_time_config)
+                # Final-Block mit gesetzter Disziplin (z.B. BCCS Jumping/Agility-Finale)
+                # rechnet mit der normalen Disziplin-Zeit aus dem Schema; ohne Disziplin
+                # (KO/American-Final, jedes Team mehrfach) gilt der 'final'-Satz.
+                secs  = _secs_per_starter(block.discipline or "final", run_time_config)
                 run_s = max(count * secs, 60)
                 s, e, current = _advance(current, run_s, round_minutes)
                 items.append({
@@ -331,7 +334,10 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
             elif gtype == "final":
                 block = content
                 count = getattr(block, "_participant_count", 0)
-                secs  = _secs_per_starter("final", run_time_config)
+                # Final-Block mit gesetzter Disziplin (z.B. BCCS Jumping/Agility-Finale)
+                # rechnet mit der normalen Disziplin-Zeit aus dem Schema; ohne Disziplin
+                # (KO/American-Final, jedes Team mehrfach) gilt der 'final'-Satz.
+                secs  = _secs_per_starter(block.discipline or "final", run_time_config)
                 run_s = max(count * secs, 60)
                 s, e, current = _advance(current, run_s, round_minutes)
                 items.append({

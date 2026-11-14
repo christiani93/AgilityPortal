@@ -66,8 +66,10 @@ def test_final_block_is_standalone_group():
 
 # ── Timing ─────────────────────────────────────────────────────────────────
 def test_final_duration_from_count_times_final_secs():
+    # KO/American-Final ohne Disziplin → 'final'-Satz.
     # 80 Finalstarter × 240 Sek. = 19200 Sek. = 320 Min. = 5h 20min
-    final = _block(sort_index=1, block_type="final", _participant_count=80,
+    final = _block(sort_index=1, block_type="final", discipline=None,
+                   _participant_count=80,
                    title="Finale HCS", _display_title="Finale HCS")
     segs = compute_detailed_segments(
         {"Ring 3": [final]}, {"Ring 3": "15:45"}, "2026-10-31", round_minutes=5,
@@ -82,7 +84,9 @@ def test_final_duration_from_count_times_final_secs():
 
 
 def test_final_respects_run_time_config_override():
-    final = _block(sort_index=1, block_type="final", _participant_count=10)
+    # KO-Final ohne Disziplin folgt dem 'final'-Satz aus run_time_config.
+    final = _block(sort_index=1, block_type="final", discipline=None,
+                   _participant_count=10)
     # 10 × 120 Sek. = 1200 Sek. = 20 Min.
     tl = compute_timeline(
         {"Ring 1": [final]}, {"Ring 1": "08:00"}, "2026-10-31",
@@ -91,6 +95,20 @@ def test_final_respects_run_time_config_override():
     assert tl[0]["start_time"] == "08:00"
     assert tl[0]["run_min"] == 20
     assert tl[0]["participants"] == 10
+
+
+def test_final_with_discipline_uses_schema_discipline_time():
+    # BCCS-Finale: Final-Block mit Disziplin rechnet mit der normalen
+    # Disziplin-Zeit aus dem Schema, NICHT mit dem 'final'-Satz.
+    # Jumping-Finale: 20 Starter × 60 Sek. = 1200 Sek. = 20 Min.
+    final = _block(sort_index=1, block_type="final", discipline="jumping",
+                   _participant_count=20)
+    tl = compute_timeline(
+        {"Ring 1": [final]}, {"Ring 1": "08:00"}, "2026-10-31",
+        run_time_config={"jumping": 60, "final": 240},
+    )["Ring 1"]
+    assert tl[0]["run_min"] == 20
+    assert tl[0]["participants"] == 20
 
 
 # ── Route-Smoke (fängt Jinja-/Route-Fehler bei Finalblock + Grossring) ───────
