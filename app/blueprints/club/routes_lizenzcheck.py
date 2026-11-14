@@ -679,7 +679,7 @@ def club_lizenzcheck_multi():
 	if not report_text:
 		from flask import redirect, url_for, flash
 		flash(_("Bitte TKAMO-Ergebnis einfügen."), "warning")
-		return redirect(url_for("club.club_home"))
+		return redirect(url_for("club.dashboard"))
 
 	name_changes, class_emails, inactive_licenses = _parse_and_apply_tkamo_multi(events, report_text)
 
