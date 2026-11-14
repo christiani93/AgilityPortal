@@ -108,6 +108,10 @@
       {% endif %}
       {% if current_user.can_manage_club %}
       <div class="nav-section">{{ _('Verwaltung') }}</div>
+      <a href="{{ url_for('club.club_lizenzcheck_select') }}"
+         class="{% if request.endpoint == 'club.club_lizenzcheck_select' %}active{% endif %}">
+        🔍 {{ _('Lizenzcheck Wochenende') }}
+      </a>
       {% if current_user.is_superadmin %}
       <a href="{{ url_for('club.users') }}"
          class="{% if request.endpoint == 'club.users' %}active{% endif %}">

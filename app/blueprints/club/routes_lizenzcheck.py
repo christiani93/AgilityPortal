@@ -58,6 +58,31 @@ def _decode_confirm_token(token: str) -> dict | None:
         return None
 
 
+# ── 0. Lizenzcheck-Auswahl (Multi-Event) ─────────────────────────────────────
+
+@club_bp.get("/lizenzcheck")
+@login_required
+def club_lizenzcheck_select():
+	"""
+	Seite zur Auswahl von Events für Wochenend-Lizenzcheck.
+	Zeigt Events mit Checkboxen für Multi-Event-Bundle.
+	"""
+	if not current_user.can_manage_club:
+		abort(403)
+
+	# Nur offene Events (nach Datum sortiert)
+	events = db.session.execute(
+		db.select(Event)
+		.filter_by(status='open')
+		.order_by(Event.starts_at.asc())
+	).scalars().all()
+
+	return render_template(
+		"club/lizenzcheck_select.html",
+		events=events,
+	)
+
+
 # ── 1. CSV-Export für TKAMO ──────────────────────────────────────────────────
 
 @club_bp.get("/events/<int:event_id>/lizenzcheck/csv")

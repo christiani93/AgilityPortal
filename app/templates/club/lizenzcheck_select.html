@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Lizenzcheck Wochenende') }}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:720px">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <h4 class="mb-0">🔍 {{ _('Lizenzcheck Wochenende') }}</h4>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>{{ _('1. Events auswählen') }}</strong>
+    </div>
+    <div class="card-body">
+      <form id="lizenzcheck-form" method="post">
+        <div class="mb-3">
+          <p class="text-muted small mb-3">
+            {{ _('Wähle die Events für das Wochenend-Bundle aus (z.B. Samstag + Sonntag).') }}
+            {{ _('Teilnehmer bestätigen die Klasse dann nur 1× für alle Events.') }}
+          </p>
+
+          <div class="list-group">
+            {% for event in events %}
+            <label class="list-group-item">
+              <input class="form-check-input event-checkbox" type="checkbox" value="{{ event.id }}" data-name="{{ event.name }}">
+              <strong>{{ event.name }}</strong>
+              {% if event.starts_at %}
+              <small class="text-muted d-block">{{ event.starts_at.strftime('%d.%m.%Y') }} – {{ event.location or '?' }}</small>
+              {% endif %}
+            </label>
+            {% endfor %}
+          </div>
+
+          {% if not events %}
+          <div class="alert alert-info">
+            {{ _('Keine offenen Veranstaltungen verfügbar.') }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <small class="text-muted">
+            <strong id="selected-events-label">{{ _('Keine Events ausgewählt') }}</strong>
+          </small>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <strong>{{ _('2. TKAMO-Ergebnis einfügen') }}</strong>
+    </div>
+    <div class="card-body">
+      <form method="post" id="lizenzcheck-import-form" style="display:none;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="events" id="events-input" value="">
+
+        <div class="mb-3">
+          <label class="form-label small text-muted">{{ _('TKAMO-Lizenzcheck-Ergebnis:') }}</label>
+          <textarea name="tkamo_result" class="form-control font-monospace" rows="8" required
+                    placeholder="{{ _('Text vom TKAMO-Lizenzcheck hier einfügen...') }}" autofocus></textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            ✓ {{ _('Ergebnis verarbeiten') }}
+          </button>
+          <button type="button" class="btn btn-outline-secondary" onclick="resetSelection()">
+            ← {{ _('Zurück zur Event-Auswahl') }}
+          </button>
+        </div>
+      </form>
+
+      <div id="no-selection-message" class="alert alert-warning">
+        {{ _('Bitte wähle zuerst mindestens ein Event aus.') }}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const checkboxes = document.querySelectorAll('.event-checkbox');
+const selectedEventsLabel = document.getElementById('selected-events-label');
+const eventsInput = document.getElementById('events-input');
+const importForm = document.getElementById('lizenzcheck-import-form');
+const noSelectionMessage = document.getElementById('no-selection-message');
+
+function updateSelection() {
+  const selected = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => ({id: cb.value, name: cb.dataset.name}));
+
+  if (selected.length === 0) {
+    selectedEventsLabel.textContent = '{{ _("Keine Events ausgewählt") }}';
+    eventsInput.value = '';
+    importForm.style.display = 'none';
+    noSelectionMessage.style.display = 'block';
+  } else {
+    const eventNames = selected.map(e => e.name).join(', ');
+    const eventIds = selected.map(e => e.id).join(',');
+    selectedEventsLabel.innerHTML = `<span class="badge bg-success">${eventIds}</span> ${eventNames}`;
+    eventsInput.value = eventIds;
+    importForm.style.display = 'block';
+    noSelectionMessage.style.display = 'none';
+  }
+}
+
+function resetSelection() {
+  checkboxes.forEach(cb => cb.checked = false);
+  updateSelection();
+  document.getElementById('lizenzcheck-import-form').reset();
+}
+
+checkboxes.forEach(cb => cb.addEventListener('change', updateSelection));
+
+// Initial update
+updateSelection();
+
+// Form submit - build POST URL
+document.getElementById('lizenzcheck-import-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const eventIds = eventsInput.value;
+  const tkamo_result = document.querySelector('textarea[name="tkamo_result"]').value;
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{{ url_for('club.club_lizenzcheck_multi') }}?events=${eventIds}`;
+
+  const csrfInput = document.createElement('input');
+  csrfInput.type = 'hidden';
+  csrfInput.name = 'csrf_token';
+  csrfInput.value = document.querySelector('input[name="csrf_token"]').value;
+  form.appendChild(csrfInput);
+
+  const textInput = document.createElement('input');
+  textInput.type = 'hidden';
+  textInput.name = 'tkamo_result';
+  textInput.value = tkamo_result;
+  form.appendChild(textInput);
+
+  document.body.appendChild(form);
+  form.submit();
+});
+</script>
+{% endblock %}
