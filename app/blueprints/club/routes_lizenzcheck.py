@@ -38,10 +38,17 @@ def _get_serializer() -> URLSafeSerializer:
     return URLSafeSerializer(current_app.config["SECRET_KEY"], salt="lizenzcheck-confirm")
 
 
-def _make_confirm_token(event_id: int, dog_id: int, cat: str, cls: int) -> str:
-    return _get_serializer().dumps(
-        {"event_id": event_id, "dog_id": dog_id, "cat": cat, "cls": cls}
-    )
+def _make_confirm_token(event_id: int | list[int], dog_id: int, cat: str, cls: int) -> str:
+    """
+    Erzeugt einen Bestätigungs-Token.
+    event_id kann ein einzelnes Event (int) oder eine Liste von Events (list[int]) sein.
+    Backward-compatible: single event_id wird als 'event_id' gespeichert.
+    """
+    if isinstance(event_id, list):
+        data = {"event_ids": event_id, "dog_id": dog_id, "cat": cat, "cls": cls}
+    else:
+        data = {"event_id": event_id, "dog_id": dog_id, "cat": cat, "cls": cls}
+    return _get_serializer().dumps(data)
 
 
 def _decode_confirm_token(token: str) -> dict | None:
@@ -119,6 +126,101 @@ def event_lizenzcheck_csv(event_id):
         output.getvalue().encode("cp1252", errors="replace"),
         content_type="text/csv; charset=windows-1252",
         headers={"Content-Disposition": f'attachment; filename="lizenzcheck_{event_id}.csv"'},
+    )
+
+
+# ── 1b. Multi-Event CSV-Export (Wochenend-Bundle) ────────────────────────────
+
+@club_bp.post("/club/lizenzcheck-multi/csv")
+@login_required
+def club_lizenzcheck_multi_csv():
+    """
+    Exportiert Anmeldungen aus mehreren Events als kombiniertes CSV.
+    Input: ?events=34,35 (komma-separierte Event-IDs)
+    Output: CSV mit zusätzlicher Spalte "Event"
+    """
+    events_param = request.args.get("events", "").strip()
+    if not events_param:
+        abort(400)
+
+    try:
+        event_ids = [int(x.strip()) for x in events_param.split(",")]
+    except ValueError:
+        abort(400)
+
+    if not event_ids:
+        abort(400)
+
+    # Access-Check: aktueller User muss auf alle Events Zugriff haben
+    events = []
+    for event_id in event_ids:
+        event = db.session.get(Event, event_id)
+        if not event:
+            abort(404)
+        _assert_event_access(event)
+        events.append(event)
+
+    # Registrierungen aus allen Events sammeln
+    all_regs = []
+    for event_id in event_ids:
+        regs = db.session.execute(
+            db.select(Registration)
+            .filter_by(event_id=event_id)
+            .filter(Registration.status.in_([
+                RegistrationStatus.PENDING,
+                RegistrationStatus.CONFIRMED,
+                RegistrationStatus.SUBMITTED,
+            ]))
+            .order_by(Registration.category_code, Registration.class_level, Registration.id)
+        ).scalars().all()
+        for reg in regs:
+            all_regs.append((event_id, reg))
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", lineterminator="\r\n")
+    # Header + "Event"-Spalte
+    writer.writerow(["Event", "Lizenznummer", "Kategorie", "Klasse", "Hundename",
+                     "Vereinsnummer", "Vorname", "Nachname", "HF-Mail"])
+
+    for event_id, reg in all_regs:
+        dog     = reg.dog
+        handler = reg.handler
+        if not dog or not handler:
+            continue
+        if dog.license_kind == LicenseKind.FOREIGN:
+            continue
+
+        # Event-Name oder Datum
+        event = db.session.get(Event, event_id)
+        event_label = event.name if event else f"Event {event_id}"
+
+        # Vereinsnummer (wie im Single-Event-Export)
+        vereinsnummer = (reg.club_name or "").strip()
+        if not vereinsnummer:
+            user = db.session.execute(
+                db.select(User).filter_by(person_id=handler.id)
+            ).scalar_one_or_none()
+            vereinsnummer = (user.club.vereinsnummer if user and user.club else "") or ""
+
+        cat_csv = _CAT_LABEL.get(
+            reg.category_code[:1].upper() if reg.category_code else "", reg.category_code or ""
+        )
+        writer.writerow([
+            event_label,
+            dog.license_no or "",
+            cat_csv,
+            reg.class_level or "",
+            dog.tka_name or dog.name or "",
+            vereinsnummer,
+            handler.first_name or "",
+            handler.last_name or "",
+            handler.email or "",
+        ])
+
+    return Response(
+        output.getvalue().encode("cp1252", errors="replace"),
+        content_type="text/csv; charset=windows-1252",
+        headers={"Content-Disposition": f'attachment; filename="lizenzcheck_multi_{len(event_ids)}_events.csv"'},
     )
 
 
@@ -357,15 +459,25 @@ def event_lizenzcheck(event_id):
 def lizenzcheck_confirm(token):
     """
     Öffentliche Route — Teilnehmer klickt Link in der Mail.
-    Token enthält event_id, dog_id, cat, cls.
+    Token enthält event_id (oder event_ids für Multi-Event), dog_id, cat, cls.
+    Backward-compatible mit alten Single-Event-Tokens.
     """
     data = _decode_confirm_token(token)
     if not data:
         abort(400)
 
-    dog   = db.session.get(Dog, data["dog_id"])
-    event = db.session.get(Event, data["event_id"])
-    if not dog or not event:
+    dog = db.session.get(Dog, data["dog_id"])
+    if not dog:
+        abort(404)
+
+    # Backward-compatibility: event_id (single) oder event_ids (multi)
+    event_ids = data.get("event_ids") or [data.get("event_id")]
+    if not event_ids or None in event_ids:
+        abort(400)
+
+    # Mindestens ein Event-Lookup für die Template-Anzeige (primary event)
+    primary_event = db.session.get(Event, event_ids[0])
+    if not primary_event:
         abort(404)
 
     new_cat = data["cat"]
@@ -375,20 +487,22 @@ def lizenzcheck_confirm(token):
     dog.category    = new_cat
     dog.class_level = new_cls
 
-    # Anmeldung aktualisieren
-    regs = db.session.execute(
-        db.select(Registration).filter_by(event_id=event.id, dog_id=dog.id)
-    ).scalars().all()
+    # Anmeldungen aktualisieren (für alle Events im Token)
     cat_full = _CAT_LABEL.get(new_cat, new_cat)
-    for reg in regs:
-        reg.class_level   = new_cls
-        reg.category_code = cat_full
+    for event_id in event_ids:
+        regs = db.session.execute(
+            db.select(Registration).filter_by(event_id=event_id, dog_id=dog.id)
+        ).scalars().all()
+        for reg in regs:
+            reg.class_level   = new_cls
+            reg.category_code = cat_full
 
     db.session.commit()
 
     return render_template(
         "club/lizenzcheck_confirm.html",
-        event=event,
+        event=primary_event,
+        num_events=len(event_ids),
         dog_name=dog.name,
         license_no=dog.license_no,
         cat_label=cat_full,
