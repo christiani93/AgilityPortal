@@ -78,6 +78,10 @@
          class="{% if request.endpoint == 'club.event_new' %}active{% endif %}">
         + {{ _('Turnier erstellen') }}
       </a>
+      <a href="{{ url_for('club.agenda') }}"
+         class="{% if request.endpoint == 'club.agenda' %}active{% endif %}">
+        {{ _('TKAMO-Agenda') }}
+      </a>
       <a href="{{ url_for('club.template_list') }}"
          class="{% if 'template' in request.endpoint %}active{% endif %}">
         {{ _('Turnier-Vorlagen') }}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ _('TKAMO-Agenda') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>{{ _('TKAMO-Agenda') }} — {{ ort }}</h2>
+  <a href="{{ url_for('club.dashboard') }}" class="btn btn-sm btn-outline-secondary">← {{ _('Dashboard') }}</a>
+</div>
+
+<form method="get" class="row g-2 align-items-center mb-3" style="max-width:560px;">
+  <div class="col-auto">
+    <label class="col-form-label">{{ _('Ort') }}</label>
+  </div>
+  <div class="col-auto">
+    <input type="text" name="ort" value="{{ ort }}" class="form-control form-control-sm" style="max-width:220px;">
+  </div>
+  {% if show_all %}<input type="hidden" name="alle" value="1">{% endif %}
+  <div class="col-auto">
+    <button class="btn btn-sm btn-outline-primary">{{ _('Filtern') }}</button>
+  </div>
+</form>
+
+{% if error %}
+<div class="alert alert-warning py-2">{{ _('Agenda konnte nicht (vollständig) geladen werden:') }} {{ error }}</div>
+{% endif %}
+
+{% if rows %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle">
+    <thead>
+      <tr>
+        <th>{{ _('Datum') }}</th>
+        <th>{{ _('Turnier / Ort') }}</th>
+        <th>{{ _('Meldefrist') }}</th>
+        <th>{{ _('Kategorien') }}</th>
+        <th>AIS</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="text-nowrap">{{ r.datum }}</td>
+        <td>
+          {{ r.name_ort }}
+          {% if r.admin_reserved %}<span class="badge bg-info text-dark ms-1" title="{{ _('Im AdminPortal bereits reserviert') }}">{{ _('reserviert') }}</span>{% endif %}
+        </td>
+        <td class="text-nowrap"><small class="text-muted">{{ r.meldefrist }}</small></td>
+        <td><small class="text-muted">{{ r.kategorien }}</small></td>
+        <td><small class="text-muted">{{ r.ais }}</small></td>
+        <td class="text-end">
+          {% if r.exists_here %}
+            <span class="badge bg-secondary">{{ _('bereits angelegt') }}</span>
+          {% else %}
+            <a href="{{ url_for('club.event_new', ais=r.ais) }}" class="btn btn-sm btn-primary">+ {{ _('Turnier anlegen') }}</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">{{ _('Keine offenen Agenda-Einträge für diesen Ort.') }}</p>
+{% endif %}
+
+<div class="text-muted small mt-2">
+  {% if hidden and not show_all %}
+    {{ _('%(n)s Einträge ausgeblendet, für die bereits ein Turnier existiert.', n=hidden) }}
+    — <a href="{{ url_for('club.agenda', ort=ort, alle=1) }}">{{ _('alle anzeigen') }}</a>
+  {% elif show_all %}
+    <a href="{{ url_for('club.agenda', ort=ort) }}">{{ _('nur offene anzeigen') }}</a>
+  {% endif %}
+</div>
+{% endblock %}

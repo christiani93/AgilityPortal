@@ -185,5 +185,11 @@ async function tkamo_load() {
     status.textContent = '✅ {{ _("Daten geladen — bitte prüfen und speichern.") }}';
   } catch(e) { status.textContent = '❌ {{ _("Netzwerkfehler — AdminPortal nicht erreichbar?") }}'; }
 }
+
+// Kommt der Nutzer aus der Agenda (AIS vorbefüllt), die Felder direkt laden.
+document.addEventListener('DOMContentLoaded', function() {
+  const el = document.getElementById('ais_input');
+  if (el && el.value.trim()) tkamo_load();
+});
 </script>
 {% endblock %}

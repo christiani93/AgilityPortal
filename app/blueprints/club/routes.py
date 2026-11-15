@@ -471,6 +471,10 @@ def create_test_event_web():
 @club_admin_required
 def event_new():
     form = EventForm()
+    # Vorbefüllung aus der TKAMO-Agenda (Link „Turnier anlegen" → ?ais=…).
+    # Das Formular lädt die restlichen Felder dann automatisch per „Von TKAMO laden".
+    if request.method == "GET" and request.args.get("ais", type=int):
+        form.ais_turniernummer.data = request.args.get("ais", type=int)
     if current_user.is_superadmin:
         _fill_club_choices(form)
     else:
@@ -531,6 +535,65 @@ def event_new():
         return redirect(url_for("club.event_detail", event_id=event.id))
     return render_template("club/event_form.html", form=form, event=None,
                            is_superadmin=current_user.is_superadmin)
+
+
+def _existing_ais_numbers() -> set:
+    """Alle AIS-Turniernummern, die im AgilityPortal bereits als Event existieren
+    (Haupt- + Mehrtage-Zusatznummern) — um Agenda-Einträge auszublenden, für die
+    schon ein Turnier angelegt ist."""
+    known = set()
+    for primary, extra in db.session.query(Event.ais_turniernummer,
+                                           Event.ais_turniernummer_extra).all():
+        if primary:
+            known.add(primary)
+        if extra:
+            for part in str(extra).split(","):
+                part = part.strip()
+                if part.isdigit():
+                    known.add(int(part))
+    return known
+
+
+@club_bp.get("/agenda")
+@club_admin_required
+def agenda():
+    """TKAMO-Agenda (zentral vom AdminPortal geliefert) für einen Ort — mit
+    direktem „Turnier anlegen" für Einträge, die hier noch kein Event sind."""
+    from flask import current_app
+    import requests
+
+    ort = (request.args.get("ort") or "Münsingen").strip()
+    show_all = request.args.get("alle") == "1"
+    base = current_app.config.get("WEBSITE_API_URL", "").rstrip("/")
+    token = current_app.config.get("WEBSITE_API_TOKEN", "")
+
+    entries, error = [], None
+    if not base or not token:
+        error = _("AdminPortal-API nicht konfiguriert (WEBSITE_API_URL/TOKEN).")
+    else:
+        try:
+            resp = requests.get(
+                f"{base}/api/agenda", params={"ort": ort},
+                headers={"Authorization": f"Bearer {token}"}, timeout=20,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            entries = data.get("entries", []) or []
+            error = data.get("error")  # Scrape-Fehler, den das AdminPortal meldet
+        except requests.RequestException as exc:
+            error = _("AdminPortal nicht erreichbar: %(err)s", err=str(exc))
+
+    existing = _existing_ais_numbers()
+    rows, hidden = [], 0
+    for e in entries:
+        exists_here = e.get("ais") in existing
+        if exists_here and not show_all:
+            hidden += 1
+            continue
+        rows.append({**e, "exists_here": exists_here})
+
+    return render_template("club/agenda.html", rows=rows, ort=ort, error=error,
+                           hidden=hidden, show_all=show_all)
 
 
 _CATEGORY_SORT = {"L": 0, "I": 1, "M": 2, "S": 3}
