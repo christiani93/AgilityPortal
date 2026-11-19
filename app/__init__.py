@@ -41,6 +41,18 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # HostPoints geteilter MySQL schließt idle-Connections serverseitig; ohne
+    # Liveness-Prüfung reicht der Pool eine tote Verbindung heraus → 500 mit
+    # "(2013) Lost connection to MySQL server ([Errno 54] Connection reset by peer)".
+    # pool_pre_ping prüft jede Verbindung vor Gebrauch (leichtes SELECT 1),
+    # pool_recycle erneuert Verbindungen bevor der Server sie abräumt.
+    # Nur für MySQL setzen – SQLite (Dev/Test) braucht/verträgt das nicht.
+    if database_uri.startswith(("mysql", "mariadb")):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_pre_ping": True,
+            "pool_recycle": 280,
+        }
+
     # --- API-Keys (für Admin, Live, Results) ---
     app.config["ADMIN_KEY"] = os.environ.get("ADMIN_KEY", "dev-admin-key")
     app.config["LIVE_API_KEY"] = os.environ.get("LIVE_API_KEY", "dev-live-key")
