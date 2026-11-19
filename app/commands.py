@@ -406,6 +406,14 @@ _SEASON_EVENTS = [
 ]
 
 
+# special_ruleset-Werte, für die beim Seeding automatisch ein Saison-Cup angelegt
+# wird (Titelverteidiger-Speicher: KO-Final-Sieger → Vorjahressieger-Abfrage im
+# Folgejahr via cup_qualification.detect_title_defenders). Bewusst konservativ:
+# nur Serien mit Titelverteidiger-Automatik. Erweiterbar, sobald weitere Cups
+# (advents_cup, wimesma_cup …) eine TV-Kette bekommen.
+_CUP_SEASON_RULESETS = {"halloween_cup"}
+
+
 def _as_date(value):
     """Coerce DB-Rückgabe (date / datetime / 'YYYY-MM-DD') zu `date`.
     (MySQL liefert date/datetime, die SQLite-Test-DB Strings.)"""
@@ -578,17 +586,49 @@ def seed_season_events(dry_run: bool):
     for w in warnings:
         click.echo(f"  ! {w}", err=True)
 
+    # --- Saison-Cups (Titelverteidiger-Speicher) ---
+    # Pro Serie mit TV-Automatik (siehe _CUP_SEASON_RULESETS) einmal pro Saison
+    # (Kalenderjahr) einen Cup anlegen, unabhängig vom Event-Reservation-Gate:
+    # der Cup ist der Ablageort für die KO-Final-Sieger (resultexport cup_finals.json
+    # → _import_cup_finals) und damit die Quelle der Vorjahressieger-Abfrage. Ohne
+    # ihn ist der Resultat-Import ein No-op. Idempotent über (special_ruleset, season).
+    from app.models import Cup
+    cups_created = 0
+    seen_cups: set = set()
+    for spec in _SEASON_EVENTS:
+        ruleset = spec.get("ruleset")
+        if ruleset not in _CUP_SEASON_RULESETS:
+            continue
+        season = spec["start"].year
+        if (ruleset, season) in seen_cups:
+            continue
+        seen_cups.add((ruleset, season))
+        existing_cup = db.session.execute(
+            db.select(Cup).filter_by(special_ruleset=ruleset, season=season)
+        ).scalars().first()
+        if existing_cup:
+            click.echo(f"  = Cup vorhanden: {existing_cup.name} (ID {existing_cup.id})")
+            continue
+        label = Cup.SPECIAL_RULESET_LABELS.get(ruleset, ruleset)
+        cup = Cup(name=f"{label} {season}", season=season,
+                  special_ruleset=ruleset, title_defender_spots=1)
+        db.session.add(cup)
+        cups_created += 1
+        click.echo(f"  + Cup: {cup.name} (season {season}, {ruleset})")
+
     if dry_run:
         db.session.rollback()
         click.echo(
             f"\n[DRY-RUN] {created} neu, {skipped} vorhanden, "
-            f"{missing_reservation} ohne Reservation übersprungen - nichts geschrieben."
+            f"{missing_reservation} ohne Reservation übersprungen, "
+            f"{cups_created} Cups neu - nichts geschrieben."
         )
     else:
         db.session.commit()
         click.echo(
             f"\n[OK] {created} Turniere angelegt, {skipped} bereits vorhanden, "
-            f"{missing_reservation} ohne Reservation übersprungen."
+            f"{missing_reservation} ohne Reservation übersprungen, "
+            f"{cups_created} Cups angelegt."
         )
 
 
