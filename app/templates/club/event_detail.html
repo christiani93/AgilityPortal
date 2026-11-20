@@ -488,6 +488,9 @@
   <div class="card-body">
     {% if not event.reservation_id %}
     {# ── Neue Anfrage ─────────────────────────────────────────────────────── #}
+    {# Buttons vorerst ausgeblendet (schnellerer Rollout) — Flag:
+       ORGANIZER_RESERVATION_ACTIONS_ENABLED, siehe app/__init__.py. #}
+    {% if organizer_reservation_actions_enabled %}
     <p class="text-muted small mb-3">
       {{ _('Sendet eine Reservationsanfrage für die Zeitnehmungs-Dienstleistung an admin.z-b.tech.') }}
       {{ _('Turnierdaten (Name, Datum, Ort) werden automatisch übernommen.') }}
@@ -571,6 +574,9 @@
       </button>
     </form>
     {% endif %}
+    {% else %}
+    <p class="text-muted small mb-0">{{ _('Reservationsanfragen laufen aktuell über das AdminPortal.') }}</p>
+    {% endif %}
 
     {% else %}
     {# ── Bestehende Anfrage aktualisieren ─────────────────────────────────── #}
@@ -586,6 +592,7 @@
       {% endfor %}
     </ul>
     {% endif %}
+    {% if organizer_reservation_actions_enabled %}
     <p class="text-muted small mb-3">
       {{ _('Überträgt aktuelle Turnierdaten (Name, Datum, Ort, Teilnehmer) an die bestehende Anfrage.') }}
       {% if reservation_group %}{{ _('Es werden alle Turniere dieser Reservation gemeinsam gesendet.') }}{% endif %}
@@ -596,6 +603,9 @@
         🔄 {{ _('Daten aktualisieren') }}
       </button>
     </form>
+    {% else %}
+    <p class="text-muted small mb-0">{{ _('Aktualisierungen laufen aktuell über das AdminPortal.') }}</p>
+    {% endif %}
     {% endif %}
   </div>
 </div>

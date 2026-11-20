@@ -106,6 +106,8 @@ def event_website_sync(event_id):
 @club_bp.route("/events/<int:event_id>/reservation-request", methods=["POST"])
 @login_required
 def event_reservation_request(event_id):
+    if not current_app.config.get("ORGANIZER_RESERVATION_ACTIONS_ENABLED"):
+        abort(404)
     event = db.get_or_404(Event, event_id)
 
     if not (current_user.is_superadmin or
@@ -153,6 +155,8 @@ def event_reservation_request(event_id):
 @club_bp.route("/events/<int:event_id>/reservation-join", methods=["POST"])
 @login_required
 def event_reservation_join(event_id):
+    if not current_app.config.get("ORGANIZER_RESERVATION_ACTIONS_ENABLED"):
+        abort(404)
     event = db.get_or_404(Event, event_id)
 
     if not (current_user.is_superadmin or
@@ -200,6 +204,8 @@ def event_reservation_join(event_id):
 @club_bp.route("/events/<int:event_id>/reservation-sync", methods=["POST"])
 @login_required
 def event_reservation_sync(event_id):
+    if not current_app.config.get("ORGANIZER_RESERVATION_ACTIONS_ENABLED"):
+        abort(404)
     event = db.get_or_404(Event, event_id)
 
     if not (current_user.is_superadmin or

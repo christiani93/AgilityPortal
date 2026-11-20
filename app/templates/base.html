@@ -121,7 +121,7 @@
          class="{% if request.endpoint == 'club.users' %}active{% endif %}">
         {{ _('Alle Benutzer') }}
       </a>
-      {% else %}
+      {% elif organizer_member_management_enabled %}
       <a href="{{ url_for('club.users') }}"
          class="{% if 'users' in request.endpoint %}active{% endif %}">
         {{ _('Mitglieder') }}

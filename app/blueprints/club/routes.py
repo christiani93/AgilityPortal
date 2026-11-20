@@ -192,9 +192,19 @@ def admin_settings():
 # Benutzerverwaltung — club_admin oder superadmin
 # ---------------------------------------------------------------------------
 
+def _assert_member_management_access():
+    """Mitgliederverwaltung ist fuer Club-Admins vorerst ausgeblendet (schnellerer
+    Rollout der Veranstalter-Umgebung) — Superadmin (eigene Benutzerverwaltung
+    ueber alle Vereine) ist davon immer ausgenommen."""
+    from flask import current_app
+    if not current_user.is_superadmin and not current_app.config.get("ORGANIZER_MEMBER_MANAGEMENT_ENABLED"):
+        abort(404)
+
+
 @club_bp.get("/users")
 @club_admin_required
 def users():
+    _assert_member_management_access()
     if current_user.is_superadmin:
         # Superadmin sieht alle Benutzer
         members = (
@@ -217,6 +227,7 @@ def users():
 @club_bp.post("/users/add")
 @club_admin_required
 def add_user():
+    _assert_member_management_access()
     form = AddUserForm()
     if form.validate_on_submit():
         email = form.email.data.strip().lower()
@@ -247,6 +258,7 @@ def add_user():
 @club_bp.post("/users/<int:user_id>/deactivate")
 @club_admin_required
 def deactivate_user(user_id):
+    _assert_member_management_access()
     user = db.session.get(User, user_id)
     if not user:
         abort(404)
@@ -269,6 +281,7 @@ def deactivate_user(user_id):
 @club_bp.post("/users/<int:user_id>/activate")
 @club_admin_required
 def activate_user(user_id):
+    _assert_member_management_access()
     user = db.session.get(User, user_id)
     if not user:
         abort(404)
@@ -284,6 +297,7 @@ def activate_user(user_id):
 @club_bp.post("/users/<int:user_id>/password")
 @club_admin_required
 def reset_password(user_id):
+    _assert_member_management_access()
     user = db.session.get(User, user_id)
     if not user:
         abort(404)

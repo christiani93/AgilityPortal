@@ -51,7 +51,7 @@
         <td class="text-end">
           {% if r.exists_here %}
             <span class="badge bg-secondary">{{ _('bereits angelegt') }}</span>
-          {% else %}
+          {% elif current_user.is_superadmin %}
             <a href="{{ url_for('club.event_new', ais=r.ais) }}" class="btn btn-sm btn-primary">+ {{ _('Turnier anlegen') }}</a>
           {% endif %}
         </td>

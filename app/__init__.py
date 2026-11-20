@@ -86,6 +86,11 @@ def create_app():
     app.config["ORGANIZER_WEBSITE_SYNC_ENABLED"] = _flag_on("ENABLE_ORGANIZER_WEBSITE_SYNC")
     app.config["ORGANIZER_PAYMENT_INFO_ENABLED"] = _flag_on("ENABLE_ORGANIZER_PAYMENT_INFO")
     app.config["ORGANIZER_BULK_EMAIL_ENABLED"] = _flag_on("ENABLE_ORGANIZER_BULK_EMAIL")
+    app.config["ORGANIZER_RESERVATION_ACTIONS_ENABLED"] = _flag_on("ENABLE_ORGANIZER_RESERVATION_ACTIONS")
+    # Mitgliederverwaltung: nur fuer Club-Admins ausgeblendet, Superadmin (eigene
+    # Benutzerverwaltung ueber alle Vereine) ist davon IMMER ausgenommen — siehe
+    # Gate in routes.py (users/add_user/(de)activate_user/reset_password).
+    app.config["ORGANIZER_MEMBER_MANAGEMENT_ENABLED"] = _flag_on("ENABLE_ORGANIZER_MEMBER_MANAGEMENT")
 
     # --- Superadmin (Portal-Verwaltung: Vereine & Club-Admins) ---
     app.config["SUPERADMIN_USERNAME"] = os.environ.get("SUPERADMIN_USERNAME", "")
@@ -126,7 +131,9 @@ def create_app():
                 "debug_tools": app.config["DEBUG_TOOLS_ENABLED"],
                 "organizer_website_sync_enabled": app.config["ORGANIZER_WEBSITE_SYNC_ENABLED"],
                 "organizer_payment_info_enabled": app.config["ORGANIZER_PAYMENT_INFO_ENABLED"],
-                "organizer_bulk_email_enabled": app.config["ORGANIZER_BULK_EMAIL_ENABLED"]}
+                "organizer_bulk_email_enabled": app.config["ORGANIZER_BULK_EMAIL_ENABLED"],
+                "organizer_reservation_actions_enabled": app.config["ORGANIZER_RESERVATION_ACTIONS_ENABLED"],
+                "organizer_member_management_enabled": app.config["ORGANIZER_MEMBER_MANAGEMENT_ENABLED"]}
 
     @app.template_filter("fromjson")
     def fromjson_filter(s):
