@@ -188,10 +188,26 @@ class DogForm(FlaskForm):
 
 
 class DogDetailsForm(FlaskForm):
-    """Name/Rasse nachtraeglich korrigieren – nur fuer den Besitzer (OWNER),
-    nicht fuer blosse Hundefuehrer."""
+    """Alle Stammdaten eines Hundes nachtraeglich korrigieren (gleiche Felder
+    wie beim Anlegen) – nur fuer den Besitzer (OWNER), nicht fuer blosse
+    Hundefuehrer."""
     name = StringField(_("Hundename"), validators=[DataRequired(), Length(max=120)])
     breed = StringField(_("Rasse"), validators=[Optional(), Length(max=120)])
+    sex = SelectField(_("Geschlecht"), choices=[("", "—"), ("M", _("Rüde (M)")), ("F", _("Hündin (F)"))], validators=[Optional()])
+    license_kind = SelectField(
+        _("Lizenz-Typ"),
+        choices=[
+            ("CH", _("Schweiz (CH)")),
+            ("FRA", _("Frankreich (FRA) – CNEAC")),
+            ("DEU", _("Deutschland (GER) – VDH")),
+            ("FOREIGN", _("Ausland (anderes Land)")),
+        ],
+    )
+    license_no = StringField(_("Lizenznummer"), validators=[DataRequired(), Length(max=50)])
+    shsb = StringField(_("SHSB-Nr."), validators=[Optional(), Length(max=50)])
+    fapac_no = StringField(_("FAPAC (franz. Hundelizenz)"), validators=[Optional(), Length(max=50)])
+    leistungsbuch_no = StringField(_("Leistungsbuch-Nr. (VDH)"), validators=[Optional(), Length(max=50)])
+    microchip = StringField(_("Chip-Nr."), validators=[Optional(), Length(max=50)])
     submit = SubmitField(_("Speichern"))
 
 

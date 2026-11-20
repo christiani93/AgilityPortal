@@ -1435,6 +1435,50 @@ def handler_delete(person_id):
 # Teilnehmer: Hunde verwalten
 # ---------------------------------------------------------------------------
 
+# IOC-Ländercode als Lizenz-Präfix (TKAMO-Weisung): Deutschland = GER (nicht
+# ISO 'DEU'). Der Dropdown-Wert bleibt 'DEU' (steuert die VDH-Zusatzfelder),
+# nur das gespeicherte Präfix ist der IOC-Code.
+_LICENSE_PREFIX_BY_TYPE = {"FRA": "FRA", "DEU": "GER"}
+
+
+def _license_type_choice_for_dog(dog):
+    """Leitet den Dropdown-Wert (CH/FRA/DEU/FOREIGN) aus dem gespeicherten
+    Lizenz-Typ + Länderpräfix ab — Umkehrung von `_resolve_license_fields`,
+    fürs Vorausfüllen des Edit-Formulars."""
+    if dog.license_kind == LicenseKind.CH:
+        return "CH"
+    if dog.foreign_country_code == "FRA":
+        return "FRA"
+    if dog.foreign_country_code == "GER":
+        return "DEU"
+    return "FOREIGN"
+
+
+def _resolve_license_fields(type_choice, license_no_raw):
+    """Lizenz-Typ-Dropdown → (LicenseKind-Enum, normalisierte Lizenznummer
+    mit Landes-Präfix). Wirft ValueError bei ungültigem Format."""
+    license_kind = LicenseKind.CH if type_choice == "CH" else LicenseKind.FOREIGN
+    license_no = license_no_raw.strip()
+    # Fuer FRA/DEU das Landeskuerzel automatisch voranstellen, falls der
+    # Nutzer nur die Nummer eingetippt hat (kein "-"-Praefix vorhanden).
+    prefix = _LICENSE_PREFIX_BY_TYPE.get(type_choice)
+    if prefix and license_no and "-" not in license_no:
+        license_no = f"{prefix}-{license_no}"
+    Dog._validate_license_format(license_kind, license_no)
+    return license_kind, license_no
+
+
+def _apply_dog_country_fields(dog, form, type_choice):
+    """Geschlecht/Chip (allgemein) + länderspezifische Zusatzfelder nur fuer
+    den passenden Typ übernehmen — verhindert Datenmüll, wenn der Nutzer den
+    Typ umschaltet und ausgeblendete Felder noch befüllt waren."""
+    dog.sex = form.sex.data or None
+    dog.microchip = form.microchip.data.strip() if form.microchip.data else None
+    dog.shsb = (form.shsb.data.strip() if form.shsb.data else None) if type_choice == "CH" else None
+    dog.fapac_no = (form.fapac_no.data.strip() if form.fapac_no.data else None) if type_choice == "FRA" else None
+    dog.leistungsbuch_no = (form.leistungsbuch_no.data.strip() if form.leistungsbuch_no.data else None) if type_choice == "DEU" else None
+
+
 @club_bp.get("/profile/dogs")
 @club_bp.post("/profile/dogs")
 @login_required
@@ -1449,22 +1493,8 @@ def profile_dogs():
     form = DogForm()
     if form.validate_on_submit():
         try:
-            # Lizenz-Typ aus dem Formular → DB-Enum + ggf. Landes-Praefix.
-            # CH bleibt CH; FRA/DEU/FOREIGN sind alle LicenseKind.FOREIGN, nur das
-            # Praefix der Lizenznummer unterscheidet das Land (FRA-/DEU-).
             type_choice = form.license_kind.data
-            # IOC-Ländercode als Lizenz-Präfix (TKAMO-Weisung): Deutschland = GER
-            # (nicht ISO 'DEU'). Der Dropdown-Wert bleibt 'DEU' (steuert die VDH-
-            # Zusatzfelder), nur das gespeicherte Präfix ist der IOC-Code.
-            _PREFIX_BY_TYPE = {"FRA": "FRA", "DEU": "GER"}
-            license_kind = LicenseKind.CH if type_choice == "CH" else LicenseKind.FOREIGN
-            license_no = form.license_no.data.strip()
-            # Fuer FRA/DEU das Landeskuerzel automatisch voranstellen, falls der
-            # Nutzer nur die Nummer eingetippt hat (kein "-"-Praefix vorhanden).
-            prefix = _PREFIX_BY_TYPE.get(type_choice)
-            if prefix and license_no and "-" not in license_no:
-                license_no = f"{prefix}-{license_no}"
-            Dog._validate_license_format(license_kind, license_no)
+            license_kind, license_no = _resolve_license_fields(type_choice, form.license_no.data)
             existing = db.session.execute(db.select(Dog).filter_by(license_no=license_no)).scalar_one_or_none()
             if existing:
                 # Prüfen ob bereits verknüpft
@@ -1493,15 +1523,7 @@ def profile_dogs():
                 dog.breed = form.breed.data.strip() if form.breed.data else None
                 dog.license_kind = license_kind
                 dog.license_no = license_no
-                # Geschlecht + Chip sind allgemein (alle Typen).
-                dog.sex = form.sex.data or None
-                dog.microchip = form.microchip.data.strip() if form.microchip.data else None
-                # Laenderspezifische Zusatzfelder nur fuer den passenden Typ
-                # uebernehmen — verhindert Datenmuell, wenn der Nutzer den Typ
-                # umschaltet und ausgeblendete Felder noch befuellt waren.
-                dog.shsb = (form.shsb.data.strip() if form.shsb.data else None) if type_choice == "CH" else None
-                dog.fapac_no = (form.fapac_no.data.strip() if form.fapac_no.data else None) if type_choice == "FRA" else None
-                dog.leistungsbuch_no = (form.leistungsbuch_no.data.strip() if form.leistungsbuch_no.data else None) if type_choice == "DEU" else None
+                _apply_dog_country_fields(dog, form, type_choice)
                 db.session.add(dog)
                 db.session.flush()
                 db.session.add(DogOwner(dog_id=dog.id, person_id=current_user.person_id, role=DogOwnerRole.OWNER))
@@ -1522,6 +1544,13 @@ def profile_dogs():
         df = DogDetailsForm(prefix=f"dog_{dog.id}")
         df.name.data = dog.name
         df.breed.data = dog.breed
+        df.sex.data = dog.sex or ""
+        df.license_kind.data = _license_type_choice_for_dog(dog)
+        df.license_no.data = dog.license_no
+        df.shsb.data = dog.shsb
+        df.fapac_no.data = dog.fapac_no
+        df.leistungsbuch_no.data = dog.leistungsbuch_no
+        df.microchip.data = dog.microchip
         details_forms[dog.id] = df
     return render_template("club/profile_dogs.html", form=form, dogs=dogs,
                            class_forms=class_forms, details_forms=details_forms)
@@ -1565,8 +1594,9 @@ def dog_update_class(dog_id):
 @club_bp.post("/profile/dogs/<int:dog_id>/details")
 @login_required
 def dog_update_details(dog_id):
-    """Name/Rasse eines Hundes korrigieren — nur der Besitzer (OWNER) darf das,
-    ein blosser Hundefuehrer nicht."""
+    """Alle Stammdaten eines Hundes korrigieren (gleiche Felder wie beim
+    Anlegen) — nur der Besitzer (OWNER) darf das, ein blosser Hundefuehrer
+    nicht."""
     if not current_user.person:
         abort(403)
     dog = db.session.get(Dog, dog_id)
@@ -1579,10 +1609,24 @@ def dog_update_details(dog_id):
         abort(403)
     form = DogDetailsForm(prefix=f"dog_{dog_id}")
     if form.validate_on_submit():
-        dog.name = form.name.data.strip()
-        dog.breed = form.breed.data.strip() if form.breed.data else None
-        db.session.commit()
-        flash(_("Name/Rasse gespeichert."), "success")
+        try:
+            type_choice = form.license_kind.data
+            license_kind, license_no = _resolve_license_fields(type_choice, form.license_no.data)
+            other = db.session.execute(
+                db.select(Dog).filter(Dog.license_no == license_no, Dog.id != dog_id)
+            ).scalar_one_or_none()
+            if other:
+                flash(_("Diese Lizenznummer wird bereits von «%(name)s» verwendet.", name=other.name), "danger")
+                return redirect(url_for("club.profile_dogs"))
+            dog.name = form.name.data.strip()
+            dog.breed = form.breed.data.strip() if form.breed.data else None
+            dog.license_kind = license_kind
+            dog.license_no = license_no
+            _apply_dog_country_fields(dog, form, type_choice)
+            db.session.commit()
+            flash(_("Hundedaten gespeichert."), "success")
+        except ValueError as e:
+            flash(_("Ungültige Lizenznummer: %(error)s", error=str(e)), "danger")
     return redirect(url_for("club.profile_dogs"))
 
 

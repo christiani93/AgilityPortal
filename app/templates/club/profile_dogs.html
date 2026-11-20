@@ -94,17 +94,48 @@
         {% endif %}
 
         {% if is_owner and details_forms[dog.id] is defined %}
+        {% set df = details_forms[dog.id] %}
         <div class="collapse mt-3" id="edit-details-{{ dog.id }}">
-          <form method="post" action="{{ url_for('club.dog_update_details', dog_id=dog.id) }}">
-            {{ details_forms[dog.id].hidden_tag() }}
+          <form method="post" action="{{ url_for('club.dog_update_details', dog_id=dog.id) }}" data-license-type-form>
+            {{ df.hidden_tag() }}
             <div class="row g-2 align-items-end">
               <div class="col-auto">
-                {{ details_forms[dog.id].name.label(class="form-label mb-1") }}
-                {{ details_forms[dog.id].name(class="form-control form-control-sm") }}
+                {{ df.name.label(class="form-label mb-1") }}
+                {{ df.name(class="form-control form-control-sm") }}
               </div>
               <div class="col-auto">
-                {{ details_forms[dog.id].breed.label(class="form-label mb-1") }}
-                {{ details_forms[dog.id].breed(class="form-control form-control-sm") }}
+                {{ df.breed.label(class="form-label mb-1") }}
+                {{ df.breed(class="form-control form-control-sm") }}
+              </div>
+              <div class="col-auto">
+                {{ df.sex.label(class="form-label mb-1") }}
+                {{ df.sex(class="form-select form-select-sm") }}
+              </div>
+            </div>
+            <div class="row g-2 align-items-end mt-2">
+              <div class="col-auto">
+                {{ df.license_kind.label(class="form-label mb-1") }}
+                {{ df.license_kind(class="form-select form-select-sm license-kind-field") }}
+              </div>
+              <div class="col-auto">
+                {{ df.license_no.label(class="form-label mb-1") }}
+                {{ df.license_no(class="form-control form-control-sm license-no-field") }}
+              </div>
+              <div class="col-auto license-extra" data-for-type="CH">
+                {{ df.shsb.label(class="form-label mb-1") }}
+                {{ df.shsb(class="form-control form-control-sm") }}
+              </div>
+              <div class="col-auto license-extra" data-for-type="FRA">
+                {{ df.fapac_no.label(class="form-label mb-1") }}
+                {{ df.fapac_no(class="form-control form-control-sm") }}
+              </div>
+              <div class="col-auto license-extra" data-for-type="DEU">
+                {{ df.leistungsbuch_no.label(class="form-label mb-1") }}
+                {{ df.leistungsbuch_no(class="form-control form-control-sm") }}
+              </div>
+              <div class="col-auto">
+                {{ df.microchip.label(class="form-label mb-1") }}
+                {{ df.microchip(class="form-control form-control-sm") }}
               </div>
               <div class="col-auto">
                 <button type="submit" class="btn btn-sm btn-success">{{ _('Speichern') }}</button>
@@ -153,7 +184,7 @@
 <div class="card" style="max-width:480px;">
   <div class="card-header">{{ _('Hund hinzufügen') }}</div>
   <div class="card-body">
-    <form method="post">
+    <form method="post" data-license-type-form>
       {{ form.hidden_tag() }}
       <div class="mb-3">
         {{ form.name.label(class="form-label") }}
@@ -176,14 +207,14 @@
       </div>
       <div class="mb-3">
         {{ form.license_kind.label(class="form-label") }}
-        {{ form.license_kind(class="form-select", id="license_kind") }}
+        {{ form.license_kind(class="form-select license-kind-field") }}
         <div class="form-text text-muted">
           {{ _('CH = nur Ziffern (z.B. 12345) · Ausland = Länderkürzel-Nummer (z.B. FRA-12345). Für Frankreich/Deutschland wird das Kürzel automatisch gesetzt.') }}
         </div>
       </div>
       <div class="mb-3">
         {{ form.license_no.label(class="form-label") }}
-        {{ form.license_no(class="form-control" + (" is-invalid" if form.license_no.errors else ""), id="license_no") }}
+        {{ form.license_no(class="form-control license-no-field" + (" is-invalid" if form.license_no.errors else "")) }}
         {% for err in form.license_no.errors %}
         <div class="invalid-feedback">{{ err }}</div>
         {% endfor %}
@@ -240,36 +271,43 @@
 <script>
   // Lizenz-Typ steuert, welche Zusatzfelder sichtbar sind, und setzt für
   // Frankreich/Deutschland automatisch das Landeskürzel-Präfix der Lizenznummer.
+  // Läuft pro Formular (Hund hinzufügen + je eine Karte pro bestehendem Hund),
+  // damit mehrere Instanzen auf der Seite sich nicht gegenseitig stören.
   (function () {
-    var kind = document.getElementById("license_kind");
-    var licenseNo = document.getElementById("license_no");
-    if (!kind) return;
     var PREFIX = { FRA: "FRA-", DEU: "DEU-" };
     var KNOWN_PREFIXES = ["FRA-", "DEU-"];
 
-    function applyVisibility() {
-      var t = kind.value;
-      document.querySelectorAll(".license-extra").forEach(function (el) {
-        el.style.display = (el.getAttribute("data-for-type") === t) ? "" : "none";
-      });
-    }
+    function setupForm(formEl) {
+      var kind = formEl.querySelector(".license-kind-field");
+      var licenseNo = formEl.querySelector(".license-no-field");
+      if (!kind) return;
 
-    function applyPrefix() {
-      if (!licenseNo) return;
-      var want = PREFIX[kind.value];
-      var val = licenseNo.value.trim();
-      // Vorhandenes bekanntes Präfix entfernen, bevor wir neu setzen.
-      KNOWN_PREFIXES.forEach(function (p) {
-        if (val.toUpperCase().indexOf(p) === 0) val = val.slice(p.length);
-      });
-      licenseNo.value = want ? (want + val) : val;
-    }
+      function applyVisibility() {
+        var t = kind.value;
+        formEl.querySelectorAll(".license-extra").forEach(function (el) {
+          el.style.display = (el.getAttribute("data-for-type") === t) ? "" : "none";
+        });
+      }
 
-    kind.addEventListener("change", function () {
+      function applyPrefix() {
+        if (!licenseNo) return;
+        var want = PREFIX[kind.value];
+        var val = licenseNo.value.trim();
+        // Vorhandenes bekanntes Präfix entfernen, bevor wir neu setzen.
+        KNOWN_PREFIXES.forEach(function (p) {
+          if (val.toUpperCase().indexOf(p) === 0) val = val.slice(p.length);
+        });
+        licenseNo.value = want ? (want + val) : val;
+      }
+
+      kind.addEventListener("change", function () {
+        applyVisibility();
+        applyPrefix();
+      });
       applyVisibility();
-      applyPrefix();
-    });
-    applyVisibility();
+    }
+
+    document.querySelectorAll("[data-license-type-form]").forEach(setupForm);
   })();
 </script>
 {% endblock %}

@@ -101,6 +101,7 @@ def test_owner_can_update_name_and_breed(app):
         _login(client, owner_user_id)
         r = client.post(f"/club/profile/dogs/{dog_id}/details", data={
             f"dog_{dog_id}-name": "Smash II", f"dog_{dog_id}-breed": "Border Collie",
+            f"dog_{dog_id}-license_kind": "CH", f"dog_{dog_id}-license_no": "55512",
         }, follow_redirects=True)
         assert r.status_code == 200
 

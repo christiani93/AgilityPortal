@@ -295,8 +295,12 @@ class Dog(db.Model):
 
     @validates("license_kind")
     def _validate_license_kind(self, key, value):
-        if self.license_no is not None:
-            self._validate_license_format(value, self.license_no)
+        # Kein Format-Check hier gegen das (noch alte) license_no: beim
+        # Wechsel CH<->Ausland an einem bestehenden Hund wird license_kind
+        # immer VOR license_no neu zugewiesen (siehe club/routes.py), das alte
+        # license_no passt dann kurz nicht zum neuen Typ. Der license_no-Setter
+        # unten validiert bei seiner eigenen Zuweisung gegen den dann schon
+        # aktuellen Typ — das reicht als Schutz.
         if value == LicenseKind.FOREIGN and self.license_no:
             self.foreign_country_code = self.license_no.split("-", 1)[0]
         self.apply_license_kind_defaults()
