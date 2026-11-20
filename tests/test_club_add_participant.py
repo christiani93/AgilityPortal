@@ -71,17 +71,22 @@ def test_add_existing_dog_reuses_and_lookup_prefills(app):
 
         dog = M.Dog(name="Bella", license_no="777", license_kind=M.LicenseKind.CH,
                     category="M", class_level=2)
-        db.session.add(dog)
+        person = M.Person(first_name="Hans", last_name="Meier")
+        db.session.add_all([dog, person])
+        db.session.flush()
+        db.session.add(M.DogOwner(dog_id=dog.id, person_id=person.id, role=M.DogOwnerRole.HANDLER))
         db.session.commit()
         dog_id = dog.id
 
-        # Lookup findet den Hund und liefert Prefill-Daten
+        # Lookup findet den Hund und liefert Prefill-Daten (inkl. HF-Name getrennt)
         resp = client.get(f"/club/events/{event_id}/registrations/lookup?license_no=777")
         data = resp.get_json()
         assert data["found"] is True
         assert data["dog_name"] == "Bella"
         assert data["category"] == "M"
         assert data["class_level"] == 2
+        assert data["handler_first_name"] == "Hans"
+        assert data["handler_last_name"] == "Meier"
         assert data["already_registered"] is False
 
         # Hinzufügen verwendet den bestehenden Hund (kein zweiter Hund)

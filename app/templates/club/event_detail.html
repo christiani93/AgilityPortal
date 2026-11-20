@@ -923,15 +923,21 @@
         </div>
         <div class="col-6 col-md-2">
           <label class="form-label small mb-0">{{ _('HF Vorname') }}</label>
-          <input type="text" name="handler_first_name" class="form-control form-control-sm">
+          <input type="text" name="handler_first_name" id="ap-handler-first" class="form-control form-control-sm">
         </div>
         <div class="col-6 col-md-2">
           <label class="form-label small mb-0">{{ _('HF Nachname') }}</label>
-          <input type="text" name="handler_last_name" class="form-control form-control-sm">
+          <input type="text" name="handler_last_name" id="ap-handler-last" class="form-control form-control-sm">
         </div>
         <div class="col-6 col-md-3">
           <label class="form-label small mb-0">{{ _('Verein') }}</label>
-          <input type="text" name="club_name" class="form-control form-control-sm">
+          <input type="text" name="club_name" id="ap-club" class="form-control form-control-sm"
+                 list="ap-club-list" autocomplete="off">
+          <datalist id="ap-club-list">
+            {% for club in clubs %}
+            <option value="{{ club.vereinsnummer }}">{{ club.name }}</option>
+            {% endfor %}
+          </datalist>
         </div>
         {% if event.allows_bitches_in_season %}
         <div class="col-6 col-md-2 d-flex align-items-center pt-3">
@@ -1178,6 +1184,8 @@
           if (d.shsb) document.getElementById('ap-shsb').value = d.shsb;
           if (d.category) document.getElementById('ap-category').value = d.category;
           if (d.class_level) document.getElementById('ap-class').value = d.class_level;
+          if (d.handler_first_name) document.getElementById('ap-handler-first').value = d.handler_first_name;
+          if (d.handler_last_name) document.getElementById('ap-handler-last').value = d.handler_last_name;
           if (d.already_registered) {
             hint.className = 'form-text mt-1 text-danger';
             hint.textContent = "{{ _('Dieser Hund ist bereits für dieses Turnier angemeldet.') }}";

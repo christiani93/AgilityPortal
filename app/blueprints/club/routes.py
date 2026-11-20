@@ -738,6 +738,8 @@ def event_detail(event_id):
         {reg.handler for reg in registrations if reg.handler},
         key=lambda p: (p.last_name, p.first_name)
     )
+    # Vereine (für "Verein"-Dropdown beim manuellen Hinzufügen)
+    clubs = db.session.execute(db.select(Club).order_by(Club.name)).scalars().all()
     # body_md-Vorschau für Website-Sync-Sektion
     try:
         from app.services.website_sync import generate_body_md
@@ -764,7 +766,7 @@ def event_detail(event_id):
     return render_template("club/event_detail.html", event=event, run_form=run_form,
                            sorted_runs=sorted_runs, available_judges=available_judges,
                            registrations=registrations, cancelled_registrations=cancelled_registrations,
-                           event_handlers=event_handlers,
+                           event_handlers=event_handlers, clubs=clubs,
                            body_md_preview=body_md_preview,
                            reservation_group=reservation_group,
                            reservation_candidates=reservation_candidates)
@@ -2303,12 +2305,15 @@ def registration_lookup(event_id):
         .filter(Registration.status != RegistrationStatus.CANCELLED)
     ).scalar_one_or_none() is not None
 
-    handler_name = ""
+    handler_first_name = ""
+    handler_last_name = ""
     owner = db.session.execute(
         db.select(DogOwner).filter_by(dog_id=dog.id)
     ).scalars().first()
     if owner and owner.person:
-        handler_name = f"{owner.person.first_name or ''} {owner.person.last_name or ''}".strip()
+        handler_first_name = owner.person.first_name or ""
+        handler_last_name = owner.person.last_name or ""
+    handler_name = f"{handler_first_name} {handler_last_name}".strip()
 
     return {
         "found": True,
@@ -2320,6 +2325,8 @@ def registration_lookup(event_id):
         "category": dog.category or "",
         "class_level": dog.class_level or 1,
         "handler_name": handler_name,
+        "handler_first_name": handler_first_name,
+        "handler_last_name": handler_last_name,
         "already_registered": already,
     }
 
