@@ -9,7 +9,7 @@ Routen:
   POST /club/events/<id>/reservation-sync    → Bestehende Reservation aktualisieren
 """
 
-from flask import redirect, url_for, flash, request
+from flask import redirect, url_for, flash, request, current_app, abort
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
 
@@ -57,6 +57,8 @@ def event_tkamo_import(event_id):
 @club_bp.route("/events/<int:event_id>/description-save", methods=["POST"])
 @login_required
 def event_description_save(event_id):
+    if not current_app.config.get("ORGANIZER_WEBSITE_SYNC_ENABLED"):
+        abort(404)
     event = db.get_or_404(Event, event_id)
 
     if not (current_user.is_superadmin or
@@ -75,6 +77,8 @@ def event_description_save(event_id):
 @club_bp.route("/events/<int:event_id>/website-sync", methods=["POST"])
 @login_required
 def event_website_sync(event_id):
+    if not current_app.config.get("ORGANIZER_WEBSITE_SYNC_ENABLED"):
+        abort(404)
     event = db.get_or_404(Event, event_id)
 
     if not (current_user.is_superadmin or

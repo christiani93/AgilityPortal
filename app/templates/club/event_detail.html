@@ -240,6 +240,9 @@
 </div>
 
 {# ── Zahlungsinfos ─────────────────────────────────────────────────────────── #}
+{# Vorerst ausgeblendet (schnellerer Rollout der Veranstalter-Umgebung) — Flag:
+   ORGANIZER_PAYMENT_INFO_ENABLED, siehe app/__init__.py. #}
+{% if organizer_payment_info_enabled %}
 <div class="card mb-4">
   <div class="card-header">💳 {{ _('Zahlungsinfos für Bestätigungsmail') }}</div>
   <div class="card-body">
@@ -256,6 +259,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 {# ── TKAMO-Import ──────────────────────────────────────────────────────────── #}
 {% if event.ais_turniernummer %}
@@ -320,6 +324,9 @@
 {% endif %}
 
 {# ── Website-Sync ──────────────────────────────────────────────────────────── #}
+{# Vorerst ausgeblendet (schnellerer Rollout der Veranstalter-Umgebung) — Flag:
+   ORGANIZER_WEBSITE_SYNC_ENABLED, siehe app/__init__.py. #}
+{% if organizer_website_sync_enabled %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>🌐 {{ _('Website-Sync (z-b.tech)') }}
@@ -400,6 +407,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 {# ── LOGOS ────────────────────────────────────────────────────────────────── #}
 <div class="card mb-4">
@@ -632,7 +640,9 @@
 </div>
 
 {# ── Sammelmail ────────────────────────────────────────────────────────────── #}
-{% if registrations is defined and registrations %}
+{# Vorerst ausgeblendet (schnellerer Rollout der Veranstalter-Umgebung) — Flag:
+   ORGANIZER_BULK_EMAIL_ENABLED, siehe app/__init__.py. #}
+{% if organizer_bulk_email_enabled and registrations is defined and registrations %}
 <div class="card mb-4">
   <div class="card-header">📧 {{ _('E-Mail an Teilnehmer') }}</div>
   <div class="card-body">

@@ -75,6 +75,18 @@ def create_app():
     app.config["WEBSITE_API_TOKEN"] = os.environ.get("WEBSITE_API_TOKEN", "")
     app.config["PORTAL_PUBLIC_URL"] = os.environ.get("PORTAL_PUBLIC_URL", "")
 
+    # --- Veranstalter-Funktionen, die fuer den ersten (schnelleren) Rollout der
+    # Veranstalter-Umgebung noch ausgeblendet bleiben (fertig implementiert,
+    # aber noch nicht fuer den initialen Go-Live vorgesehen). Default AUS;
+    # einzeln per ENV wieder einschaltbar, sobald bereit. Karten + Routen
+    # pruefen dasselbe Flag (siehe event_detail.html / routes_website_sync.py /
+    # routes.py: event_payment_info_save, event_bulk_email_*).
+    def _flag_on(env_name, default="0"):
+        return os.environ.get(env_name, default).strip().lower() not in ("0", "false", "no", "off", "")
+    app.config["ORGANIZER_WEBSITE_SYNC_ENABLED"] = _flag_on("ENABLE_ORGANIZER_WEBSITE_SYNC")
+    app.config["ORGANIZER_PAYMENT_INFO_ENABLED"] = _flag_on("ENABLE_ORGANIZER_PAYMENT_INFO")
+    app.config["ORGANIZER_BULK_EMAIL_ENABLED"] = _flag_on("ENABLE_ORGANIZER_BULK_EMAIL")
+
     # --- Superadmin (Portal-Verwaltung: Vereine & Club-Admins) ---
     app.config["SUPERADMIN_USERNAME"] = os.environ.get("SUPERADMIN_USERNAME", "")
     app.config["SUPERADMIN_PASSWORD"] = os.environ.get("SUPERADMIN_PASSWORD", "")
@@ -111,7 +123,10 @@ def create_app():
     def inject_globals():
         from flask_wtf.csrf import generate_csrf
         return {"get_locale": get_locale, "csrf_token": generate_csrf,
-                "debug_tools": app.config["DEBUG_TOOLS_ENABLED"]}
+                "debug_tools": app.config["DEBUG_TOOLS_ENABLED"],
+                "organizer_website_sync_enabled": app.config["ORGANIZER_WEBSITE_SYNC_ENABLED"],
+                "organizer_payment_info_enabled": app.config["ORGANIZER_PAYMENT_INFO_ENABLED"],
+                "organizer_bulk_email_enabled": app.config["ORGANIZER_BULK_EMAIL_ENABLED"]}
 
     @app.template_filter("fromjson")
     def fromjson_filter(s):

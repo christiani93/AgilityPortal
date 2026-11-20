@@ -4210,6 +4210,9 @@ def event_logo_serve(event_id, logo_type):
 @login_required
 def event_payment_info_save(event_id):
     """Speichert die Zahlungsinfos (IBAN, Empfänger, Verwendungszweck) am Event."""
+    from flask import current_app
+    if not current_app.config.get("ORGANIZER_PAYMENT_INFO_ENABLED"):
+        abort(404)
     event = db.session.get(Event, event_id)
     if not event:
         abort(404)
@@ -4231,6 +4234,9 @@ _bulk_jobs: dict = {}
 def event_bulk_email_send(event_id):
     """Startet den Sammelmail-Versand im Hintergrund."""
     import uuid
+    from flask import current_app
+    if not current_app.config.get("ORGANIZER_BULK_EMAIL_ENABLED"):
+        abort(404)
     event = db.session.get(Event, event_id)
     if not event:
         abort(404)
@@ -4277,6 +4283,9 @@ def event_bulk_email_send(event_id):
 @login_required
 def event_bulk_email_status(event_id, job_id):
     """Zeigt den Fortschritt eines laufenden Sammelmail-Versands."""
+    from flask import current_app
+    if not current_app.config.get("ORGANIZER_BULK_EMAIL_ENABLED"):
+        abort(404)
     event = db.session.get(Event, event_id)
     if not event:
         abort(404)
@@ -4297,7 +4306,9 @@ def event_bulk_email_status(event_id, job_id):
 @login_required
 def event_bulk_email_status_json(event_id, job_id):
     """JSON-Polling für den Fortschritt."""
-    from flask import jsonify
+    from flask import jsonify, current_app
+    if not current_app.config.get("ORGANIZER_BULK_EMAIL_ENABLED"):
+        abort(404)
     event = db.session.get(Event, event_id)
     if not event:
         abort(404)
