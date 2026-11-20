@@ -100,11 +100,16 @@ def dashboard():
 
     # Teilnehmer ohne Vereinszuordnung: offene Turniere + eigene Anmeldungen + vergangene Turniere
     if not current_user.club_id:
-        open_events = db.session.execute(
-            db.select(Event)
-            .filter_by(status="open", is_test=False)
-            .order_by(Event.starts_at)
+        # Einmal alle (nicht-Test-)Events holen und nach Datum splitten — "offen"
+        # darf nur zeigen, was auch wirklich noch kommt; bereits vergangene Events
+        # (Status evtl. noch "open", weil nicht manuell geschlossen) gehören nur
+        # noch in die Vergangene-Turniere-Liste unten.
+        all_events = db.session.execute(
+            db.select(Event).filter_by(is_test=False).order_by(Event.starts_at)
         ).scalars().all()
+        upcoming_events, past_events = split_events_upcoming_past(all_events)
+        open_events = [e for e in upcoming_events if e.status == "open"]
+        past_events = past_events[:20]
         # Eigene Anmeldungen (alle nicht-stornierten, neueste zuerst)
         my_registrations = []
         handler_ids = current_user.handler_ids
@@ -115,12 +120,6 @@ def dashboard():
                 .filter(Registration.status != RegistrationStatus.CANCELLED)
                 .order_by(Registration.created_at.desc())
             ).scalars().all()
-        # Vergangene Turniere (alle Vereine, neueste zuerst, für Rückblick)
-        all_events = db.session.execute(
-            db.select(Event).filter_by(is_test=False).order_by(Event.starts_at)
-        ).scalars().all()
-        _, past_events = split_events_upcoming_past(all_events)
-        past_events = past_events[:20]
         return render_template("club/participant_dashboard.html",
                                open_events=open_events,
                                my_registrations=my_registrations,

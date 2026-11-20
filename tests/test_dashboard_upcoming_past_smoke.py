@@ -64,6 +64,33 @@ def test_participant_dashboard_shows_past_events_section(app):
         assert "Vergangenes Turnier" in html
 
 
+def test_participant_dashboard_open_events_excludes_past_still_open(app):
+    """Ein Event mit Status 'open', dessen Datum aber vorbei ist (nicht manuell
+    geschlossen), darf nicht mehr unter 'Offene Turniere' erscheinen — nur noch
+    unter 'Vergangene Turniere'."""
+    with app.app_context():
+        club, _, _ = M.Club(vereinsnummer="V9", name="ClubX"), None, None
+        db.session.add(club)
+        db.session.flush()
+        today = datetime.utcnow()
+        past_but_open = M.Event(name="Altes Offenes Turnier", organiser_club_id=club.id,
+                                status="open",
+                                starts_at=today - timedelta(days=5), ends_at=today - timedelta(days=4))
+        db.session.add(past_but_open)
+        handler = M.User(email="handler2@test.ch", role="handler")
+        db.session.add(handler)
+        db.session.commit()
+        client = app.test_client()
+        _login(client, handler.id)
+
+        resp = client.get("/club/")
+        html = resp.get_data(as_text=True)
+        pos_open_header = html.index("Offene Turniere")
+        pos_past_header = html.index("Vergangene Turniere")
+        assert "Altes Offenes Turnier" not in html[pos_open_header:pos_past_header]
+        assert "Altes Offenes Turnier" in html[pos_past_header:]
+
+
 def test_club_admin_dashboard_shows_upcoming_first_then_past(app):
     with app.app_context():
         _, club_admin_id = _seed()
