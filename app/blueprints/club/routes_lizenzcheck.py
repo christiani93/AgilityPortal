@@ -25,7 +25,7 @@ from flask_mail import Message
 from itsdangerous import URLSafeSerializer, BadSignature
 
 from app.extensions import db, mail
-from app.models import Dog, Event, LicenseKind, Registration, RegistrationStatus, User
+from app.models import Dog, Event, LicenseKind, Registration, RegistrationStatus, User, split_events_upcoming_past
 from .routes import club_bp, _assert_event_access
 
 # ── Hilfsfunktionen ──────────────────────────────────────────────────────────
@@ -70,15 +70,15 @@ def club_lizenzcheck_select():
 	if not current_user.can_manage_club:
 		abort(403)
 
-	# Nur zukünftige offene Events (nach Datum sortiert)
-	from datetime import datetime as dt
-	now = dt.utcnow()
-	events = db.session.execute(
+	# Offene Events nach Datum splitten (Referenz ends_at/starts_at, siehe
+	# split_events_upcoming_past) statt nach exaktem Zeitstempel zu filtern —
+	# sonst verschwindet das heutige Turnier, sobald seine Startzeit vorbei ist.
+	all_open = db.session.execute(
 		db.select(Event)
 		.filter_by(status='open')
-		.filter(Event.starts_at >= now)
 		.order_by(Event.starts_at.asc())
 	).scalars().all()
+	events, _past = split_events_upcoming_past(all_open)
 
 	return render_template(
 		"club/lizenzcheck_select.html",
