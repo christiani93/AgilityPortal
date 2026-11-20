@@ -186,10 +186,14 @@ async function tkamo_load() {
   } catch(e) { status.textContent = '❌ {{ _("Netzwerkfehler — AdminPortal nicht erreichbar?") }}'; }
 }
 
-// Kommt der Nutzer aus der Agenda (AIS vorbefüllt), die Felder direkt laden.
+{% if not event %}
+// Neues Turnier, Nutzer kommt aus der Agenda (AIS vorbefüllt) → Felder direkt laden.
+// Nur hier automatisch, NICHT beim Bearbeiten eines bestehenden Turniers — sonst
+// überschreibt der Autoload bei jedem Öffnen der Edit-Seite manuell angepasste Felder.
 document.addEventListener('DOMContentLoaded', function() {
   const el = document.getElementById('ais_input');
   if (el && el.value.trim()) tkamo_load();
 });
+{% endif %}
 </script>
 {% endblock %}
