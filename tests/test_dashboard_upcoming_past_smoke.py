@@ -48,6 +48,22 @@ def test_superadmin_dashboard_shows_upcoming_first_then_past(app):
         assert pos_soon < pos_later < pos_undated < pos_past
 
 
+def test_participant_dashboard_shows_past_events_section(app):
+    with app.app_context():
+        _seed()
+        handler = M.User(email="handler@test.ch", role="handler")
+        db.session.add(handler)
+        db.session.commit()
+        client = app.test_client()
+        _login(client, handler.id)
+
+        resp = client.get("/club/")
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert "Vergangene Turniere" in html
+        assert "Vergangenes Turnier" in html
+
+
 def test_club_admin_dashboard_shows_upcoming_first_then_past(app):
     with app.app_context():
         _, club_admin_id = _seed()

@@ -98,7 +98,7 @@ def dashboard():
         return render_template("club/superadmin_dashboard.html", clubs=clubs, events=events,
                                upcoming=upcoming, past=past, pending_count=pending_count)
 
-    # Teilnehmer ohne Vereinszuordnung: offene Turniere + eigene Anmeldungen
+    # Teilnehmer ohne Vereinszuordnung: offene Turniere + eigene Anmeldungen + vergangene Turniere
     if not current_user.club_id:
         open_events = db.session.execute(
             db.select(Event)
@@ -115,9 +115,16 @@ def dashboard():
                 .filter(Registration.status != RegistrationStatus.CANCELLED)
                 .order_by(Registration.created_at.desc())
             ).scalars().all()
+        # Vergangene Turniere (alle Vereine, neueste zuerst, für Rückblick)
+        all_events = db.session.execute(
+            db.select(Event).filter_by(is_test=False).order_by(Event.starts_at)
+        ).scalars().all()
+        _, past_events = split_events_upcoming_past(all_events)
+        past_events = past_events[:20]
         return render_template("club/participant_dashboard.html",
                                open_events=open_events,
-                               my_registrations=my_registrations)
+                               my_registrations=my_registrations,
+                               past_events=past_events)
 
     club = _club_for_user()
     events = _events_for_club(club)
