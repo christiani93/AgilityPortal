@@ -199,21 +199,43 @@ def compute_timeline(blocks_by_ring: dict, ring_start_times: dict,
             elif gtype == "final":
                 block = content
                 count = getattr(block, "_participant_count", 0)
+                # Finale wie eine Lauf-Gruppe mit Umbau + Briefing [+ Preppause]
+                # rechnen: der Finalparcours wird aufgebaut (Umbau) und von den
+                # Finalisten begangen (Briefing). Über skip_changeover/skip_briefing
+                # am Block abschaltbar (z.B. KO/American-Final ohne separates Briefing).
+                changeover_s = 0 if getattr(block, "skip_changeover", False) else CHANGEOVER_SECONDS
+                if getattr(block, "skip_briefing", False):
+                    brief_s = 0
+                    prep_s  = 0
+                else:
+                    brief_s = _briefing_seconds(count)
+                    prep_s  = _prep_pause_seconds(count)
+
+                # Umbau (Finalparcours aufbauen)
+                co_start = _round_to_minutes(current, round_minutes) if round_minutes else current
+                current  = co_start + timedelta(seconds=changeover_s)
+                if round_minutes:
+                    current = _round_to_minutes(current, round_minutes)
+                # Briefing (Finalisten begehen) + optionale Preppause
+                _bs, _be, current = _advance(current, brief_s, round_minutes)
+                if prep_s:
+                    _ps, _pe, current = _advance(current, prep_s, round_minutes)
+
                 # Final-Block mit gesetzter Disziplin (z.B. BCCS Jumping/Agility-Finale)
                 # rechnet mit der normalen Disziplin-Zeit aus dem Schema; ohne Disziplin
                 # (KO/American-Final, jedes Team mehrfach) gilt der 'final'-Satz.
                 secs  = _secs_per_starter(block.discipline or "final", run_time_config)
                 run_s = max(count * secs, 60)
-                s, e, current = _advance(current, run_s, round_minutes)
+                _rs, e, current = _advance(current, run_s, round_minutes)
                 items.append({
                     "block":           block,
-                    "start_time":      s,
+                    "start_time":      co_start.strftime("%H:%M"),
                     "end_time":        e,
                     "participants":    count,
-                    "total_min":       run_s // 60,
-                    "changeover_min":  0,
-                    "briefing_min":    0,
-                    "prep_pause_min":  0,
+                    "total_min":       (changeover_s + brief_s + prep_s + run_s) // 60,
+                    "changeover_min":  changeover_s // 60,
+                    "briefing_min":    brief_s // 60,
+                    "prep_pause_min":  prep_s // 60,
                     "run_min":         run_s // 60,
                 })
             else:
@@ -334,6 +356,54 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
             elif gtype == "final":
                 block = content
                 count = getattr(block, "_participant_count", 0)
+                final_label = (getattr(block, "_display_title", None)
+                               or block.title or _("Finale"))
+                # Finale wie eine Lauf-Gruppe: Umbau (Finalparcours aufbauen) +
+                # Briefing (Finalisten begehen) [+ Preppause] vor dem Lauf. Über
+                # skip_changeover/skip_briefing am Block abschaltbar.
+                changeover_s = 0 if getattr(block, "skip_changeover", False) else CHANGEOVER_SECONDS
+                if getattr(block, "skip_briefing", False):
+                    brief_s = 0
+                    prep_s  = 0
+                else:
+                    brief_s = _briefing_seconds(count)
+                    prep_s  = _prep_pause_seconds(count)
+
+                # ── Umbau (Finalparcours aufbauen) ────────────────────────
+                if changeover_s:
+                    s, e, current = _advance(current, changeover_s, round_minutes)
+                    items.append({
+                        "segment":      "changeover",
+                        "label":        _("Umbau"),
+                        "block":        block,
+                        "start_time":   s,
+                        "end_time":     e,
+                        "participants": 0,
+                    })
+                # ── Briefing (Finalisten begehen) ─────────────────────────
+                if brief_s:
+                    s, e, current = _advance(current, brief_s, round_minutes)
+                    briefing_item_indices.append(len(items))
+                    items.append({
+                        "segment":      "briefing",
+                        "label":        f"{_('Briefing')} {final_label}",
+                        "block":        block,
+                        "start_time":   s,
+                        "end_time":     e,   # wird unten auf Final-Start ausgedehnt
+                        "participants": count,
+                    })
+                # ── Preppause (nur bei kleinen Gruppen) ───────────────────
+                if prep_s:
+                    s, e, current = _advance(current, prep_s, round_minutes)
+                    items.append({
+                        "segment":      "prep_pause",
+                        "label":        _("Vorbereitungspause"),
+                        "block":        block,
+                        "start_time":   s,
+                        "end_time":     e,
+                        "participants": 0,
+                    })
+
                 # Final-Block mit gesetzter Disziplin (z.B. BCCS Jumping/Agility-Finale)
                 # rechnet mit der normalen Disziplin-Zeit aus dem Schema; ohne Disziplin
                 # (KO/American-Final, jedes Team mehrfach) gilt der 'final'-Satz.
@@ -342,8 +412,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
                 s, e, current = _advance(current, run_s, round_minutes)
                 items.append({
                     "segment":      "final",
-                    "label":        (getattr(block, "_display_title", None)
-                                     or block.title or _("Finale")),
+                    "label":        final_label,
                     "block":        block,
                     "start_time":   s,
                     "end_time":     e,
@@ -423,7 +492,7 @@ def compute_detailed_segments(blocks_by_ring: dict, ring_start_times: dict,
         # daher gehört der erste nachfolgende 'run' immer zur selben Gruppe.
         for idx in briefing_item_indices:
             first_run = next(
-                (it for it in items[idx + 1:] if it["segment"] == "run"), None
+                (it for it in items[idx + 1:] if it["segment"] in ("run", "final")), None
             )
             if first_run:
                 items[idx]["end_time"] = first_run["start_time"]

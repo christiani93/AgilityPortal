@@ -66,21 +66,43 @@ def test_final_block_is_standalone_group():
 
 # ── Timing ─────────────────────────────────────────────────────────────────
 def test_final_duration_from_count_times_final_secs():
-    # KO/American-Final ohne Disziplin → 'final'-Satz.
-    # 80 Finalstarter × 240 Sek. = 19200 Sek. = 320 Min. = 5h 20min
+    # KO/American-Final ohne Disziplin → 'final'-Satz. Finale wird jetzt WIE eine
+    # Lauf-Gruppe mit Umbau + Briefing gerechnet (vorher nur Laufzeit).
+    # 80 Finalstarter × 240 Sek. = 19200 Sek. = 320 Min. = 5h 20min reine Laufzeit.
     final = _block(sort_index=1, block_type="final", discipline=None,
                    _participant_count=80,
                    title="Finale HCS", _display_title="Finale HCS")
     segs = compute_detailed_segments(
         {"Ring 3": [final]}, {"Ring 3": "15:45"}, "2026-10-31", round_minutes=5,
     )["Ring 3"]
+    # Umbau (20 Min) + Briefing (Fenster bis Final-Start) + Finale.
+    assert [s["segment"] for s in segs] == ["changeover", "briefing", "final"]
+    co, brief, fin = segs
+    assert co["label"] == "Umbau"
+    assert (co["start_time"], co["end_time"]) == ("15:45", "16:05")
+    assert brief["start_time"] == "16:05"
+    assert brief["end_time"] == "16:20"          # Briefing-Fenster bis Final-Start
+    assert brief["participants"] == 80
+    assert fin["segment"] == "final"
+    assert fin["label"] == "Finale HCS"
+    assert fin["participants"] == 80
+    # Finale: 80 × 240 Sek. = 320 Min; 16:20 → 21:40.
+    assert (fin["start_time"], fin["end_time"]) == ("16:20", "21:40")
+
+
+def test_final_skip_changeover_and_briefing_falls_back_to_run_only():
+    # Über skip_changeover + skip_briefing am Block lässt sich das Finale wieder
+    # auf reine Laufzeit reduzieren (z.B. KO-Final ohne separates Briefing).
+    final = _block(sort_index=1, block_type="final", discipline=None,
+                   _participant_count=80, skip_changeover=True, skip_briefing=True,
+                   title="Finale HCS", _display_title="Finale HCS")
+    segs = compute_detailed_segments(
+        {"Ring 3": [final]}, {"Ring 3": "15:45"}, "2026-10-31", round_minutes=5,
+    )["Ring 3"]
     assert len(segs) == 1
-    seg = segs[0]
-    assert seg["segment"] == "final"
-    assert seg["label"] == "Finale HCS"
-    assert seg["start_time"] == "15:45"
-    assert seg["end_time"] == "21:05"
-    assert seg["participants"] == 80
+    assert segs[0]["segment"] == "final"
+    assert segs[0]["start_time"] == "15:45"
+    assert segs[0]["end_time"] == "21:05"
 
 
 def test_final_respects_run_time_config_override():
@@ -95,6 +117,12 @@ def test_final_respects_run_time_config_override():
     assert tl[0]["start_time"] == "08:00"
     assert tl[0]["run_min"] == 20
     assert tl[0]["participants"] == 10
+    # Finale jetzt inkl. Umbau (20) + Briefing (8, 1 Block bei 10 Startern) +
+    # Preppause (5, da ≤ 50 Starter) → total 53 Min.
+    assert tl[0]["changeover_min"] == 20
+    assert tl[0]["briefing_min"] == 8
+    assert tl[0]["prep_pause_min"] == 5
+    assert tl[0]["total_min"] == 53
 
 
 def test_final_with_discipline_uses_schema_discipline_time():
