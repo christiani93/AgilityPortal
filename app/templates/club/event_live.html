@@ -18,6 +18,10 @@
     {% endif %}
     <a href="{{ url_for('club.event_startlist', event_id=event.id) }}"
        class="btn btn-sm btn-outline-secondary">📋 {{ _('Startliste') }}</a>
+    {% if has_finalists %}
+    <a href="{{ url_for('public_events.public_finalists', event_id=event.id) }}"
+       class="btn btn-sm btn-outline-primary">🐕 {{ _('Finalisten') }}</a>
+    {% endif %}
     <a href="{{ url_for('club.event_results_print', event_id=event.id) }}"
        target="_blank" class="btn btn-sm btn-outline-dark" id="printBtn" style="display:none;">
       🖨️ {{ _('Rangliste drucken') }}

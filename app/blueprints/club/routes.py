@@ -3623,7 +3623,14 @@ def event_live(event_id):
         has_ko_final = _event_has_ko_live(event_id)
     except Exception:
         has_ko_final = False
-    return render_template("club/event_live.html", event=event, has_ko_final=has_ko_final)
+    # Finalisten/Titelverteidiger-Button nur zeigen, wenn es bereits einen
+    # EventFinalist-Eintrag gibt (Titelverteidiger ODER Quali-Finalisten) —
+    # sonst 404 auf der Zielseite (spiegelt public_overview()).
+    has_finalists = db.session.execute(
+        db.select(EventFinalist.id).filter_by(event_id=event_id).limit(1)
+    ).first() is not None
+    return render_template("club/event_live.html", event=event,
+                           has_ko_final=has_ko_final, has_finalists=has_finalists)
 
 
 @club_bp.get("/api/events/<int:event_id>/live.json")
