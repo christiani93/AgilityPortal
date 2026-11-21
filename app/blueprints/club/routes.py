@@ -2954,6 +2954,22 @@ def event_export_zip(event_id):
             "is_final":      bool(r.is_final),
         })
 
+    # ── title_defenders.json ─────────────────────────────────────────────────
+    # Titelverteidiger-Register (EventFinalist source='title_defender'), z.B.
+    # BCCS-SM/SKBS-SM/HCS/WiMeSma. Software übernimmt sie direkt in
+    # event["bccs_sm_config"]["defending_champions"] (s. _apply_eventexport_
+    # title_defenders in AgilitySoftware/web_app/blueprints/routes_events.py).
+    title_defenders_out = [
+        {
+            "license":      tv.license,
+            "dog_name":     tv.dog_name,
+            "handler_name": tv.handler_name,
+            "category":     tv.category,
+            "division":     tv.division,
+        }
+        for tv in EventFinalist.query.filter_by(event_id=event_id, source="title_defender").all()
+    ]
+
     # ── ZIP zusammenbauen ─────────────────────────────────────────────────────
     import os as _os
     buf = io.BytesIO()
@@ -2968,6 +2984,8 @@ def event_export_zip(event_id):
         _add("start_numbers.json", start_numbers_payload)
         _add("schedule.json",      schedule_payload)
         _add("runs.json",          {"runs": runs_out})
+        if title_defenders_out:
+            _add("title_defenders.json", {"title_defenders": title_defenders_out})
 
         # Logos als Binärdateien einpacken (falls vorhanden)
         from flask import current_app as _ca
