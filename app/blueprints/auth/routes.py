@@ -54,18 +54,47 @@ def register():
             user.set_password(form.password.data)
             db.session.add(user)
             db.session.flush()
-            person = Person(
-                first_name=form.first_name.data.strip(),
-                last_name=form.last_name.data.strip(),
-                email=email,
-                account_user_id=user.id,
-            )
-            db.session.add(person)
-            db.session.flush()  # get person.id
+            first = form.first_name.data.strip()
+            last = form.last_name.data.strip()
+            # Existiert diese E-Mail bereits als Teilnehmer (Person) OHNE eigenen
+            # Account (z.B. aus AOA-Import/Anmeldung), übernehmen wir den
+            # bestehenden Datensatz, statt ein Duplikat anzulegen — so bleiben
+            # Hunde/Anmeldungen am Konto hängen. Abgleich über E-Mail + Name
+            # (case-insensitive), damit bei einer Familien-Sammelmail der/die
+            # Registrierende die EIGENE Person trifft und nicht die eines
+            # Angehörigen.
+            existing_person = db.session.execute(
+                db.select(Person).filter(
+                    db.func.lower(Person.email) == email,
+                    db.func.lower(Person.first_name) == first.lower(),
+                    db.func.lower(Person.last_name) == last.lower(),
+                    Person.account_user_id.is_(None),
+                ).order_by(Person.id)
+            ).scalars().first()
+            if existing_person:
+                existing_person.account_user_id = user.id
+                person = existing_person
+                _linked = True
+            else:
+                person = Person(
+                    first_name=first,
+                    last_name=last,
+                    email=email,
+                    account_user_id=user.id,
+                )
+                db.session.add(person)
+                db.session.flush()  # get person.id
+                _linked = False
             user.person_id = person.id
             db.session.commit()
             login_user(user)
-            flash(_("Willkommen, %(name)s! Dein Konto wurde erstellt.", name=user.first_name), "success")
+            if _linked:
+                flash(_("Willkommen, %(name)s! Dein Konto wurde mit deinem "
+                        "bestehenden Teilnehmer-Profil verknüpft.",
+                        name=user.first_name), "success")
+            else:
+                flash(_("Willkommen, %(name)s! Dein Konto wurde erstellt.",
+                        name=user.first_name), "success")
             return redirect(url_for("club.dashboard"))
     return render_template("auth/register.html", form=form)
 
