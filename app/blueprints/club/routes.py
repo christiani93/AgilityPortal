@@ -3613,6 +3613,7 @@ def event_live_json(event_id):
     """JSON-API für die öffentliche Live-Seite (polling)."""
     from flask import jsonify
     import json as _j
+    from itertools import groupby
 
     event = db.session.get(Event, event_id)
     if not event or event.status not in ("open", "closed", "cancelled"):
@@ -3684,7 +3685,6 @@ def event_live_json(event_id):
             ).scalars().all()
         )
         rows.sort(key=_result_class_order_key)
-        from itertools import groupby
         def _ck(r):
             return (r.ring or "", r.discipline or "", r.category_code or "", r.class_level or 0)
         for key, grp in groupby(rows, key=_ck):
