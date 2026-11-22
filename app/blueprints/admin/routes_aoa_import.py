@@ -278,10 +278,11 @@ def _read_upload(file) -> tuple[list[dict], list[str]]:
 @aoa_import_bp.get("/admin/aoa-import")
 @_require_admin_key
 def aoa_import_home():
-    from datetime import datetime as dt, timedelta
+    from datetime import datetime as dt
     now = dt.utcnow()
-    week_ago = now - timedelta(days=7)
-    events = Event.query.filter(Event.starts_at >= week_ago).order_by(Event.starts_at.asc()).limit(100).all()
+    # Heute ab Mitternacht (UTC) — heute + zukünftige Events, nicht Vergangenheit
+    today_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    events = Event.query.filter(Event.starts_at >= today_midnight).order_by(Event.starts_at.asc()).limit(100).all()
     return render_template(
         "admin/aoa_import/home.html",
         events=events,
