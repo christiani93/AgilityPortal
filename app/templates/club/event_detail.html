@@ -1080,6 +1080,13 @@
                       title="{{ _('BCCS-SM-Markierung aufheben') if reg.bccs_sm else _('Für BCCS-SM markieren') }}">SM</button>
             </form>
             {% endif %}
+            {% if event.allows_fmbb and reg.status.value != 'CANCELLED' %}
+            <form method="post" action="{{ url_for('club.registration_toggle_fmbb', reg_id=reg.id) }}" class="d-inline">
+              {{ run_form.hidden_tag() }}
+              <button class="btn btn-sm {{ 'btn-primary' if reg.is_fmbb else 'btn-outline-primary' }}"
+                      title="{{ _('FMBB-Markierung aufheben') if reg.is_fmbb else _('Für FMBB-Quali markieren') }}">FMBB</button>
+            </form>
+            {% endif %}
             {% if reg.status.value in ('PENDING', 'SUBMITTED') %}
             <form method="post" action="{{ url_for('club.registration_confirm', reg_id=reg.id) }}" class="d-inline">
               {{ run_form.hidden_tag() }}

@@ -507,6 +507,15 @@ class Event(db.Model):
                              "eo_quali", "wm_quali", "sao_quali", "jao_quali",
                              "fmbb_quali"}
 
+    @property
+    def allows_fmbb(self):
+        """Event-Typen, bei denen pro Anmeldung ein FMBB-Quali-Marker sinnvoll ist.
+
+        Reine FMBB-Quali-Tage (``fmbb_quali``) UND SKBS-SM-Tage (``skbs_sm``), weil
+        FMBB-Qualiläufe laut Reglement Bestandteil der SKBS-Agility-SM sein können
+        (z.B. Münsingen Sa = SKBS-SM + FMBB-Quali auf denselben Läufen)."""
+        return self.type in {"fmbb_quali", "skbs_sm"}
+
     @classmethod
     def special_ruleset_allowed_club_ids(cls, ruleset) -> set:
         """Vereine, die laut SpecialRulesetAllowedClub für dieses Ruleset freigegeben sind."""
@@ -800,6 +809,7 @@ class Registration(db.Model):
     start_number = db.Column(db.Integer, nullable=True)
     is_in_season = db.Column(db.Boolean, default=False, nullable=False)
     bccs_sm = db.Column(db.Boolean, default=False, nullable=False)
+    is_fmbb = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     event = db.relationship("Event")

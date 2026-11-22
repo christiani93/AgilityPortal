@@ -2204,6 +2204,30 @@ def registration_toggle_bccs_sm(reg_id):
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
 
+@club_bp.post("/registrations/<int:reg_id>/toggle-fmbb")
+@login_required
+def registration_toggle_fmbb(reg_id):
+    """Veranstalter setzt/entfernt das FMBB-Quali-Flag einer Anmeldung von Hand.
+
+    Die FMBB-WM-Anmeldung läuft separat über den SKBS; der Veranstalter markiert
+    hier die gemeldeten Teams (aus der SKBS-Lizenzliste). Das Flag wird im
+    Event-Paket exportiert und von der AgilitySoftware als entry["is_fmbb"] für
+    die FMBB-Quali-Auswertung gelesen (eigene SCT, L2+L3-Rangliste, Punkte)."""
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+
+    reg.is_fmbb = not reg.is_fmbb
+    db.session.commit()
+
+    if reg.is_fmbb:
+        flash(_("%(dog)s für FMBB-Quali markiert.", dog=reg.dog.name if reg.dog else "?"), "info")
+    else:
+        flash(_("FMBB-Markierung für %(dog)s aufgehoben.", dog=reg.dog.name if reg.dog else "?"), "info")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
 @club_bp.post("/registrations/<int:reg_id>/class")
 @login_required
 def registration_set_class(reg_id):
@@ -2831,6 +2855,9 @@ def event_export_zip(event_id):
                 # liest es als entry["bccs_sm"] für die SM-Finalisten-Ableitung
                 # (_apply_eventexport_registrations → _sm_keys).
                 "bccs_sm":                  bool(reg.bccs_sm),
+                # FMBB-Quali-Teilnahme-Flag (vom Portal gesetzt). Die AgilitySoftware
+                # liest es als entry["is_fmbb"] für die FMBB-Quali-Auswertung.
+                "is_fmbb":                  bool(reg.is_fmbb),
             })
 
     # ── start_numbers.json ────────────────────────────────────────────────────
