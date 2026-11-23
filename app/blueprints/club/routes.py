@@ -2228,6 +2228,30 @@ def registration_toggle_fmbb(reg_id):
     return redirect(url_for("club.event_detail", event_id=reg.event_id))
 
 
+@club_bp.post("/registrations/<int:reg_id>/toggle-skbs-sm")
+@login_required
+def registration_toggle_skbs_sm(reg_id):
+    """Veranstalter setzt/entfernt das SKBS-SM-Flag einer Anmeldung von Hand.
+
+    Eigenständiger Marker (unabhängig von FMBB): am selben Large-Event können
+    Teilnehmer nur SM, nur FMBB-Quali, beides oder gar keine Sonderwertung laufen.
+    Das Flag wird im Event-Paket exportiert und von der AgilitySoftware als
+    entry["skbs_sm"] gelesen (nur markierte Hunde zählen für Quote/Quali/Nachrücken)."""
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+
+    reg.skbs_sm = not reg.skbs_sm
+    db.session.commit()
+
+    if reg.skbs_sm:
+        flash(_("%(dog)s für SKBS-SM markiert.", dog=reg.dog.name if reg.dog else "?"), "info")
+    else:
+        flash(_("SKBS-SM-Markierung für %(dog)s aufgehoben.", dog=reg.dog.name if reg.dog else "?"), "info")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
 @club_bp.post("/registrations/<int:reg_id>/class")
 @login_required
 def registration_set_class(reg_id):
@@ -2855,6 +2879,10 @@ def event_export_zip(event_id):
                 # liest es als entry["bccs_sm"] für die SM-Finalisten-Ableitung
                 # (_apply_eventexport_registrations → _sm_keys).
                 "bccs_sm":                  bool(reg.bccs_sm),
+                # SKBS-SM-Teilnahme-Flag (vom Portal gesetzt, eigenständig von FMBB/BCCS).
+                # Die AgilitySoftware liest es als entry["skbs_sm"] und filtert damit die
+                # SKBS-SM-Auswertung auf die gemeldeten SM-Hunde (skbs_sm_qualification).
+                "skbs_sm":                  bool(reg.skbs_sm),
                 # FMBB-Quali-Teilnahme-Flag (vom Portal gesetzt). Die AgilitySoftware
                 # liest es als entry["is_fmbb"] für die FMBB-Quali-Auswertung.
                 "is_fmbb":                  bool(reg.is_fmbb),

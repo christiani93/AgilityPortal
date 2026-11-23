@@ -809,6 +809,7 @@ class Registration(db.Model):
     start_number = db.Column(db.Integer, nullable=True)
     is_in_season = db.Column(db.Boolean, default=False, nullable=False)
     bccs_sm = db.Column(db.Boolean, default=False, nullable=False)
+    skbs_sm = db.Column(db.Boolean, default=False, nullable=False)
     is_fmbb = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
