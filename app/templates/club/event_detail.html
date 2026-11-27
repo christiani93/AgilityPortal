@@ -1223,12 +1223,15 @@
           if (d.class_level) document.getElementById('ap-class').value = d.class_level;
           if (d.handler_first_name) document.getElementById('ap-handler-first').value = d.handler_first_name;
           if (d.handler_last_name) document.getElementById('ap-handler-last').value = d.handler_last_name;
+          if (d.club_name) document.getElementById('ap-club').value = d.club_name;
           if (d.already_registered) {
             hint.className = 'form-text mt-1 text-danger';
             hint.textContent = "{{ _('Dieser Hund ist bereits für dieses Turnier angemeldet.') }}";
           } else {
             hint.className = 'form-text mt-1 text-success';
-            hint.textContent = "{{ _('Hund in der DB gefunden.') }}" + (d.handler_name ? ' · ' + d.handler_name : '');
+            let txt = "{{ _('Hund in der DB gefunden.') }}" + (d.handler_name ? ' · ' + d.handler_name : '');
+            if (d.club_display) txt += ' · ' + d.club_display;
+            hint.textContent = txt;
           }
         } else {
           hint.className = 'form-text mt-1 text-muted';

@@ -4,6 +4,8 @@ Tests für die Veranstalter-Teilnehmererfassung:
   - Teilnehmer hinzufügen (registration_add) — Hund finden oder neu anlegen,
     Hundeführer anlegen, Registrierung bestätigt erstellen.
 """
+from datetime import datetime
+
 from app.extensions import db
 from app import models as M
 
@@ -123,6 +125,117 @@ def test_add_duplicate_does_not_create_second_registration(app):
             .filter(M.Dog.license_no == "555")
         ).scalars().all()
         assert len(regs) == 1
+
+
+# --- Auto-Startnummer beim Nachmelden (Wunsch Chris 2026-11-27) --------------
+
+def test_add_assigns_next_start_number_when_already_generated(app):
+    """Hat das Event schon Startnummern, bekommt der Nachzügler die erste freie
+    im Kategorie-Band (hier: 3301 belegt → 3302)."""
+    with app.app_context():
+        event_id, admin_id = _seed()
+        event = db.session.get(M.Event, event_id)
+        event.start_numbers_generated_at = datetime.utcnow()
+        event.startnumber_schema = '{"Large-3": 3301}'
+        dog0 = M.Dog(name="Alt", license_no="3001", license_kind=M.LicenseKind.CH,
+                     category="L", class_level=3)
+        db.session.add(dog0)
+        db.session.flush()
+        db.session.add(M.Registration(
+            event_id=event_id, dog_id=dog0.id, category_code="Large",
+            class_level=3, status=M.RegistrationStatus.CONFIRMED, start_number=3301))
+        db.session.commit()
+
+        client = app.test_client()
+        _login(client, admin_id)
+        client.post(f"/club/events/{event_id}/registrations/add", data={
+            "license_no": "3002", "dog_name": "Neu", "category": "L", "class_level": "3",
+        })
+        dog = db.session.execute(
+            db.select(M.Dog).filter_by(license_no="3002")
+        ).scalar_one()
+        reg = db.session.execute(
+            db.select(M.Registration).filter_by(event_id=event_id, dog_id=dog.id)
+        ).scalar_one()
+        assert reg.start_number == 3302
+
+
+def test_add_leaves_start_number_none_when_not_generated(app):
+    """Ohne vorherige Startnummern-Vergabe bleibt start_number None (die reguläre
+    Bulk-Vergabe erzeugt sie später mit)."""
+    with app.app_context():
+        event_id, admin_id = _seed()
+        client = app.test_client()
+        _login(client, admin_id)
+        client.post(f"/club/events/{event_id}/registrations/add", data={
+            "license_no": "4001", "dog_name": "Ohne", "category": "S", "class_level": "1",
+        })
+        reg = db.session.execute(
+            db.select(M.Registration).join(M.Dog).filter(M.Dog.license_no == "4001")
+        ).scalar_one()
+        assert reg.start_number is None
+
+
+# --- Auto-Verein: zuletzt gemeldeter Verein zur Lizenznummer -----------------
+
+def test_lookup_and_add_adopt_last_club(app):
+    """Lookup schlägt den zuletzt gemeldeten Verein vor (Nummer + Name); ein Add
+    ohne Vereinsangabe übernimmt ihn."""
+    with app.app_context():
+        event_id, admin_id = _seed()
+        home_club = M.Club(vereinsnummer="999", name="Heimverein")
+        dog = M.Dog(name="Kira", license_no="8080", license_kind=M.LicenseKind.CH,
+                    category="L", class_level=3)
+        prior_event = M.Event(name="Vorjahr", organiser_club_id=None)
+        db.session.add_all([home_club, dog, prior_event])
+        db.session.flush()
+        db.session.add(M.Registration(
+            event_id=prior_event.id, dog_id=dog.id, category_code="Large",
+            class_level=3, status=M.RegistrationStatus.CONFIRMED, club_name="999"))
+        db.session.commit()
+        dog_id = dog.id
+
+        client = app.test_client()
+        _login(client, admin_id)
+        data = client.get(
+            f"/club/events/{event_id}/registrations/lookup?license_no=8080"
+        ).get_json()
+        assert data["club_name"] == "999"
+        assert data["club_display"] == "Heimverein"
+
+        client.post(f"/club/events/{event_id}/registrations/add", data={
+            "license_no": "8080", "category": "L", "class_level": "3",
+        })
+        reg = db.session.execute(
+            db.select(M.Registration).filter_by(event_id=event_id, dog_id=dog_id)
+        ).scalar_one()
+        assert reg.club_name == "999"
+
+
+def test_add_keeps_explicit_club_over_history(app):
+    """Gibt der Veranstalter einen Verein an, gewinnt dieser gegen die Historie."""
+    with app.app_context():
+        event_id, admin_id = _seed()
+        dog = M.Dog(name="Rex", license_no="8081", license_kind=M.LicenseKind.CH,
+                    category="M", class_level=2)
+        prior_event = M.Event(name="Vorjahr2", organiser_club_id=None)
+        db.session.add_all([dog, prior_event])
+        db.session.flush()
+        db.session.add(M.Registration(
+            event_id=prior_event.id, dog_id=dog.id, category_code="Medium",
+            class_level=2, status=M.RegistrationStatus.CONFIRMED, club_name="111"))
+        db.session.commit()
+        dog_id = dog.id
+
+        client = app.test_client()
+        _login(client, admin_id)
+        client.post(f"/club/events/{event_id}/registrations/add", data={
+            "license_no": "8081", "category": "M", "class_level": "2", "club_name": "222",
+        })
+        reg = db.session.execute(
+            db.select(M.Registration).filter_by(event_id=event_id, dog_id=dog_id)
+        ).scalar_one()
+        assert reg.club_name == "222"
 
 
 def test_lookup_unknown_license_returns_not_found(app):

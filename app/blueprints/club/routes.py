@@ -2389,6 +2389,31 @@ def _detect_license_kind(license_no: str) -> LicenseKind:
     return LicenseKind.CH if (license_no or "").strip().isdigit() else LicenseKind.FOREIGN
 
 
+def _last_club_name_for_dog(dog_id: int, exclude_event_id: int | None = None):
+    """Jüngster nicht-leerer ``club_name`` aus früheren Anmeldungen desselben
+    Hundes — die ``Registration``-Zeilen SIND die Vereins-Historie (es gibt kein
+    separates Feld am Dog). Dient zum Vorbelegen des Vereins beim manuellen
+    Nachmelden, damit der Veranstalter nicht nachschlagen muss (Wunsch Chris
+    2026-11-27). ``club_name`` ist die SKG-Vereinsnummer (wie im AOA-Import)."""
+    q = (
+        db.select(Registration.club_name)
+        .filter(
+            Registration.dog_id == dog_id,
+            Registration.club_name.isnot(None),
+            Registration.club_name != "",
+            Registration.status != RegistrationStatus.CANCELLED,
+        )
+        .order_by(Registration.created_at.desc())
+    )
+    if exclude_event_id is not None:
+        q = q.filter(Registration.event_id != exclude_event_id)
+    for (club_name,) in db.session.execute(q.limit(5)).all():
+        value = (club_name or "").strip()
+        if value:
+            return value
+    return None
+
+
 @club_bp.get("/events/<int:event_id>/registrations/lookup")
 @login_required
 def registration_lookup(event_id):
@@ -2427,6 +2452,18 @@ def registration_lookup(event_id):
         handler_last_name = owner.person.last_name or ""
     handler_name = f"{handler_first_name} {handler_last_name}".strip()
 
+    # Zuletzt gemeldeter Verein (Vereinsnummer) + aufgelöster Name als Vorschlag.
+    suggested_club = _last_club_name_for_dog(dog.id, exclude_event_id=event_id)
+    club_display = ""
+    if suggested_club:
+        if suggested_club.isdigit():
+            club = db.session.execute(
+                db.select(Club).filter_by(vereinsnummer=suggested_club)
+            ).scalar_one_or_none()
+            club_display = club.name if club else suggested_club
+        else:
+            club_display = suggested_club
+
     return {
         "found": True,
         "license_no": license_no,
@@ -2440,6 +2477,8 @@ def registration_lookup(event_id):
         "handler_first_name": handler_first_name,
         "handler_last_name": handler_last_name,
         "already_registered": already,
+        "club_name": suggested_club or "",
+        "club_display": club_display,
     }
 
 
@@ -2548,6 +2587,13 @@ def registration_add(event_id):
                 dog_id=dog.id, person_id=person.id, role=DogOwnerRole.HANDLER,
             ))
 
+    # Verein: wenn der Veranstalter keinen angegeben hat, den zuletzt gemeldeten
+    # Verein dieses Hundes übernehmen (Wunsch Chris 2026-11-27) — spart das
+    # Nachschlagen. Das Formular ist via Lookup ohnehin vorbelegt; das hier ist
+    # der Server-seitige Fallback (z.B. wenn das JS nicht lief).
+    if not club_name:
+        club_name = _last_club_name_for_dog(dog.id, exclude_event_id=event_id) or ""
+
     # 4. Registrierung anlegen — vom Veranstalter erfasst → direkt bestätigt
     reg = Registration(
         event_id=event_id,
@@ -2560,8 +2606,20 @@ def registration_add(event_id):
         is_in_season=is_in_season if event.allows_bitches_in_season else False,
     )
     db.session.add(reg)
+
+    # Erste freie Startnummer nach Schema vergeben, SOFERN das Event bereits
+    # Startnummern erhalten hat (sonst bleibt sie None und wird bei der regulären
+    # Bulk-Vergabe mit erzeugt). Wiederverwendung der bestehenden Nachzügler-Logik
+    # aus dem AOA-Import (hängt ans Kategorie-Band an, kollidiert nie).
+    from app.blueprints.admin.routes_aoa_import import _next_start_number
+    reg.start_number = _next_start_number(event, category_full, class_level)
+
     db.session.commit()
-    flash(_("%(dog)s wurde hinzugefügt.", dog=dog.name), "success")
+    if reg.start_number is not None:
+        flash(_("%(dog)s wurde hinzugefügt (Startnummer %(nr)s).",
+                dog=dog.name, nr=reg.start_number), "success")
+    else:
+        flash(_("%(dog)s wurde hinzugefügt.", dog=dog.name), "success")
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
