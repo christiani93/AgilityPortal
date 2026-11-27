@@ -1188,6 +1188,10 @@
           <td class="small">{{ reg.category_code }} Kl.{{ reg.class_level }}</td>
           <td class="small">{% if reg.handler %}{{ reg.handler.first_name }} {{ reg.handler.last_name }}{% else %}—{% endif %}</td>
           <td class="text-end">
+            <form method="post" action="{{ url_for('club.registration_reactivate', reg_id=reg.id) }}" class="d-inline">
+              {{ run_form.hidden_tag() }}
+              <button class="btn btn-sm btn-outline-success" title="{{ _('Wieder einfügen (Startnummer zurück, falls gespeichert)') }}">↩ {{ _('Wieder einfügen') }}</button>
+            </form>
             <form method="post" action="{{ url_for('club.registration_delete', reg_id=reg.id) }}" class="d-inline"
                   onsubmit="return confirm('{{ _('Stornierte Anmeldung endgültig löschen?') }}')">
               {{ run_form.hidden_tag() }}

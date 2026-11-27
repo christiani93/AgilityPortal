@@ -2153,6 +2153,54 @@ def registration_delete(reg_id):
     return redirect(url_for("club.event_detail", event_id=event_id))
 
 
+@club_bp.post("/registrations/<int:reg_id>/reactivate")
+@login_required
+def registration_reactivate(reg_id):
+    """Fügt eine stornierte Anmeldung wieder ein (Veranstalter), Status → CONFIRMED.
+
+    Die Startnummer bleibt beim Stornieren erhalten (cancel/reject setzen nur den
+    Status) und wird hier zurückgegeben — es sei denn, sie ist inzwischen von einer
+    aktiven Anmeldung belegt; dann gibt es die erste freie Nummer nach Schema. War
+    keine gespeichert und hat das Event bereits Startnummern, wird ebenfalls die
+    erste freie vergeben (Wunsch Chris 2026-11-27)."""
+    reg = db.session.get(Registration, reg_id)
+    if not reg:
+        abort(404)
+    _assert_event_access(reg.event)
+    if reg.status != RegistrationStatus.CANCELLED:
+        flash(_("Nur stornierte Anmeldungen können wieder eingefügt werden."), "info")
+        return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+    event = reg.event
+    reg.status = RegistrationStatus.CONFIRMED
+
+    from app.blueprints.admin.routes_aoa_import import _next_start_number
+    if reg.start_number is not None:
+        # Gespeicherte Nummer nur zurückgeben, wenn sie nicht inzwischen von einer
+        # aktiven Anmeldung belegt ist (sonst Doppelvergabe).
+        taken = db.session.execute(
+            db.select(Registration.id).filter(
+                Registration.event_id == reg.event_id,
+                Registration.id != reg.id,
+                Registration.start_number == reg.start_number,
+                Registration.status != RegistrationStatus.CANCELLED,
+            )
+        ).first() is not None
+        if taken:
+            reg.start_number = _next_start_number(event, reg.category_code, reg.class_level)
+    else:
+        reg.start_number = _next_start_number(event, reg.category_code, reg.class_level)
+
+    db.session.commit()
+    dog_name = reg.dog.name if reg.dog else "?"
+    if reg.start_number is not None:
+        flash(_("%(dog)s wurde wieder eingefügt (Startnummer %(nr)s).",
+                dog=dog_name, nr=reg.start_number), "success")
+    else:
+        flash(_("%(dog)s wurde wieder eingefügt.", dog=dog_name), "success")
+    return redirect(url_for("club.event_detail", event_id=reg.event_id))
+
+
 @club_bp.post("/registrations/<int:reg_id>/toggle-in-season-admin")
 @login_required
 def registration_toggle_in_season_admin(reg_id):

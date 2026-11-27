@@ -501,3 +501,66 @@ def test_organiser_set_class_denied_for_foreign_club(app):
         assert resp.status_code == 403
         reg = db.session.get(M.Registration, reg_id)
         assert reg.category_code == "Medium"
+
+
+# --- Stornierte Anmeldung wieder einfügen (Wunsch Chris 2026-11-27) -----------
+
+def _make_reg(event_id, license_no, start_number=None,
+              status=M.RegistrationStatus.CANCELLED, category_code="Large", class_level=3):
+    dog = M.Dog(name="D" + license_no, license_no=license_no,
+                license_kind=M.LicenseKind.CH, category="L", class_level=class_level)
+    db.session.add(dog)
+    db.session.flush()
+    reg = M.Registration(event_id=event_id, dog_id=dog.id, category_code=category_code,
+                         class_level=class_level, status=status, start_number=start_number)
+    db.session.add(reg)
+    db.session.commit()
+    return reg.id
+
+
+def test_reactivate_restores_stored_start_number(app):
+    """Wieder einfügen → CONFIRMED und die beim Stornieren erhaltene Startnummer
+    kommt zurück."""
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id = _make_reg(event_id, "6001", start_number=1305)
+        client = app.test_client()
+        _login(client, admin_id)
+        resp = client.post(f"/club/registrations/{reg_id}/reactivate")
+        assert resp.status_code == 302
+        reg = db.session.get(M.Registration, reg_id)
+        assert reg.status == M.RegistrationStatus.CONFIRMED
+        assert reg.start_number == 1305
+
+
+def test_reactivate_reassigns_when_number_taken(app):
+    """Ist die alte Nummer inzwischen von einer aktiven Anmeldung belegt, gibt es
+    die erste freie nach Schema statt eines Duplikats."""
+    with app.app_context():
+        event_id, admin_id = _seed()
+        event = db.session.get(M.Event, event_id)
+        event.start_numbers_generated_at = datetime.utcnow()
+        event.startnumber_schema = '{"Large-3": 1301}'
+        _make_reg(event_id, "6002", start_number=1301, status=M.RegistrationStatus.CONFIRMED)
+        reg_id = _make_reg(event_id, "6003", start_number=1301)
+        client = app.test_client()
+        _login(client, admin_id)
+        client.post(f"/club/registrations/{reg_id}/reactivate")
+        reg = db.session.get(M.Registration, reg_id)
+        assert reg.status == M.RegistrationStatus.CONFIRMED
+        assert reg.start_number == 1302  # erste freie, kein Duplikat 1301
+
+
+def test_reactivate_rejects_non_cancelled(app):
+    """Nur stornierte Anmeldungen lassen sich wieder einfügen — sonst keine Änderung."""
+    with app.app_context():
+        event_id, admin_id = _seed()
+        reg_id = _make_reg(event_id, "6004", start_number=1307,
+                           status=M.RegistrationStatus.CONFIRMED)
+        client = app.test_client()
+        _login(client, admin_id)
+        resp = client.post(f"/club/registrations/{reg_id}/reactivate")
+        assert resp.status_code == 302
+        reg = db.session.get(M.Registration, reg_id)
+        assert reg.status == M.RegistrationStatus.CONFIRMED
+        assert reg.start_number == 1307
