@@ -58,6 +58,49 @@ def _decode_confirm_token(token: str) -> dict | None:
         return None
 
 
+_LIZENZCHECK_STATUSES = (
+    RegistrationStatus.PENDING,
+    RegistrationStatus.CONFIRMED,
+    RegistrationStatus.SUBMITTED,
+)
+
+
+def _lizenzcheck_rows(event_ids: list[int]) -> list[tuple[int, Registration]]:
+    """Geordnete Zeilenliste für CSV-Export UND Parser — EINE Zeile je
+    eindeutiger CH-Lizenznummer (erste verwendbare Anmeldung gewinnt). FOREIGN
+    sowie Anmeldungen ohne Hund/Hundeführer werden übersprungen.
+
+    Builder und Parser rufen DIESELBE Funktion auf, damit die Zeilennummer N im
+    TKAMO-Bericht immer auf dieselbe Lizenz zeigt. Reihenfolge innerhalb eines
+    Events: Kategorie, Klasse, id — Events in der übergebenen Reihenfolge.
+
+    Dedup auf Lizenz (Wunsch Chris 2026-11-27): ein Hund, der an mehreren Events
+    eines Wochenendes gemeldet ist, wurde sonst mehrfach an TKAMO geschickt → pro
+    Event derselbe Fehler. Eine Klassen-/Namenskorrektur wirkt weiterhin auf ALLE
+    Events des Hundes (der Rückweg sucht über die Lizenz/den Hund)."""
+    rows: list[tuple[int, Registration]] = []
+    seen: set[str] = set()
+    for event_id in event_ids:
+        regs = db.session.execute(
+            db.select(Registration)
+            .filter_by(event_id=event_id)
+            .filter(Registration.status.in_(_LIZENZCHECK_STATUSES))
+            .order_by(Registration.category_code, Registration.class_level, Registration.id)
+        ).scalars().all()
+        for reg in regs:
+            dog = reg.dog
+            if not dog or not reg.handler:
+                continue
+            if dog.license_kind == LicenseKind.FOREIGN:
+                continue
+            lic = (dog.license_no or "").strip()
+            if not lic or lic in seen:
+                continue
+            seen.add(lic)
+            rows.append((event_id, reg))
+    return rows
+
+
 # ── 0. Lizenzcheck-Auswahl (Multi-Event) ─────────────────────────────────────
 
 @club_bp.get("/lizenzcheck")
@@ -97,29 +140,15 @@ def event_lizenzcheck_csv(event_id):
         abort(404)
     _assert_event_access(event)
 
-    registrations = db.session.execute(
-        db.select(Registration)
-        .filter_by(event_id=event_id)
-        .filter(Registration.status.in_([
-            RegistrationStatus.PENDING,
-            RegistrationStatus.CONFIRMED,
-            RegistrationStatus.SUBMITTED,
-        ]))
-        .order_by(Registration.category_code, Registration.class_level, Registration.id)
-    ).scalars().all()
-
     output = io.StringIO()
     writer = csv.writer(output, delimiter=";", lineterminator="\r\n")
     writer.writerow(["Lizenznummer", "Kategorie", "Klasse", "Hundename",
                      "Vereinsnummer", "Vorname", "Nachname", "HF-Mail"])
 
-    for reg in registrations:
+    # Eine Zeile je eindeutiger CH-Lizenz (shared helper = identisch zum Parser).
+    for _ev_id, reg in _lizenzcheck_rows([event_id]):
         dog     = reg.dog
         handler = reg.handler
-        if not dog or not handler:
-            continue
-        if dog.license_kind == LicenseKind.FOREIGN:
-            continue
 
         # Vereinsnummer: primär aus dem AOA/SportyDog-Import (reg.club_name,
         # befüllt mit der dortigen "Vereinsnummer"-Spalte) — die meisten
@@ -188,21 +217,7 @@ def club_lizenzcheck_multi_csv():
         _assert_event_access(event)
         events.append(event)
 
-    # Registrierungen aus allen Events sammeln
-    all_regs = []
-    for event_id in event_ids:
-        regs = db.session.execute(
-            db.select(Registration)
-            .filter_by(event_id=event_id)
-            .filter(Registration.status.in_([
-                RegistrationStatus.PENDING,
-                RegistrationStatus.CONFIRMED,
-                RegistrationStatus.SUBMITTED,
-            ]))
-            .order_by(Registration.category_code, Registration.class_level, Registration.id)
-        ).scalars().all()
-        for reg in regs:
-            all_regs.append((event_id, reg))
+    events_by_id = {e.id: e for e in events}
 
     output = io.StringIO()
     writer = csv.writer(output, delimiter=";", lineterminator="\r\n")
@@ -210,16 +225,15 @@ def club_lizenzcheck_multi_csv():
     writer.writerow(["Event", "Lizenznummer", "Kategorie", "Klasse", "Hundename",
                      "Vereinsnummer", "Vorname", "Nachname", "HF-Mail"])
 
-    for event_id, reg in all_regs:
+    # Eine Zeile je eindeutiger CH-Lizenz ÜBER ALLE Events (shared helper =
+    # identisch zum Parser): ein Hund an mehreren Wochenend-Events wird nur EINMAL
+    # an TKAMO geschickt, statt pro Event denselben Fehler zu erzeugen.
+    for event_id, reg in _lizenzcheck_rows(event_ids):
         dog     = reg.dog
         handler = reg.handler
-        if not dog or not handler:
-            continue
-        if dog.license_kind == LicenseKind.FOREIGN:
-            continue
 
-        # Event-Name oder Datum
-        event = db.session.get(Event, event_id)
+        # Event-Name oder Datum (repräsentatives Event der Lizenz)
+        event = events_by_id.get(event_id)
         event_label = event.name if event else f"Event {event_id}"
 
         # Vereinsnummer (wie im Single-Event-Export)
@@ -263,30 +277,11 @@ def _parse_and_apply_tkamo_multi(events: list, report_text: str) -> tuple[list, 
 	"""
 	event_ids = [e.id for e in events]
 
-	# Zeilennummer → (license_no, event_id) aufbauen
-	# Events in der gleichen Reihenfolge wie im TKAMO-Export (Sortierung!)
-	regs_by_event = {}
-	for event_id in event_ids:
-		regs = db.session.execute(
-			db.select(Registration)
-			.filter_by(event_id=event_id)
-			.filter(Registration.status.in_([
-				RegistrationStatus.PENDING,
-				RegistrationStatus.CONFIRMED,
-				RegistrationStatus.SUBMITTED,
-			]))
-			.order_by(Registration.category_code, Registration.class_level, Registration.id)
-		).scalars().all()
-		regs_by_event[event_id] = regs
-
-	# Row-Mapping
+	# Zeilennummer → (license_no, event_id) — IDENTISCHE Dedup/Reihenfolge wie der
+	# CSV-Export (shared helper), damit "Zeile N" immer auf dieselbe Lizenz zeigt.
 	row_to_license_event: dict[int, tuple[str, int]] = {}
-	row_num = 2  # Header
-	for event_id in event_ids:
-		for reg in regs_by_event[event_id]:
-			if reg.dog and reg.dog.license_kind != LicenseKind.FOREIGN:
-				row_to_license_event[row_num] = (reg.dog.license_no, event_id)
-				row_num += 1
+	for _i, (event_id, reg) in enumerate(_lizenzcheck_rows(event_ids)):
+		row_to_license_event[_i + 2] = (reg.dog.license_no, event_id)
 
 	# Reply-To vom ersten Event
 	reply_to = None
@@ -467,26 +462,11 @@ def _parse_and_apply_tkamo(event, report_text: str) -> tuple[list, list, list]:
     """
     event_id = event.id
 
-    # Zeilennummer → Lizenznummer aufbauen (gleiche Reihenfolge wie CSV-Export)
-    regs = db.session.execute(
-        db.select(Registration)
-        .filter_by(event_id=event_id)
-        .filter(Registration.status.in_([
-            RegistrationStatus.PENDING,
-            RegistrationStatus.CONFIRMED,
-            RegistrationStatus.SUBMITTED,
-        ]))
-        .order_by(Registration.category_code, Registration.class_level, Registration.id)
-    ).scalars().all()
-
-    # Nur CH-Lizenzen zählen — identische Reihenfolge wie CSV-Export
-    # (FOREIGN werden im CSV übersprungen, dürfen hier nicht mitzählen)
+    # Zeilennummer → Lizenznummer — IDENTISCHE Dedup/Reihenfolge wie der
+    # CSV-Export (shared helper), damit "Zeile N" immer auf dieselbe Lizenz zeigt.
     row_to_license: dict[int, str] = {}
-    row_num = 2  # Zeile 1 = Header
-    for reg in regs:
-        if reg.dog and reg.dog.license_kind != LicenseKind.FOREIGN:
-            row_to_license[row_num] = reg.dog.license_no
-            row_num += 1
+    for _i, (_ev_id, reg) in enumerate(_lizenzcheck_rows([event_id])):
+        row_to_license[_i + 2] = reg.dog.license_no
 
     # Reply-To = Vereins-E-Mail des Veranstalters
     reply_to = None

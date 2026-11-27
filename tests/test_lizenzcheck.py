@@ -15,10 +15,11 @@ import csv
 import io
 
 from app.extensions import db
-from app.models import Dog, Event, LicenseKind, Registration, RegistrationStatus
+from app.models import Dog, Event, LicenseKind, Person, Registration, RegistrationStatus
 from app.blueprints.club.routes_lizenzcheck import (
     _parse_and_apply_tkamo,
     _parse_and_apply_tkamo_multi,
+    _lizenzcheck_rows,
     _make_confirm_token,
     _decode_confirm_token,
 )
@@ -32,11 +33,15 @@ def _make_event_with_regs(n: int):
     dogs = []
     for i in range(n):
         dog = Dog(name=f"Dog{i}", license_no=str(10000 + i), license_kind=LicenseKind.CH)
-        db.session.add(dog)
+        # Jede Anmeldung hat einen Hundeführer — der CSV-Export (und damit der
+        # Lizenzcheck) überspringt Anmeldungen ohne Hundeführer grundsätzlich.
+        person = Person(first_name=f"HF{i}", last_name="Test", email=f"hf{i}@test.ch")
+        db.session.add_all([dog, person])
         db.session.flush()
         reg = Registration(
             event_id=event.id,
             dog_id=dog.id,
+            handler_id=person.id,
             status=RegistrationStatus.CONFIRMED,
             class_level=1,
             category_code="Large",  # bewusst identisch → Gleichstand-Fall
@@ -96,6 +101,33 @@ def test_dog_name_mismatch_via_zeile_uses_stable_order(app):
         # Zeile 3 = zweiter Datensatz (Zeile 1 ist der Header)
         assert dogs[1].tka_name == "Piwie"
         assert dogs[0].tka_name is None  # unverändert
+
+
+def test_lizenzcheck_rows_dedups_within_event_and_skips_foreign(app):
+    """Single-Event: ein mehrfach gemeldeter CH-Hund ergibt nur EINE Zeile;
+    FOREIGN-Lizenzen werden übersprungen (wie im CSV-Export)."""
+    with app.app_context():
+        event = Event(name="E")
+        db.session.add(event)
+        db.session.flush()
+        person = Person(first_name="A", last_name="B", email="a@b.ch")
+        ch = Dog(name="Ch", license_no="20001", license_kind=LicenseKind.CH)
+        foreign = Dog(name="Fo", license_no="GER-123", license_kind=LicenseKind.FOREIGN)
+        db.session.add_all([person, ch, foreign])
+        db.session.flush()
+        # derselbe CH-Hund zweimal im selben Event (es gibt keinen Unique-Constraint)
+        for cls in (1, 2):
+            db.session.add(Registration(
+                event_id=event.id, dog_id=ch.id, handler_id=person.id,
+                status=RegistrationStatus.CONFIRMED, class_level=cls, category_code="Large"))
+        db.session.add(Registration(
+            event_id=event.id, dog_id=foreign.id, handler_id=person.id,
+            status=RegistrationStatus.CONFIRMED, class_level=1, category_code="Large"))
+        db.session.commit()
+
+        rows = _lizenzcheck_rows([event.id])
+        licenses = [reg.dog.license_no for _ev, reg in rows]
+        assert licenses == ["20001"]  # CH-Hund nur einmal, FOREIGN raus
 
 
 # ── Multi-Event-Tests ───────────────────────────────────────────────────────
@@ -206,43 +238,16 @@ def test_multi_event_csv_export_combines_events(app):
         db.session.add(reg2_1)
         db.session.commit()
 
-        # CSV export simulieren (intern in Flask-Route,
-        # hier testen wir die Logik direkt)
-        from flask import Flask
-        from werkzeug.test import EnvironBuilder
-        from werkzeug.wrappers import Request
-
-        # Simulate gathering regs
-        all_regs = []
-        for event_id in [event1.id, event2.id]:
-            regs = db.session.execute(
-                db.select(Registration)
-                .filter_by(event_id=event_id)
-                .filter(
-                    Registration.status.in_(
-                        [
-                            RegistrationStatus.PENDING,
-                            RegistrationStatus.CONFIRMED,
-                            RegistrationStatus.SUBMITTED,
-                        ]
-                    )
-                )
-                .order_by(
-                    Registration.category_code,
-                    Registration.class_level,
-                    Registration.id,
-                )
-            ).scalars().all()
-            for reg in regs:
-                all_regs.append((event_id, reg))
-
-        # Verifiziere Struktur: 3 Zeilen (2 Events + kombiniert)
-        assert len(all_regs) == 3
-        # Event 1: 2 Regs
-        assert all_regs[0][0] == event1.id
-        assert all_regs[1][0] == event1.id
-        # Event 2: 1 Reg
-        assert all_regs[2][0] == event2.id
+        # Multi-Event-Dedup (Bugfix 2026-11-27): dog1 ist in BEIDEN Events
+        # gemeldet, darf aber nur EINMAL an TKAMO geschickt werden — sonst kommt
+        # pro Event derselbe Fehler zurück. Builder UND Parser nutzen dieselbe
+        # Zeilenquelle _lizenzcheck_rows.
+        rows = _lizenzcheck_rows([event1.id, event2.id])
+        by_license = {reg.dog.license_no: ev for ev, reg in rows}
+        assert len(rows) == 2                        # je Lizenz genau EINE Zeile
+        assert set(by_license) == {"10001", "10002"}  # keine Duplikate (vorher 3)
+        # dog1 wird seinem ERSTEN Vorkommen (Samstag/event1) zugeordnet, nicht Sonntag
+        assert by_license["10001"] == event1.id
 
 
 def test_multi_event_confirm_updates_all_registrations(app):
